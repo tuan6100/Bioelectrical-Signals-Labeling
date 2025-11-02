@@ -1,7 +1,12 @@
 import EmgChart from "./components/EmgChart";
+import {createRoot} from "react-dom/client";
 
-export default function App() {
+function App() {
     return (
         <EmgChart/>
     )
 }
+
+createRoot(document.getElementById('root')).render(
+    <App />
+)
