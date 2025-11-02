@@ -32,5 +32,32 @@
   },
   "dependencies": {
     "electron-squirrel-startup": "^1.0.1"
+  },
+  "config": {
+    "forge": {
+      "plugins": [
+        {
+          "name": "@electron-forge/plugin-vite",
+          "config": {
+            "build": [
+              {
+                "entry": "src/main/main.js",
+                "config": "vite.main.config.mjs"
+              },
+              {
+                "entry": "src/main/preload.js",
+                "config": "vite.preload.config.mjs"
+              }
+            ],
+            "renderer": [
+              {
+                "name": "main_window",
+                "config": "vite.renderer.config.mjs"
+              }
+            ]
+          }
+        }
+      ]
+    }
   }
 }
