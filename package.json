@@ -28,36 +28,14 @@
     "@electron-forge/plugin-vite": "^7.10.2",
     "@electron/fuses": "^1.8.0",
     "electron": "39.0.0",
-    "vite": "^5.4.21"
+    "vite": "^5.4.21",
+    "@vitejs/plugin-react": "^5.1.0"
+
   },
   "dependencies": {
-    "electron-squirrel-startup": "^1.0.1"
-  },
-  "config": {
-    "forge": {
-      "plugins": [
-        {
-          "name": "@electron-forge/plugin-vite",
-          "config": {
-            "build": [
-              {
-                "entry": "src/main/main.js",
-                "config": "vite.main.config.mjs"
-              },
-              {
-                "entry": "src/main/preload.js",
-                "config": "vite.preload.config.mjs"
-              }
-            ],
-            "renderer": [
-              {
-                "name": "main_window",
-                "config": "vite.renderer.config.mjs"
-              }
-            ]
-          }
-        }
-      ]
-    }
+    "electron-squirrel-startup": "^1.0.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.9.5"
   }
 }
