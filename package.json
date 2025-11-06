@@ -4,18 +4,28 @@
   "version": "1.0.0",
   "description": "My Electron application description",
   "main": ".vite/build/main.js",
+  "type": "module",
   "scripts": {
-    "start": "electron-forge start",
-    "package": "electron-forge package",
+    "start:app": "electron-forge start",
+    "start:web": "vite --host",
+    "build:app": "electron-forge package",
+    "build:web": "vite build",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
     "lint": "echo \"No linting configured\""
   },
-  "keywords": ["electron", "react", "vite"],
+  "keywords": [
+    "electron",
+    "react",
+    "vite"
+  ],
   "license": "Apache-2.0",
   "dependencies": {
+    "chart.js": "^4.5.1",
+    "chartjs-plugin-zoom": "^2.2.0",
     "electron-squirrel-startup": "^1.0.1",
     "react": "^19.2.0",
+    "react-chartjs-2": "^5.3.1",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.9.5"
   },
@@ -29,8 +39,8 @@
     "@electron-forge/plugin-fuses": "^7.10.2",
     "@electron-forge/plugin-vite": "^7.10.2",
     "@electron/fuses": "^1.8.0",
+    "@vitejs/plugin-react": "^5.1.0",
     "electron": "39.0.0",
-    "vite": "^5.4.21",
-    "@vitejs/plugin-react": "^5.1.0"
+    "vite": "^5.4.21"
   }
 }
