@@ -26,8 +26,9 @@
  * ```
  */
 
-import './index.css';
+import '../common/index.css';
+import '../common/main.jsx'
 
 console.log(
-  '👋 This message is being logged by "renderer.js", included via Vite',
+    '👋 This message is being logged by "renderer.js", included via Vite '
 );

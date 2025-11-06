@@ -1,7 +1,7 @@
-const { FusesPlugin } = require('@electron-forge/plugin-fuses');
-const { FuseV1Options, FuseVersion } = require('@electron/fuses');
+import { FusesPlugin } from '@electron-forge/plugin-fuses';
+import { FuseV1Options, FuseVersion } from '@electron/fuses';
 
-module.exports = {
+const config = {
   packagerConfig: {
     asar: true,
   },
@@ -33,20 +33,18 @@ module.exports = {
         build: [
           {
             // `entry` is just an alias for `build.lib.entry` in the corresponding file of `config`.
-            entry: 'src/main/main.js',
-            config: 'vite.main.config.mjs',
+            config: 'vite.main.config.js',
             target: 'main',
           },
           {
-            entry: 'src/main/preload.js',
-            config: 'vite.preload.config.mjs',
+            config: 'vite.preload.config.js',
             target: 'preload',
           },
         ],
         renderer: [
           {
             name: 'main_window',
-            config: 'vite.renderer.config.mjs',
+            config: 'vite.renderer.config.js',
           },
         ],
       },
@@ -64,3 +62,5 @@ module.exports = {
     }),
   ],
 };
+
+export default config
