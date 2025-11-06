@@ -1,8 +1,6 @@
-import EmgChart from "./components/EmgChart.jsx";
-
 function App() {
     return (
-        <EmgChart/>
+        <h1>Hello World</h1>
     )
 }
 
