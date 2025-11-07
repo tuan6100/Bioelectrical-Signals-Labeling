@@ -52,7 +52,7 @@ const createWindow = () => {
                 { type: 'separator' },
                 {
                     label: 'Exit',
-                    accelerator: 'CmdOrCtrl+Q',
+                    accelerator: 'Alt+F4',
                     click: () => {
                         app.quit();
                     },
