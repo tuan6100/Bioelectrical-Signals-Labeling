@@ -2,7 +2,6 @@
 import { app, BrowserWindow, Menu, dialog } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
-import { readFile } from './data/data_reader.js';
 import { fileURLToPath } from 'node:url';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
@@ -22,46 +21,6 @@ const createWindow = () => {
             preload: path.join(__dirname, 'preload.js'),
         },
     });
-
-    let lastOpenedDir = app.getPath('documents');
-    const template = [
-        {
-            label: 'File',
-            submenu: [
-                {
-                    label: 'Open',
-                    accelerator: 'CmdOrCtrl+O',
-                    click: async () => {
-                        const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
-                            title: 'Open Text File',
-                            defaultPath: lastOpenedDir,
-                            properties: ['openFile'],
-                            filters: [{ name: 'Text Files', extensions: ['txt'] }],
-                        });
-                        if (canceled || filePaths.length === 0) return;
-                        const filePath = filePaths[0];
-                        try {
-                            const json  = readFile(filePath);
-                            lastOpenedDir = path.dirname(filePath);
-                            mainWindow.webContents.send("emg-data", json);
-                        } catch (err) {
-                            console.error('Failed to read file:', err);
-                        }
-                    },
-                },
-                { type: 'separator' },
-                {
-                    label: 'Exit',
-                    accelerator: 'Alt+F4',
-                    click: () => {
-                        app.quit();
-                    },
-                },
-            ],
-        },
-    ];
-    const menu = Menu.buildFromTemplate(template);
-    Menu.setApplicationMenu(menu);
 
     // and load the index.html of the app.
     if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
