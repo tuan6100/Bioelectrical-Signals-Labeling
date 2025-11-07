@@ -1,6 +1,6 @@
 {
-  "name": "emg-tool",
-  "productName": "emg-tool",
+  "name": "biosignal-tool",
+  "productName": "Biosignal Labeling",
   "version": "1.0.0",
   "description": "My Electron application description",
   "main": ".vite/build/main.js",
@@ -12,11 +12,17 @@
     "build:web": "vite build",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
-    "lint": "echo \"No linting configured\""
+    "lint": "echo \"No linting configured\"",
+    "rebuild": "electron-rebuild -f -w better-sqlite3"
   },
-  "keywords": ["electron", "react", "vite"],
+  "keywords": [
+    "electron",
+    "react",
+    "vite"
+  ],
   "license": "Apache-2.0",
   "dependencies": {
+    "better-sqlite3": "^12.4.1",
     "electron-squirrel-startup": "^1.0.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
@@ -34,7 +40,6 @@
     "@electron/fuses": "^1.8.0",
     "@vitejs/plugin-react": "^5.1.0",
     "electron": "39.0.0",
-    "vite": "^5.4.21",
-    "@vitejs/plugin-react": "^5.1.0"
+    "vite": "^5.4.21"
   }
 }
