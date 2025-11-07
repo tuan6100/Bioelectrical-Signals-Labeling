@@ -25,9 +25,7 @@ function parseEmgText(text) {
         if (sectionMatch) {
             const [, pathStr, name] = sectionMatch;
             const rest = line.slice(sectionMatch[0].length).trim();
-
             currentObj = setDeepByName(result, pathStr, name);
-
             if (rest) {
                 const kvInline = rest.match(/^([^=]+)=(.*)$/);
                 if (kvInline) {
@@ -58,7 +56,6 @@ function setDeepByName(obj, pathStr, sectionName) {
     }
     const lastPart = sectionName;
     if (!current[lastPart]) current[lastPart] = {};
-
     return current[lastPart];
 }
 
