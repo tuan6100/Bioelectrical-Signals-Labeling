@@ -5,7 +5,10 @@ const config = {
   packagerConfig: {
     asar: true,
   },
-  rebuildConfig: {},
+  rebuildConfig: {
+      force: true,
+      which_module: true
+},
   makers: [
     {
       name: '@electron-forge/maker-squirrel',
@@ -60,6 +63,10 @@ const config = {
       [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
       [FuseV1Options.OnlyLoadAppFromAsar]: true,
     }),
+    {
+       name: '@electron-forge/plugin-auto-unpack-natives',
+       config: {}
+    }
   ],
 };
 
