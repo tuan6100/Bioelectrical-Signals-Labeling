@@ -4,6 +4,7 @@ import path from 'node:path';
 import started from 'electron-squirrel-startup';
 import { readFile } from './data/data_reader.js';
 import { fileURLToPath } from 'node:url';
+import db from "./persistent/connection/sqlite.connection.js";
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -77,10 +78,15 @@ const createWindow = () => {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 app.whenReady().then(() => {
-    createWindow();
+    const win = createWindow();
+    try {
+        db.initSchema();
+        console.log('Database schema initialized.');
+    } catch (err) {
+        console.error('Failed to initialize database schema:', err);
+        win.webContents.send('db-error', { message: 'Database initialization failed.' });
+    }
 
-    // On OS X it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) {
             createWindow();

@@ -12,7 +12,7 @@ export default defineConfig({
             fileName: () => 'main.js',
         },
         rollupOptions: {
-            external: ['react', 'react-dom'],
+            external: ['react', 'react-dom', 'better-sqlite3'],
         },
     },
 });

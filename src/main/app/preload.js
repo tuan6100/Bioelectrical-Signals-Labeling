@@ -10,4 +10,6 @@ contextBridge.exposeInMainWorld("electron", {
         ipcRenderer.on(
             "emg-data",
             (event, data) => callback(data)),
+
 });
+
