@@ -3,9 +3,9 @@ export function findKeyValue(obj, pattern) {
     let result = null;
     (function search(o) {
         if (!o || typeof o !== "object") return;
-        for (const [key, value] of Object.entries(o)) {
-            if (regex.test(key)) result = value;
-            if (typeof value === "object") search(value);
+        for (const [k, v] of Object.entries(o)) {
+            if (regex.test(k)) result = v;
+            if (typeof v === "object") search(v);
         }
     })(obj);
     return result;
