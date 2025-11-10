@@ -4,7 +4,7 @@ import path from 'node:path';
 import started from 'electron-squirrel-startup';
 import { readFile } from './data/data_reader.js';
 import { fileURLToPath } from 'node:url';
-import db from "./persistent/connection/sqlite.connection.js";
+import db from "./persistence/connection/sqlite.connection.js";
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -73,6 +73,7 @@ const createWindow = () => {
 
     // Open the DevTools.
     // mainWindow.webContents.openDevTools();
+    return mainWindow
 };
 
 // This method will be called when Electron has finished
@@ -81,17 +82,11 @@ app.whenReady().then(() => {
     const win = createWindow();
     try {
         db.initSchema();
-        console.log('Database schema initialized.');
-    } catch (err) {
-        console.error('Failed to initialize database schema:', err);
-        win.webContents.send('db-error', { message: 'Database initialization failed.' });
+        win.webContents.send('db-status', { ok: true });
+    } catch (e) {
+        console.error(e);
+        win.webContents.send('db-status', { ok: false, message: e.message });
     }
-
-    app.on('activate', () => {
-        if (BrowserWindow.getAllWindows().length === 0) {
-            createWindow();
-        }
-    });
 });
 
 // Quit when all windows are closed, except on macOS.

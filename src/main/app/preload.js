@@ -2,7 +2,7 @@
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
 import { contextBridge, ipcRenderer } from "electron";
 
-// Use window.IN_DESKTOP_ENV to check if the react app is running on electron
+// Use window.IN_DESKTOP_ENV to check if the React app is running on electron
 contextBridge.exposeInMainWorld("IN_DESKTOP_ENV", true);
 
 contextBridge.exposeInMainWorld("electron", {
