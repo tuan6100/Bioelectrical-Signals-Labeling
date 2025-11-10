@@ -12,10 +12,10 @@ export function readFile(filePath) {
 
 function parseEmgText(text) {
     text = text.replace(/\/\r?\n/g, "");
+    text = text.replace(/(-?\d+),(\d+)/g, "$1.$2");
     const lines = text.split(/\r?\n/);
     const result = {};
     let currentObj = null;
-
     for (const rawLine of lines) {
         const line = rawLine.trim();
         if (!line) continue;
@@ -58,8 +58,6 @@ function setDeepByName(obj, pathStr, sectionName) {
     if (!current[lastPart]) current[lastPart] = {};
     return current[lastPart];
 }
-
-
 
 function getStoragePath() {
     const baseDir = app.getPath('userData');
