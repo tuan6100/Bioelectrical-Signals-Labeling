@@ -1,41 +1,34 @@
-import fs, { closeSync, openSync, readSync } from "fs";
-import path from "node:path";
-import {saveJson} from "../writer/json.writer.js";
+import fs from "fs"
+import path from "node:path"
+import {saveJson} from "../writer/json.writer.js"
+import {isNatusSignature} from "./input-validation.reader.js";
 
 function isTxt(filePath) {
     return path.extname(filePath).toLowerCase() === '.txt'
-}
-
-function getFileEncoding(filePath) {
-    const byteOrderMark = Buffer.alloc(5, 0); // Generate an empty BOM.
-    const fileDescriptor = openSync(filePath, 'r');
-    readSync(fileDescriptor, byteOrderMark, 0, 5, 0);
-    closeSync(fileDescriptor);
-    let encoding;
-    if (
-        !encoding &&
-        byteOrderMark[0] === 0xef &&
-        byteOrderMark[1] === 0xbb &&
-        byteOrderMark[2] === 0xbf
-    ) encoding = 'utf8';
-    if (!encoding && byteOrderMark[0] === 0xfe && byteOrderMark[1] === 0xff) encoding = 'utf16be';
-    if (!encoding && byteOrderMark[0] === 0xff && byteOrderMark[1] === 0xfe) encoding = 'utf16le';
-    if (!encoding) encoding = 'unknown';
-    return encoding;
 }
 
 export function readFile(inputPath, outputPath) {
     if (!isTxt(inputPath)) {
         throw new Error("This file extension is not supported")
     }
-    const content = fs.readFileSync(inputPath, { encoding: getFileEncoding(inputPath), flag: 'r' })
-        .replace(/\r\n|\r|\n/g, '\n');
-    const jsonParsed = parseText(content);
-    saveJson(jsonParsed, outputPath);
+    const content = fs.readFileSync(inputPath, {
+        encoding: 'utf-16le',
+        flag: 'r'
+    }).replace(/\r\n|\r|\n/g, '\n')
+    if (!isNatusSignature(content)) {
+        throw new Error("Not Natus data")
+    }
+    console.log(content.length)
+    const jsonParsed = parseText(content)
+    console.log(jsonParsed)
+    saveJson(jsonParsed, outputPath)
     return jsonParsed
 }
 
 function parseText(text) {
+    if (text.length === 0) {
+        throw new Error("File must not be empty")
+    }
     text = text.replace(/\/\r?\n/g, "");
     text = text.replace(/(-?\d+),(\d+)/g, "$1.$2");
     const lines = text.split(/\r?\n/);
