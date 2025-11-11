@@ -3,9 +3,11 @@ import { app, BrowserWindow, Menu, dialog, globalShortcut } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
 import { fileURLToPath } from 'node:url';
-import { Worker } from 'worker_threads';
 import db from "./persistence/connection/sqlite.connection.js";
 import { readFile } from "./domain/services/file/reader/txt.reader.js";
+import { fork } from 'node:child_process';
+import fs from "fs";
+import {processAndStoreData} from "./domain/services/data/store/store.data.received.js";
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -46,42 +48,19 @@ const createWindow = () => {
                         const outputBaseDir = app.getPath('userData');
                         const outputStorageDir = path.join(outputBaseDir, 'Local Storage');
                         const outputPath = path.join(outputStorageDir, 'data.json');
+
                         try {
-                            const json  = readFile(inputPath, outputPath);
-                            const workerPath = './src/main/app/domain/services/data/received/store.data.worker.js'
-                            const worker = new Worker(workerPath, {
-                                workerData: { json, outputPath }
-                            });
-                            worker.on('message', (result) => {
-                                if (result.success) {
-                                    console.log('Data stored successfully in worker thread');
-                                    mainWindow.webContents.send("store-data-complete", { success: true });
-                                } else {
-                                    console.error('Worker thread failed:', result.error);
-                                    mainWindow.webContents.send("store-data-complete", {
-                                        success: false,
-                                        error: result.error
-                                    });
-                                }
-                            });
-
-                            worker.on('error', (error) => {
-                                console.error('Worker thread error:', error);
-                                mainWindow.webContents.send("store-data-complete", {
-                                    success: false,
-                                    error: error.message
-                                });
-                            });
-
-                            worker.on('exit', (code) => {
-                                if (code !== 0) {
-                                    console.error(`Worker stopped with exit code ${code}`);
-                                }
-                            });
-                            mainWindow.webContents.send("emg-data", json);
+                            const {json, metadata}  = readFile(inputPath, outputPath);
+                            if (json === null) {
+                                mainWindow.webContents.send("open-session", metadata.metadata);
+                            } else {
+                                processAndStoreData(json, metadata.metadata);
+                                mainWindow.webContents.send("display-plot", json);
+                            }
                         } catch (err) {
                             console.error('Failed to read or process file:', err);
                         } finally {
+                            fs.writeFile(outputPath, '', () => {})
                             lastOpenedDir = path.dirname(inputPath);
                         }
                     },
