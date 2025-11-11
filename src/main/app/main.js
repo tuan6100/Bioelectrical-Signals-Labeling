@@ -1,10 +1,11 @@
 // src/main/main.js
-import { app, BrowserWindow, Menu, dialog } from 'electron';
+import { app, BrowserWindow, Menu, dialog, globalShortcut } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
-import { readFile } from './data/data_reader.js';
 import { fileURLToPath } from 'node:url';
 import db from "./persistence/connection/sqlite.connection.js";
+import {readFile} from "./domain/services/file/reader/txt.reader.js";
+import fs from "fs";
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -40,10 +41,13 @@ const createWindow = () => {
                             filters: [{ name: 'Text Files', extensions: ['txt'] }],
                         });
                         if (canceled || filePaths.length === 0) return;
-                        const filePath = filePaths[0];
+                        const inputPath = filePaths[0];
+                        const outputBaseDir = app.getPath('userData');
+                        const outputStorageDir = path.join(outputBaseDir, 'Local Storage');
+                        const outputPath = path.join(outputStorageDir, 'data.json');
                         try {
-                            const json  = readFile(filePath);
-                            lastOpenedDir = path.dirname(filePath);
+                            const json  = readFile(inputPath, outputPath);
+                            lastOpenedDir = path.dirname(inputPath);
                             mainWindow.webContents.send("emg-data", json);
                         } catch (err) {
                             console.error('Failed to read file:', err);
@@ -71,8 +75,6 @@ const createWindow = () => {
         mainWindow.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`));
     }
 
-    // Open the DevTools.
-    // mainWindow.webContents.openDevTools();
     return mainWindow
 };
 
@@ -86,6 +88,16 @@ app.whenReady().then(() => {
     } catch (e) {
         console.error(e);
         win.webContents.send('db-status', { ok: false, message: e.message });
+    }
+    // Toggle full screen
+    globalShortcut.register('F11', () => {
+        win.setFullScreen(!win.isFullScreen());
+    })
+    // Open the DevTools.
+    if (process.env.BUILD_TYPE === 'dev') {
+        globalShortcut.register('Ctrl+F12',  () => {
+            win.webContents.toggleDevTools();
+        })
     }
 });
 

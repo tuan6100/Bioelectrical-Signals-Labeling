@@ -33,9 +33,5 @@ console.log(
     '👋 This message is being logged by "renderer.js", included via Vite '
 );
 
-if (window.IN_DESKTOP_ENV) {
-    console.info(`Desktop app is detected`)
-} else {
-    console.info("Web browser is detected")
-}
+
 

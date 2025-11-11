@@ -72,9 +72,10 @@ const ddl = `
 
 db.initSchema = function() {
     db.exec(ddl);
-    db.prepare(
-        'INSERT OR IGNORE INTO labels (name) VALUES (?)'
-    ).run('Unknown');
+    const stmt = db.prepare('INSERT OR IGNORE INTO labels (name) VALUES (?)');
+    stmt.run('Unknown');
+    stmt.run('Pending');
 };
+
 
 export default db;

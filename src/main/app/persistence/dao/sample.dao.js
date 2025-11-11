@@ -45,7 +45,6 @@ Sample.prototype.findOneById = function (sampleId) {
         WHERE sample_id = ?
     `)
     const row = query.get(sampleId)
-
     if (!row) return null
 
     return new Sample(
