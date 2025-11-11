@@ -1,22 +1,23 @@
 import db from "../connection/sqlite.connection.js";
 
-export default function Annotation(
-    annotationId,
-    sessionId,
-    labelId,
-    startTimeMs,
-    endTimeMs,
-    note
-) {
-    this.annotationId = annotationId
-    this.sessionId = sessionId
-    this.labelId = labelId
-    this.startTimeMs = startTimeMs
-    this.endTimeMs = endTimeMs
-    this.note = note
-}
+export default class Annotation {
+    constructor(
+        annotationId,
+        sessionId,
+        labelId,
+        startTimeMs,
+        endTimeMs,
+        note
+    ) {
+        this.annotationId = annotationId
+        this.sessionId = sessionId
+        this.labelId = labelId
+        this.startTimeMs = startTimeMs
+        this.endTimeMs = endTimeMs
+        this.note = note
+    }
 
-Annotation.prototype.insert = function (annotation) {
+    insert(annotation) {
     const query = db.prepare(`
         INSERT INTO annotations (
             session_id, label_id, start_time_ms, end_time_ms, note
@@ -34,7 +35,7 @@ Annotation.prototype.insert = function (annotation) {
     return annotation
 }
 
-Annotation.prototype.findOneById = function (annotationId) {
+    findOneById(annotationId) {
     const query = db.prepare(`
         SELECT 
             annotation_id, session_id, label_id, start_time_ms, end_time_ms, note
@@ -53,7 +54,7 @@ Annotation.prototype.findOneById = function (annotationId) {
     )
 }
 
-Annotation.prototype.findAll = function () {
+    findAll() {
     const query = db.prepare(`
         SELECT 
             annotation_id, session_id, label_id, start_time_ms, end_time_ms, note
@@ -71,7 +72,7 @@ Annotation.prototype.findAll = function () {
     ))
 }
 
-Annotation.prototype.findBySessionId = function (sessionId) {
+    findBySessionId(sessionId) {
     const query = db.prepare(`
         SELECT 
             annotation_id, session_id, label_id, start_time_ms, end_time_ms, note
@@ -90,7 +91,7 @@ Annotation.prototype.findBySessionId = function (sessionId) {
     ))
 }
 
-Annotation.prototype.findByLabelId = function (labelId) {
+    findByLabelId(labelId) {
     const query = db.prepare(`
         SELECT 
             annotation_id, session_id, label_id, start_time_ms, end_time_ms, note
@@ -109,7 +110,7 @@ Annotation.prototype.findByLabelId = function (labelId) {
     ))
 }
 
-Annotation.prototype.findByTimeRange = function (sessionId, startMs, endMs) {
+    findByTimeRange(sessionId, startMs, endMs) {
     const query = db.prepare(`
         SELECT 
             annotation_id, session_id, label_id, start_time_ms, end_time_ms, note
@@ -130,7 +131,7 @@ Annotation.prototype.findByTimeRange = function (sessionId, startMs, endMs) {
     ))
 }
 
-Annotation.prototype.update = function (annotationId, updateFields) {
+    static update(annotationId, updateFields) {
     const fields = Object.keys(updateFields)
     if (fields.length === 0) return null
     const fieldMap = {
@@ -140,7 +141,6 @@ Annotation.prototype.update = function (annotationId, updateFields) {
         endTimeMs: 'end_time_ms',
         note: 'note'
     }
-
     const setClause = fields.map(field => {
         const dbField = fieldMap[field] || field
         return `${dbField} = ?`
@@ -154,7 +154,7 @@ Annotation.prototype.update = function (annotationId, updateFields) {
     const info = query.run(...values, annotationId)
     return info.changes > 0 ? this.findOneById(annotationId) : null
 }
-Annotation.prototype.delete = function (annotationId) {
+    static delete(annotationId) {
     const query = db.prepare(`
         DELETE FROM annotations 
         WHERE annotation_id = ?
@@ -163,7 +163,7 @@ Annotation.prototype.delete = function (annotationId) {
     return info.changes > 0
 }
 
-Annotation.prototype.deleteBySessionId = function (sessionId) {
+    static deleteBySessionId(sessionId) {
     const query = db.prepare(`
         DELETE FROM annotations 
         WHERE session_id = ?
@@ -172,12 +172,13 @@ Annotation.prototype.deleteBySessionId = function (sessionId) {
     return info.changes
 }
 
-Annotation.prototype.deleteByLabelId = function (labelId) {
-    const query = db.prepare(`
-        DELETE FROM annotations 
-        WHERE label_id = ?
-    `)
-    const info = query.run(labelId)
-    return info.changes
+    static deleteByLabelId(labelId) {
+        const query = db.prepare(`
+            DELETE FROM annotations 
+            WHERE label_id = ?
+        `)
+        const info = query.run(labelId)
+        return info.changes
+    }
 }
 

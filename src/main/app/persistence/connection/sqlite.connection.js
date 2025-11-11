@@ -1,6 +1,7 @@
 import Database from "better-sqlite3";
 
-const db = new Database('biosignal.db', {
+const dbName = process.env.BUILD_TYPE === 'dev'? 'biosignal-dev.db': 'biosignal.db'
+const db = new Database(dbName, {
     verbose: console.log
 })
 db.pragma('journal_mode = WAL');
@@ -8,46 +9,44 @@ db.pragma('foreign_keys = ON')
 
 const ddl = `
     CREATE TABLE IF NOT EXISTS patients (
-        patient_id INTEGER PRIMARY KEY,
+        patient_id TEXT PRIMARY KEY,
         first_name TEXT NOT NULL,
         gender TEXT CHECK (gender IN ('M','F'))
     );
 
     CREATE TABLE IF NOT EXISTS sessions (
-        session_id TEXT PRIMARY KEY,
-        patient_id INTEGER NOT NULL,
-        type TEXT CHECK (type IN ('ECG','EEG','EMG')),
+        session_id INTEGER PRIMARY KEY,
+        patient_id TEXT NOT NULL,
+        measurement_type TEXT DEFAULT 'UNKNOWN' CHECK (measurement_type IN ('ECG','EEG','EMG', 'UNKNOWN')),
         start_time TEXT NOT NULL,
         end_time TEXT NOT NULL,
-        channel_count INTEGER,
+        subsampled REAL,
         sampling_frequency REAL,
         source_file_path TEXT,
-        FOREIGN KEY (patient_id) REFERENCES patients(patient_id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS measurement_types (
-        measurement_type_id INTEGER PRIMARY KEY,
-        name TEXT NOT NULL UNIQUE
+        FOREIGN KEY (patient_id) REFERENCES patients(patient_id) ON DELETE CASCADE,
+        UNIQUE(patient_id, start_time, end_time)
     );
 
     CREATE TABLE IF NOT EXISTS channels (
         channel_id INTEGER PRIMARY KEY,
-        session_id INTEGER NOT NULL,
-        channel_index INTEGER NOT NULL,
-        name TEXT,
-        measurement_type_id INTEGER,
-        FOREIGN KEY (session_id) REFERENCES sessions(session_id) ON DELETE CASCADE,
-        FOREIGN KEY (measurement_type_id) REFERENCES measurement_types(measurement_type_id),
-        UNIQUE(session_id, channel_index)
+        session_id TEXT NOT NULL,
+        channel_number INTEGER NOT NULL,    
+        data_kind TEXT NOT NULL CHECK (data_kind IN ('average', 'sweep', 'longtrace')),
+        sweep_index INTEGER,            
+        sampling_frequency REAL,
+        subsampled REAL,
+        sweep_duration_ms REAL,
+        trace_duration_ms REAL,
+        algorithm TEXT,
+        FOREIGN KEY (session_id) REFERENCES sessions(session_id) ON DELETE CASCADE
     );
 
     CREATE TABLE IF NOT EXISTS samples (
         sample_id INTEGER PRIMARY KEY,
         channel_id INTEGER NOT NULL,
-        value_mv REAL NOT NULL,  
         time_offset_ms REAL NOT NULL,
-        FOREIGN KEY (channel_id) REFERENCES channels(channel_id) ON DELETE CASCADE,
-        UNIQUE(channel_id, time_offset_ms)
+        value_mv REAL NOT NULL,
+        FOREIGN KEY (channel_id) REFERENCES channels(channel_id) ON DELETE CASCADE
     );
 
     CREATE TABLE IF NOT EXISTS labels (

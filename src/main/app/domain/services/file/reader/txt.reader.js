@@ -18,9 +18,7 @@ export function readFile(inputPath, outputPath) {
     if (!isNatusSignature(content)) {
         throw new Error("Not Natus data")
     }
-    console.log(content.length)
     const jsonParsed = parseText(content)
-    console.log(jsonParsed)
     saveJson(jsonParsed, outputPath)
     return jsonParsed
 }

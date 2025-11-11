@@ -6,10 +6,29 @@ import { contextBridge, ipcRenderer } from "electron";
 contextBridge.exposeInMainWorld("IN_DESKTOP_ENV", true);
 
 contextBridge.exposeInMainWorld("electron", {
-    onEmgData: callback =>
+    onEmgData: (callback) =>
         ipcRenderer.on(
             "emg-data",
-            (event, data) => callback(data)),
-
+            (event, data) => {
+                console.log("display-data event received");
+                callback(data);
+            }
+        ),
+    onStoreDataComplete: (callback) =>
+        ipcRenderer.on(
+            "store-data-complete",
+            (event, result) => {
+                console.log("store-data-complete event received:", result);
+                callback(result);
+            }
+        ),
+    onDbStatus: (callback) =>
+        ipcRenderer.on(
+            "db-status",
+            (event, status) => {
+                console.log("db-status event received:", status);
+                callback(status);
+            }
+        ),
 });
 

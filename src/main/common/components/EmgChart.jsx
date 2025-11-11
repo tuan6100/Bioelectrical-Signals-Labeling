@@ -121,7 +121,7 @@ export default function EmgChart() {
     useEffect(() => {
         if (window.electron) {
             window.electron.onEmgData((data) => {
-                console.log("Received EMG JSON:", data);
+                console.log("Received EMG JSON");
                 setJsonData(data);
             });
         }
