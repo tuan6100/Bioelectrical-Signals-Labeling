@@ -40,7 +40,7 @@ export default class Patient {
         `)
         const row = query.get(patientId)
         if (!row) return null
-        return new PatientDao(row.patient_id, row.first_name, row.gender)
+        return new Patient(row.patient_id, row.first_name, row.gender)
     }
 
     static findAll() {
@@ -50,7 +50,7 @@ export default class Patient {
             ORDER BY patient_id
         `)
         const rows = query.all()
-        return rows.map(row => new PatientDao(row.patient_id, row.first_name, row.gender))
+        return rows.map(row => new Patient(row.patient_id, row.first_name, row.gender))
     }
 
     static delete(patientId) {

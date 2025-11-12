@@ -19,7 +19,7 @@ export default class Label {
     `)
         const info = query.run(label.name, label.type)
         label.labelId = info.lastInsertRowid
-        return this.findOneById(label.labelId)
+        return Label.findOneById(label.labelId)
 }
 
     static findOneById(labelId) {

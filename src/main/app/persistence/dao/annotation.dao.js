@@ -2,15 +2,14 @@ import db from "../connection/sqlite.connection.js";
 
 export default class Annotation {
     constructor(
-        annotationId,
-        sessionId,
+        channelId,
         labelId,
         startTimeMs,
         endTimeMs,
         note
     ) {
-        this.annotationId = annotationId
-        this.sessionId = sessionId
+        this.annotationId = 0
+        this.channelId = channelId
         this.labelId = labelId
         this.startTimeMs = startTimeMs
         this.endTimeMs = endTimeMs
@@ -20,12 +19,12 @@ export default class Annotation {
     insert(annotation) {
     const query = db.prepare(`
         INSERT INTO annotations (
-            session_id, label_id, start_time_ms, end_time_ms, note
+            channel_id, label_id, start_time_ms, end_time_ms, note
         ) 
         VALUES (?, ?, ?, ?, ?)
     `)
     const info = query.run(
-        annotation.sessionId,
+        annotation.channelId,
         annotation.labelId,
         annotation.startTimeMs,
         annotation.endTimeMs,
@@ -38,7 +37,7 @@ export default class Annotation {
     findOneById(annotationId) {
     const query = db.prepare(`
         SELECT 
-            annotation_id, session_id, label_id, start_time_ms, end_time_ms, note
+            annotation_id, channel_id, label_id, start_time_ms, end_time_ms, note
         FROM annotations 
         WHERE annotation_id = ?
     `)
@@ -46,7 +45,7 @@ export default class Annotation {
     if (!row) return null
     return new Annotation(
         row.annotation_id,
-        row.session_id,
+        row.channel_id,
         row.label_id,
         row.start_time_ms,
         row.end_time_ms,
@@ -57,14 +56,14 @@ export default class Annotation {
     findAll() {
     const query = db.prepare(`
         SELECT 
-            annotation_id, session_id, label_id, start_time_ms, end_time_ms, note
+            annotation_id, channel_id, label_id, start_time_ms, end_time_ms, note
         FROM annotations 
         ORDER BY start_time_ms
     `)
     const rows = query.all()
     return rows.map(row => new Annotation(
         row.annotation_id,
-        row.session_id,
+        row.channel_id,
         row.label_id,
         row.start_time_ms,
         row.end_time_ms,
@@ -72,18 +71,18 @@ export default class Annotation {
     ))
 }
 
-    findBySessionId(sessionId) {
+    findBySessionId(channelId) {
     const query = db.prepare(`
         SELECT 
-            annotation_id, session_id, label_id, start_time_ms, end_time_ms, note
+            annotation_id, channel_id, label_id, start_time_ms, end_time_ms, note
         FROM annotations 
-        WHERE session_id = ?
+        WHERE channel_id = ?
         ORDER BY start_time_ms
     `)
-    const rows = query.all(sessionId)
+    const rows = query.all(channelId)
     return rows.map(row => new Annotation(
         row.annotation_id,
-        row.session_id,
+        row.channel_id,
         row.label_id,
         row.start_time_ms,
         row.end_time_ms,
@@ -94,7 +93,7 @@ export default class Annotation {
     findByLabelId(labelId) {
     const query = db.prepare(`
         SELECT 
-            annotation_id, session_id, label_id, start_time_ms, end_time_ms, note
+            annotation_id, channel_id, label_id, start_time_ms, end_time_ms, note
         FROM annotations 
         WHERE label_id = ?
         ORDER BY start_time_ms
@@ -102,7 +101,7 @@ export default class Annotation {
     const rows = query.all(labelId)
     return rows.map(row => new Annotation(
         row.annotation_id,
-        row.session_id,
+        row.channel_id,
         row.label_id,
         row.start_time_ms,
         row.end_time_ms,
@@ -110,20 +109,20 @@ export default class Annotation {
     ))
 }
 
-    findByTimeRange(sessionId, startMs, endMs) {
+    findByTimeRange(channelId, startMs, endMs) {
     const query = db.prepare(`
         SELECT 
-            annotation_id, session_id, label_id, start_time_ms, end_time_ms, note
+            annotation_id, channel_id, label_id, start_time_ms, end_time_ms, note
         FROM annotations 
-        WHERE session_id = ?
+        WHERE channel_id = ?
         AND start_time_ms <= ?
         AND end_time_ms >= ?
         ORDER BY start_time_ms
     `)
-    const rows = query.all(sessionId, endMs, startMs)
+    const rows = query.all(channelId, endMs, startMs)
     return rows.map(row => new Annotation(
         row.annotation_id,
-        row.session_id,
+        row.channel_id,
         row.label_id,
         row.start_time_ms,
         row.end_time_ms,
@@ -135,7 +134,7 @@ export default class Annotation {
     const fields = Object.keys(updateFields)
     if (fields.length === 0) return null
     const fieldMap = {
-        sessionId: 'session_id',
+        channelId: 'channel_id',
         labelId: 'label_id',
         startTimeMs: 'start_time_ms',
         endTimeMs: 'end_time_ms',
@@ -163,12 +162,12 @@ export default class Annotation {
     return info.changes > 0
 }
 
-    static deleteBySessionId(sessionId) {
+    static deleteBySessionId(channelId) {
     const query = db.prepare(`
         DELETE FROM annotations 
-        WHERE session_id = ?
+        WHERE channel_id = ?
     `)
-    const info = query.run(sessionId)
+    const info = query.run(channelId)
     return info.changes
 }
 

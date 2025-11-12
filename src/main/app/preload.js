@@ -2,33 +2,32 @@
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
 import { contextBridge, ipcRenderer } from "electron";
 
-// Use window.IN_DESKTOP_ENV to check if the React app is running on electron
+// Use window.IN_DESKTOP_ENV to detect desktop app environment
 contextBridge.exposeInMainWorld("IN_DESKTOP_ENV", true);
 
-contextBridge.exposeInMainWorld("electron", {
-    onEmgData: (callback) =>
-        ipcRenderer.on(
-            "emg-data",
-            (event, data) => {
-                console.log("display-data event received");
-                callback(data);
-            }
+contextBridge.exposeInMainWorld("biosignalApi", {
+    provide: {
+        sessionId: (payload) => ipcRenderer.send("provide:session-id", payload),
+    },
+
+    get: {
+        sessionInfo: (sessionId) => ipcRenderer.invoke(
+            "session:getInfo",
+                sessionId
         ),
-    onStoreDataComplete: (callback) =>
-        ipcRenderer.on(
-            "store-data-complete",
-            (event, result) => {
-                console.log("store-data-complete event received:", result);
-                callback(result);
-            }
-        ),
-    onDbStatus: (callback) =>
-        ipcRenderer.on(
-            "db-status",
-            (event, status) => {
-                console.log("db-status event received:", status);
-                callback(status);
-            }
-        ),
+
+        channelSamples: (channelId) => ipcRenderer.invoke(
+            "channel:getSamples",
+            channelId
+        )
+    },
+
+    on: {
+        sessionId: (callback) => {
+            const listener = (_event, sessionId) => callback(sessionId)
+            ipcRenderer.on("provide:session-id", listener)
+            return () => ipcRenderer.removeListener("provide:session-id", listener)
+        }
+    }
 });
 

@@ -96,4 +96,4 @@ out/
 .vscode/
 
 # Sqlite
-biosignal.*
+biosignal-*.*

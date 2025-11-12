@@ -1,7 +1,8 @@
 import fs from "fs"
 import path from "node:path"
 import {saveJson} from "../writer/json.writer.js"
-import {isNatusSignature} from "./input-validation.reader.js";
+import {isNatusSignature} from "../../../utils/input-validation.util.js";
+import {checkFileImported} from "../../../utils/check-imported.util.js";
 
 function isTxt(filePath) {
     return path.extname(filePath).toLowerCase() === '.txt'
@@ -18,15 +19,23 @@ export function readFile(inputPath, outputPath) {
     if (!isNatusSignature(content)) {
         throw new Error("Not Natus data")
     }
+    const result = checkFileImported(content)
+    if (result.imported) {
+        console.info("File has been already imported")
+        return {
+            json: null,
+            metadata: result
+        }
+    }
     const jsonParsed = parseText(content)
     saveJson(jsonParsed, outputPath)
-    return jsonParsed
+    return {
+        json: jsonParsed,
+        metadata: result
+    }
 }
 
 function parseText(text) {
-    if (text.length === 0) {
-        throw new Error("File must not be empty")
-    }
     text = text.replace(/\/\r?\n/g, "");
     text = text.replace(/(-?\d+),(\d+)/g, "$1.$2");
     const lines = text.split(/\r?\n/);

@@ -4,8 +4,9 @@ export default defineConfig({
     build: {
         lib: {
             entry: 'src/main/app/preload.js',
-            formats: ['cjs'],
-            fileName: () => 'preload.cjs',
+            name: 'preload',
+            formats: ['es'],
+            fileName: () => 'preload.js',
         }
     },
 });
