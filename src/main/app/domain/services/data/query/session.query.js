@@ -23,7 +23,6 @@ export function getChannelSamples(channelId) {
     if (!record) return null
 
     const raw = record.raw_samples
-    console.log(raw)
     let samples = []
     try {
         const cleaned = raw.trim().replace(/^\uFEFF/, "")

@@ -6,8 +6,12 @@ import { contextBridge, ipcRenderer } from "electron";
 contextBridge.exposeInMainWorld("IN_DESKTOP_ENV", true);
 
 contextBridge.exposeInMainWorld("biosignalApi", {
-    provide: {
-        sessionId: (payload) => ipcRenderer.send("provide:session-id", payload),
+    on: {
+        sessionId: (callback) => {
+            const listener = (_event, sessionId) => callback(sessionId)
+            ipcRenderer.on("provide:session-id", listener)
+            return () => ipcRenderer.removeListener("provide:session-id", listener)
+        }
     },
 
     get: {
@@ -22,12 +26,6 @@ contextBridge.exposeInMainWorld("biosignalApi", {
         )
     },
 
-    on: {
-        sessionId: (callback) => {
-            const listener = (_event, sessionId) => callback(sessionId)
-            ipcRenderer.on("provide:session-id", listener)
-            return () => ipcRenderer.removeListener("provide:session-id", listener)
-        }
-    }
+
 });
 

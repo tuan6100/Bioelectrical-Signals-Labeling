@@ -1,7 +1,3 @@
-export async function provideSessionAppApi(payload) {
-    window.biosignalApi.provide.sessionId(payload)
-}
-
 export async function getSessionInfoAppApi(sessionId) {
     return window.biosignalApi.get.sessionInfo(sessionId)
 }

@@ -113,6 +113,7 @@ app.whenReady().then(() => {
             win.webContents.toggleDevTools()
         })
     }
+
 })
 
 // Quit when all windows are closed, except on macOS.
