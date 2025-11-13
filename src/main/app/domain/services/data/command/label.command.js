@@ -3,7 +3,7 @@ import Annotation from "../../../../persistence/dao/annotation.dao.js";
 import Session from "../../../../persistence/dao/session.dao.js";
 import asTransaction from "../../../../persistence/transaction/index.js";
 
-export function persistLabel(channelId, startTime, endTime, labelName) {
+export function persistLabel(channelId, startTime, endTime, labelName, labelNote = null) {
     return asTransaction(function (channelId, startTime, endTime, labelName) {
         let label = Label.findOneByName(labelName)
         if (label === null) {
@@ -15,7 +15,7 @@ export function persistLabel(channelId, startTime, endTime, labelName) {
             label.labelId,
             startTime,
             endTime,
-            ''
+            labelNote
         )
         if (Annotation.isOverlapping(startTime, endTime)) {
             throw new Error('Annotation time range is overlapping with an existing annotation.')

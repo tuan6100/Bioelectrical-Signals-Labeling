@@ -7,7 +7,8 @@ ipcMain.handle('label:create', (event, labelDto) => {
         labelDto.channelId,
         labelDto.startTime,
         labelDto.endTime,
-        labelDto.labelName
+        labelDto.name,
+        labelDto.note
     )
 })
 
