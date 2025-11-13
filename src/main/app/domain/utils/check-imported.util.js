@@ -3,7 +3,7 @@ import Session from "../../persistence/dao/session.dao.js";
 
 export function checkFileImported(content) {
     const hash = calculateCRC32(content);
-    const existingSession = Session.findByContentHash(hash);
+    const existingSession = Session.findSessionIdByContentHash(hash);
     return existingSession? {
         imported: true,
         metadata: existingSession

@@ -19,10 +19,12 @@ export async function readFile(inputPath, outputPath) {
     if (!isNatusSignature(content)) {
         throw new Error("Not Natus data")
     }
+    const inputFileName = path.basename(inputPath)
     const result = checkFileImported(content)
     if (result.imported) {
         console.info("File has been already imported")
         return {
+            inputFileName: null,
             json: null,
             metadata: result
         }
@@ -30,6 +32,7 @@ export async function readFile(inputPath, outputPath) {
     const jsonParsed = parseText(content)
     await saveJson(jsonParsed, outputPath)
     return {
+        inputFileName: inputFileName,
         json: jsonParsed,
         metadata: result
     }

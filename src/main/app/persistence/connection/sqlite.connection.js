@@ -21,6 +21,7 @@ const ddl = `
         measurement_type TEXT DEFAULT 'UNKNOWN' CHECK (measurement_type IN ('ECG','EEG','EMG', 'UNKNOWN')),
         start_time TEXT NOT NULL,
         end_time TEXT NOT NULL,
+        input_file_name TEXT,
         content_hash TEXT UNIQUE,
         FOREIGN KEY (patient_id) REFERENCES patients(patient_id) ON DELETE CASCADE
     );
