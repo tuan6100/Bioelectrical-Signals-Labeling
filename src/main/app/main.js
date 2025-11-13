@@ -61,6 +61,7 @@ const createWindow = () => {
                             }
                         }).catch(err => {
                             console.error('Failed to read or process file:', err)
+                            dialog.showErrorBox('Error occurred when reading the file', err.message || String(err))
                         }).finally(() => {
                             fs.writeFile(outputPath, '', () => {})
                             lastOpenedDir = path.dirname(inputPath)
