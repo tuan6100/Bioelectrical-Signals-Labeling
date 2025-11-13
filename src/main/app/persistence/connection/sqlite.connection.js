@@ -29,11 +29,11 @@ const ddl = `
 
     CREATE TABLE IF NOT EXISTS channels (
         channel_id INTEGER PRIMARY KEY NOT NULL,
-        session_id TEXT NOT NULL,
-        channel_number INTEGER NOT NULL,    
-        data_kind TEXT NOT NULL ,
+        session_id INTEGER NOT NULL,
+        channel_number INTEGER NOT NULL,
+        data_kind TEXT NOT NULL,
         sweep_index INTEGER,
-        raw_samples TEXT NOT NULL,
+        raw_samples_uv TEXT NOT NULL,
         sampling_frequency_khz REAL,
         subsampled_khz REAL,
         sweep_duration_ms REAL,
@@ -41,6 +41,7 @@ const ddl = `
         algorithm TEXT,
         FOREIGN KEY (session_id) REFERENCES sessions(session_id) ON DELETE CASCADE
     );
+
     CREATE INDEX IF NOT EXISTS channel_data_kind_sweep_idx ON channels(session_id, data_kind, sweep_index);
     CREATE INDEX IF NOT EXISTS channel_session_data_kind_idx ON channels(session_id, data_kind);
 

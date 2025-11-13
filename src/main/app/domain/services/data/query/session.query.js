@@ -22,7 +22,7 @@ export function getDefaultChannelSignal(channelId) {
     const record = Channel.findSamplesById(channelId)
     if (!record) return null
 
-    const raw = record.raw_samples
+    const raw = record.raw_samples_uv
     let samples = []
     try {
         const cleaned = raw.trim().replace(/^\uFEFF/, "")

@@ -72,8 +72,8 @@ export default class Session {
             row.type,
             row.start_time,
             row.end_time,
-            row.subsampled,
-            row.sampling_frequency,
+            row.subsampled_khz,
+            row.sampling_frequency_khz,
             row.content_hash
         ))
     }
@@ -233,7 +233,7 @@ export default class Session {
             SELECT
                 c.channel_id,
                 c.channel_number,
-                c.raw_samples              AS samples,
+                c.raw_samples_uv              AS samples,
                 c.sampling_frequency_khz   AS sampling_frequency,
                 c.subsampled_khz           AS subsampled,
                 a.annotation_id,
