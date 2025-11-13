@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron'
-import { getChannelSamples } from "../../../domain/services/data/query/session.query.js"
+import {getDefaultChannelSignal} from "../../../domain/services/data/query/session.query.js"
 
 ipcMain.handle('channel:getSamples', (event, channelId) => {
-    return getChannelSamples(channelId)
+    return getDefaultChannelSignal(channelId)
 })

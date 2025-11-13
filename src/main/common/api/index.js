@@ -24,7 +24,7 @@ import {
  *   defaultChannel: {
  *     channelId: number|null,
  *     name: string,
- *     samples: {
+ *     signal: {
  *       samplingRateHz: number|null,
  *       durationMs: number|null,
  *       samples: Array<{time: number, value: number}>,
