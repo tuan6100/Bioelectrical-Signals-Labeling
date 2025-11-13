@@ -1,16 +1,42 @@
-import fs from 'fs';
-import path from 'node:path';
-import {app} from 'electron';
+import fs from "fs"
+import path from "node:path"
+import {saveJson} from "../writer/json.writer.js"
+import {isNatusSignature} from "../../../utils/input-validation.util.js";
+import {checkFileImported} from "../../../utils/check-imported.util.js";
 
-export function readFile(filePath) {
-    const content = fs.readFileSync(filePath, { encoding: 'utf-16le', flag: 'r' })
-        .replace(/\r\n|\r|\n/g, '\n');
-    const jsonParsed = parseEmgText(content);
-    saveEmgJson(jsonParsed);
-    return jsonParsed
+function isTxt(filePath) {
+    return path.extname(filePath).toLowerCase() === '.txt'
 }
 
-function parseEmgText(text) {
+export async function readFile(inputPath, outputPath) {
+    if (!isTxt(inputPath)) {
+        throw new Error("This file extension is not supported")
+    }
+    const content = fs.readFileSync(inputPath, {
+        encoding: 'utf-16le',
+        flag: 'r'
+    }).replace(/\r\n|\r|\n/g, '\n')
+    if (!isNatusSignature(content)) {
+        throw new Error("Not Natus data")
+    }
+    const result = checkFileImported(content)
+    if (result.imported) {
+        console.info("File has been already imported")
+        return {
+            json: null,
+            metadata: result
+        }
+    }
+    const jsonParsed = parseText(content)
+    await saveJson(jsonParsed, outputPath)
+    return {
+        json: jsonParsed,
+        metadata: result
+    }
+}
+
+
+function parseText(text) {
     text = text.replace(/\/\r?\n/g, "");
     text = text.replace(/(-?\d+),(\d+)/g, "$1.$2");
     const lines = text.split(/\r?\n/);
@@ -58,17 +84,3 @@ function setDeepByName(obj, pathStr, sectionName) {
     if (!current[lastPart]) current[lastPart] = {};
     return current[lastPart];
 }
-
-function getStoragePath() {
-    const baseDir = app.getPath('userData');
-    const storageDir = path.join(baseDir, 'Local Storage');
-    fs.mkdirSync(storageDir, { recursive: true });
-    return path.join(storageDir, 'data.json');
-}
-
-export function saveEmgJson(jsonData, outputPath = getStoragePath()) {
-    fs.writeFileSync(outputPath, JSON.stringify(jsonData, null, 2), 'utf-8');
-}
-
-
-
