@@ -50,14 +50,14 @@ const createWindow = () => {
                         const outputPath = path.join(outputStorageDir, 'data.json')
 
                         try {
-                            readFile(inputPath, outputPath).then((resolve) => {
+                            readFile(inputPath, outputPath).then((resolved) => {
                                 function sendSessionId (sessionId) {
                                     mainWindow.webContents.send("provide:session-id", sessionId)
                                 }
-                                if (resolve.json === null) {
-                                    sendSessionId(resolve.metadata.metadata)
+                                if (resolved.json === null) {
+                                    sendSessionId(resolved.metadata.metadata)
                                 } else {
-                                    const sessionId = processAndStoreData(resolve.json, resolve.metadata.metadata)
+                                    const sessionId = processAndStoreData(resolved.json, resolved.metadata.metadata)
                                     sendSessionId(sessionId)
                                 }
                             })
