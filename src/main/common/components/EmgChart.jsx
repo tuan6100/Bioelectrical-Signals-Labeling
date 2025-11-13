@@ -12,7 +12,7 @@ import {
 } from "chart.js";
 import zoomPlugin from "chartjs-plugin-zoom";
 import { Line } from "react-chartjs-2";
-import {findKeyValue} from "../../app/utils/json.util.js";
+import {findKeyValue} from "../../app/domain/utils/json.util.js";
 
 ChartJS.register(
     LineElement,
@@ -121,7 +121,7 @@ export default function EmgChart() {
     useEffect(() => {
         if (window.electron) {
             window.electron.onEmgData((data) => {
-                console.log("Received EMG JSON:", data);
+                console.log("Received EMG JSON");
                 setJsonData(data);
             });
         }

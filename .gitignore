@@ -91,4 +91,10 @@ typings/
 # Electron-Forge
 out/
 
+# Editor
 .idea/
+.vscode/
+.github/
+
+# Sqlite
+biosignal-*.*
