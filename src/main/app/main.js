@@ -49,25 +49,22 @@ const createWindow = () => {
                         const outputStorageDir = path.join(outputBaseDir, 'Local Storage')
                         const outputPath = path.join(outputStorageDir, 'data.json')
 
-                        try {
-                            readFile(inputPath, outputPath).then((resolved) => {
-                                function sendSessionId (sessionId) {
-                                    mainWindow.webContents.send("provide:session-id", sessionId)
-                                }
-                                if (resolved.json === null) {
-                                    sendSessionId(resolved.metadata.metadata)
-                                } else {
-                                    const sessionId = processAndStoreData(resolved.json, resolved.metadata.metadata)
-                                    sendSessionId(sessionId)
-                                }
-                            })
-
-                        } catch (err) {
+                        readFile(inputPath, outputPath).then((resolved) => {
+                            function sendSessionId (sessionId) {
+                                mainWindow.webContents.send("provide:session-id", sessionId)
+                            }
+                            if (resolved.json === null) {
+                                sendSessionId(resolved.metadata.metadata)
+                            } else {
+                                const sessionId = processAndStoreData(resolved.json, resolved.metadata.metadata)
+                                sendSessionId(sessionId)
+                            }
+                        }).catch(err => {
                             console.error('Failed to read or process file:', err)
-                        } finally {
+                        }).finally(() => {
                             fs.writeFile(outputPath, '', () => {})
                             lastOpenedDir = path.dirname(inputPath)
-                        }
+                        })
                     },
                 },
                 { type: 'separator' },
