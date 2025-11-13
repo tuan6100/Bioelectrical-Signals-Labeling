@@ -94,6 +94,7 @@ out/
 # Editor
 .idea/
 .vscode/
+.github/
 
 # Sqlite
 biosignal-*.*

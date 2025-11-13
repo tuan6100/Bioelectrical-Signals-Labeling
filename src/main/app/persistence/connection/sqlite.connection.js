@@ -45,19 +45,10 @@ const ddl = `
     CREATE INDEX IF NOT EXISTS channel_data_kind_sweep_idx ON channels(session_id, data_kind, sweep_index);
     CREATE INDEX IF NOT EXISTS channel_session_data_kind_idx ON channels(session_id, data_kind);
 
---     CREATE TABLE IF NOT EXISTS samples (
---         sample_id INTEGER PRIMARY KEY,
---         channel_id INTEGER NOT NULL,
---         time_offset_ms REAL NOT NULL,
---         value_mv REAL NOT NULL,
---         FOREIGN KEY (channel_id) REFERENCES channels(channel_id) ON DELETE CASCADE
---     );
-
     CREATE TABLE IF NOT EXISTS labels (
         label_id INTEGER PRIMARY KEY,
         name TEXT NOT NULL UNIQUE,
-        created_at TEXT DEFAULT (datetime('now')),
-        type TEXT
+        created_at TEXT DEFAULT (datetime('now'))
     );
     CREATE INDEX IF NOT EXISTS label_name_idx ON labels(name);
 
@@ -68,7 +59,9 @@ const ddl = `
         start_time_ms REAL NOT NULL,
         end_time_ms REAL NOT NULL,
         note TEXT,
-        FOREIGN KEY (channel_id) REFERENCES sessions(session_id) ON DELETE CASCADE,
+        labeled_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT,
+        FOREIGN KEY (channel_id) REFERENCES channel(channel_id) ON DELETE CASCADE,
         FOREIGN KEY (label_id) REFERENCES labels(label_id)
     );
 
@@ -80,6 +73,5 @@ db.initSchema = function() {
     stmt.run('Unknown');
     stmt.run('Pending');
 };
-
 
 export default db;

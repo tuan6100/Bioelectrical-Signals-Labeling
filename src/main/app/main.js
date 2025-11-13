@@ -6,8 +6,8 @@ import { fileURLToPath } from 'node:url'
 import db from "./persistence/connection/sqlite.connection.js"
 import { readFile } from "./domain/services/file/reader/txt.reader.js"
 import fs from "fs"
-import {processAndStoreData} from "./domain/services/data/command/store.data.uploaded.js"
-import * as handlers from './api/handlers/index.js'
+import {processAndPersistData} from "./domain/services/data/command/session.command.js"
+import * as handlers from './api/handlers'
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -56,7 +56,7 @@ const createWindow = () => {
                             if (resolved.json === null) {
                                 sendSessionId(resolved.metadata.metadata)
                             } else {
-                                const sessionId = processAndStoreData(resolved.json, resolved.metadata.metadata)
+                                const sessionId = processAndPersistData(resolved.json, resolved.metadata.metadata)
                                 sendSessionId(sessionId)
                             }
                         }).catch(err => {

@@ -14,34 +14,38 @@ export default class Annotation {
         this.startTimeMs = startTimeMs
         this.endTimeMs = endTimeMs
         this.note = note
+        this.labeledAt = new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' })
+        this.updatedAt = null
     }
 
-    insert(annotation) {
-    const query = db.prepare(`
+    insert() {
+    const stmt = db.prepare(`
         INSERT INTO annotations (
-            channel_id, label_id, start_time_ms, end_time_ms, note
+            channel_id, label_id, start_time_ms, end_time_ms, note, labeled_at, updated_at
         ) 
-        VALUES (?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
     `)
-    const info = query.run(
-        annotation.channelId,
-        annotation.labelId,
-        annotation.startTimeMs,
-        annotation.endTimeMs,
-        annotation.note
+    const info = stmt.run(
+        this.channelId,
+        this.labelId,
+        this.startTimeMs,
+        this.endTimeMs,
+        this.note,
+        this.labeledAt,
+        this.updatedAt
     )
-    annotation.annotationId = info.lastInsertRowid
-    return annotation
+        this.annotationId = info.lastInsertRowid
+    return this
 }
 
     findOneById(annotationId) {
-    const query = db.prepare(`
+    const stmt = db.prepare(`
         SELECT 
             annotation_id, channel_id, label_id, start_time_ms, end_time_ms, note
         FROM annotations 
         WHERE annotation_id = ?
     `)
-    const row = query.get(annotationId)
+    const row = stmt.get(annotationId)
     if (!row) return null
     return new Annotation(
         row.annotation_id,
@@ -54,13 +58,13 @@ export default class Annotation {
 }
 
     findAll() {
-    const query = db.prepare(`
+    const stmt = db.prepare(`
         SELECT 
             annotation_id, channel_id, label_id, start_time_ms, end_time_ms, note
         FROM annotations 
         ORDER BY start_time_ms
     `)
-    const rows = query.all()
+    const rows = stmt.all()
     return rows.map(row => new Annotation(
         row.annotation_id,
         row.channel_id,
@@ -72,14 +76,14 @@ export default class Annotation {
 }
 
     findBySessionId(channelId) {
-    const query = db.prepare(`
+    const stmt = db.prepare(`
         SELECT 
             annotation_id, channel_id, label_id, start_time_ms, end_time_ms, note
         FROM annotations 
         WHERE channel_id = ?
         ORDER BY start_time_ms
     `)
-    const rows = query.all(channelId)
+    const rows = stmt.all(channelId)
     return rows.map(row => new Annotation(
         row.annotation_id,
         row.channel_id,
@@ -91,14 +95,14 @@ export default class Annotation {
 }
 
     findByLabelId(labelId) {
-    const query = db.prepare(`
+    const stmt = db.prepare(`
         SELECT 
             annotation_id, channel_id, label_id, start_time_ms, end_time_ms, note
         FROM annotations 
         WHERE label_id = ?
         ORDER BY start_time_ms
     `)
-    const rows = query.all(labelId)
+    const rows = stmt.all(labelId)
     return rows.map(row => new Annotation(
         row.annotation_id,
         row.channel_id,
@@ -110,7 +114,7 @@ export default class Annotation {
 }
 
     findByTimeRange(channelId, startMs, endMs) {
-    const query = db.prepare(`
+    const stmt = db.prepare(`
         SELECT 
             annotation_id, channel_id, label_id, start_time_ms, end_time_ms, note
         FROM annotations 
@@ -119,7 +123,7 @@ export default class Annotation {
         AND end_time_ms >= ?
         ORDER BY start_time_ms
     `)
-    const rows = query.all(channelId, endMs, startMs)
+    const rows = stmt.all(channelId, endMs, startMs)
     return rows.map(row => new Annotation(
         row.annotation_id,
         row.channel_id,
@@ -145,39 +149,50 @@ export default class Annotation {
         return `${dbField} = ?`
     }).join(', ')
     const values = fields.map(field => updateFields[field])
-    const query = db.prepare(`
+    const stmt = db.prepare(`
         UPDATE annotations 
         SET ${setClause}
         WHERE annotation_id = ?
     `)
-    const info = query.run(...values, annotationId)
+    const info = stmt.run(...values, annotationId)
     return info.changes > 0 ? this.findOneById(annotationId) : null
 }
     static delete(annotationId) {
-    const query = db.prepare(`
+    const stmt = db.prepare(`
         DELETE FROM annotations 
         WHERE annotation_id = ?
     `)
-    const info = query.run(annotationId)
+    const info = stmt.run(annotationId)
     return info.changes > 0
 }
 
     static deleteBySessionId(channelId) {
-    const query = db.prepare(`
+    const stmt = db.prepare(`
         DELETE FROM annotations 
         WHERE channel_id = ?
     `)
-    const info = query.run(channelId)
+    const info = stmt.run(channelId)
     return info.changes
 }
 
     static deleteByLabelId(labelId) {
-        const query = db.prepare(`
+        const stmt = db.prepare(`
             DELETE FROM annotations 
             WHERE label_id = ?
         `)
-        const info = query.run(labelId)
+        const info = stmt.run(labelId)
         return info.changes
+    }
+
+    static isOverlapping(channelId, newStartMs, newEndMs) {
+    const stmt = db.prepare(`
+        SELECT COUNT(*) AS count
+        FROM annotations 
+        WHERE channel_id = ?
+        AND NOT (end_time_ms <= ? OR start_time_ms >= ?)
+    `)
+    const row = stmt.get(channelId, newStartMs, newEndMs)
+    return row.count > 0
     }
 }
 

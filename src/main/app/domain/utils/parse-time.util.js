@@ -19,5 +19,6 @@ export function parseVietnameseDateTime(dateTimeString) {
     } else {
         throw new Error(`Invalid time period: "${periodPart}"`);
     }
-    return new Date(year, month - 1, day, hours, minutes, seconds);
+    return new Date(year, month - 1, day, hours, minutes, seconds)
+        .toLocaleString('vi', { timeZone: 'Asia/Ho_Chi_Minh' });
 }

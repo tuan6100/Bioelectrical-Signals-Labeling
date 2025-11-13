@@ -2,34 +2,31 @@ import db from "../connection/sqlite.connection.js";
 
 export default class Label {
     constructor(
-        name,
-        createdAt,
-        type
+        name
     ) {
         this.labelId = 0
         this.name = name
-        this.createdAt = createdAt
-        this.type = type
+        this.createdAt = new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' })
     }
 
-    insert(label) {
-        const query = db.prepare(`
-        INSERT INTO labels (name, type) 
-        VALUES (?, ?)
+    insert() {
+        const stmt = db.prepare(`
+        INSERT INTO labels (name) 
+        VALUES (?)
     `)
-        const info = query.run(label.name, label.type)
-        label.labelId = info.lastInsertRowid
-        return Label.findOneById(label.labelId)
+        const info = stmt.run(this.name)
+        this.labelId = info.lastInsertRowid
+        return this
 }
 
     static findOneById(labelId) {
-        const query = db.prepare(`
+        const stmt = db.prepare(`
         SELECT 
             label_id, name, created_at, type
         FROM labels 
         WHERE label_id = ?
     `)
-        const row = query.get(labelId)
+        const row = stmt.get(labelId)
         if (!row) return null
         return new Label(
             row.label_id,
@@ -40,13 +37,13 @@ export default class Label {
 }
 
     static findOneByName(name) {
-        const query = db.prepare(`
+        const stmt = db.prepare(`
         SELECT 
             label_id, name, created_at, type
         FROM labels 
         WHERE name = ?
     `)
-        const row = query.get(name)
+        const row = stmt.get(name)
         if (!row) return null
         return new Label(
             row.label_id,
@@ -57,13 +54,13 @@ export default class Label {
 }
 
     static findAll() {
-        const query = db.prepare(`
+        const stmt = db.prepare(`
         SELECT 
             label_id, name, created_at, type
         FROM labels 
         ORDER BY name
     `)
-        const rows = query.all()
+        const rows = stmt.all()
         return rows.map(row => new Label(
             row.label_id,
             row.name,
@@ -73,14 +70,14 @@ export default class Label {
 }
 
     static findByType(type) {
-        const query = db.prepare(`
+        const stmt = db.prepare(`
         SELECT 
             label_id, name, created_at, type
         FROM labels 
         WHERE type = ?
         ORDER BY name
     `)
-        const rows = query.all(type)
+        const rows = stmt.all(type)
         return rows.map(row => new Label(
             row.label_id,
             row.name,
@@ -101,21 +98,21 @@ export default class Label {
             return `${dbField} = ?`
         }).join(', ')
         const values = fields.map(field => updateFields[field])
-        const query = db.prepare(`
+        const stmt = db.prepare(`
             UPDATE labels 
             SET ${setClause}
             WHERE label_id = ?
         `)
-        const info = query.run(...values, labelId)
+        const info = stmt.run(...values, labelId)
         return info.changes > 0 ? this.findOneById(labelId) : null
     }
 
     static delete(labelId) {
-        const query = db.prepare(`
+        const stmt = db.prepare(`
             DELETE FROM labels 
             WHERE label_id = ?
         `)
-        const info = query.run(labelId)
+        const info = stmt.run(labelId)
         return info.changes > 0
     }
 }

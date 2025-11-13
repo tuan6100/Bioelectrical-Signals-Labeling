@@ -26,6 +26,17 @@ contextBridge.exposeInMainWorld("biosignalApi", {
         )
     },
 
+    post: {
+        createLabel: (labelDto) => ipcRenderer.invoke(
+            "label:create",
+            labelDto
+        ),
+
+        exportLabel: (sessionId) => ipcRenderer.send(
+            "label:export",
+            sessionId
+        )
+    }
 
 });
 

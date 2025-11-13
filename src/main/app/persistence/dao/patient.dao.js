@@ -8,11 +8,11 @@ export default class Patient {
     }
 
     insert() {
-        const query = db.prepare(`
+        const stmt = db.prepare(`
             INSERT OR IGNORE INTO patients (patient_id, first_name, gender) 
             VALUES (?, ?, ?)
         `)
-        query.run(this.patientId, this.firstName, this.gender)
+        stmt.run(this.patientId, this.firstName, this.gender)
     }
 
     static update(patientId, updateFields) {
@@ -23,42 +23,42 @@ export default class Patient {
             return `${dbField} = ?`
         }).join(', ')
         const values = fields.map(field => updateFields[field])
-        const query = db.prepare(`
+        const stmt = db.prepare(`
             UPDATE patients 
             SET ${setClause}
             WHERE patient_id = ?
         `)
-        const info = query.run(...values, patientId)
+        const info = stmt.run(...values, patientId)
         return info.changes > 0 ? this.findOneById(patientId) : null
     }
 
     static findOneById(patientId) {
-        const query = db.prepare(`
+        const stmt = db.prepare(`
             SELECT patient_id, first_name, gender 
             FROM patients 
             WHERE patient_id = ?
         `)
-        const row = query.get(patientId)
+        const row = stmt.get(patientId)
         if (!row) return null
         return new Patient(row.patient_id, row.first_name, row.gender)
     }
 
     static findAll() {
-        const query = db.prepare(`
+        const stmt = db.prepare(`
             SELECT patient_id, first_name, gender 
             FROM patients 
             ORDER BY patient_id
         `)
-        const rows = query.all()
+        const rows = stmt.all()
         return rows.map(row => new Patient(row.patient_id, row.first_name, row.gender))
     }
 
     static delete(patientId) {
-        const query = db.prepare(`
+        const stmt = db.prepare(`
             DELETE FROM patients 
             WHERE patient_id = ?
         `)
-        const info = query.run(patientId)
+        const info = stmt.run(patientId)
         return info.changes > 0
     }
 }

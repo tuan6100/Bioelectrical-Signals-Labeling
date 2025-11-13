@@ -4,10 +4,10 @@ import Session from "../../../../persistence/dao/session.dao.js"
 import { extractChannelsFromJson} from "../../../utils/channel.util.js"
 import Channel from "../../../../persistence/dao/channel.dao.js"
 import {parseVietnameseDateTime} from "../../../utils/parse-time.util.js";
+import asTransaction from "../../../../persistence/transaction";
 
-// Process and store parsed data into the database. Must be called from the Electron main process.
-export function processAndStoreData(data, contentHash) {
-    try {
+export function processAndPersistData(data, contentHash) {
+    return asTransaction(function (data, contentHash) {
         let patientId = findKeyValue(data, 'Patient ID')
         const firstName = findKeyValue(data, 'First Name')
         const gender = findKeyValue(data, 'Gender').toString().toUpperCase().includes('MALE') ? 'M' : 'F'
@@ -24,9 +24,7 @@ export function processAndStoreData(data, contentHash) {
         const channels  = extractChannelsFromJson(data, sessionId)
         Channel.insertBatch(channels)
         return sessionId
-    } catch (error) {
-        console.error('Failed to process and store data:', error)
-    }
+    })(data, contentHash)
 }
 
 function insertPatient(patientId, firstName, gender) {

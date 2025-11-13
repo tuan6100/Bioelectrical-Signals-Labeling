@@ -50,7 +50,7 @@ export function getChannelSamples(channelId) {
         value
     }))
 
-    const annotations = record.annotation_id ? {
+    const annotations = record.annotation_id? {
         annotationId: record.annotation_id,
         startTimeMs: record.start_time_ms,
         endTimeMs: record.end_time_ms,
@@ -61,11 +61,14 @@ export function getChannelSamples(channelId) {
             type: record.label_type
         } : null
     } : null
-
     return {
         samplingRateHz: freqHz || null,
         durationMs: durationMs || (timeSeries.length ? timeSeries[timeSeries.length - 1].time : null),
         samples: timeSeries,
         annotations
     }
+}
+
+export function getSessionPage(page, size) {
+    return Session.findAllWithPagination(page, size)
 }

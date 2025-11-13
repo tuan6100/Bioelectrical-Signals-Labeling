@@ -27,7 +27,7 @@ export default class Channel {
     }
 
     insert() {
-        const query = db.prepare(`
+        const stmt = db.prepare(`
             INSERT INTO channels (
                 session_id, channel_number, data_kind, sweep_index, raw_samples,
                 sampling_frequency_khz, subsampled_khz, sweep_duration_ms,
@@ -35,7 +35,7 @@ export default class Channel {
             )
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `)
-        const resultingChanges = query.run(
+        const resultingChanges = stmt.run(
             this.sessionId,
             this.channelNumber,
             this.dataKind,
@@ -178,7 +178,7 @@ export default class Channel {
     }
 
     static findSamplesById(channelId) {
-        const query = db.prepare(`
+        const stmt = db.prepare(`
             SELECT 
                 c.raw_samples, 
                 c.sampling_frequency_khz, 
@@ -186,13 +186,13 @@ export default class Channel {
                 c.sweep_duration_ms,
                 c.trace_duration_ms,
                 a.annotation_id, a.start_time_ms, a.end_time_ms, a.note,
-                l.label_id, l.name AS label_name, l.type AS label_type
+                l.label_id, l.name AS label_name
             FROM channels AS c
             LEFT JOIN annotations AS a ON c.channel_id = a.channel_id
             LEFT JOIN labels AS l ON a.label_id = l.label_id
             WHERE c.channel_id = ?
         `)
-        const result = query.get(channelId)
+        const result = stmt.get(channelId)
         return result || null
     }
 
@@ -215,30 +215,30 @@ export default class Channel {
             return `${dbField} = ?`
         }).join(', ')
         const values = fields.map(field => updateFields[field])
-        const query = db.prepare(`
+        const stmt = db.prepare(`
             UPDATE channels 
             SET ${setClause}
             WHERE channel_id = ?
         `)
-        const info = query.run(...values, channelId)
+        const info = stmt.run(...values, channelId)
         return info.changes > 0 ? this.findOneById(channelId) : null
     }
 
     static delete(channelId) {
-        const query = db.prepare(`
+        const stmt = db.prepare(`
             DELETE FROM channels 
             WHERE channel_id = ?
         `)
-        const info = query.run(channelId)
+        const info = stmt.run(channelId)
         return info.changes > 0
     }
 
     static deleteBySessionId(sessionId) {
-        const query = db.prepare(`
+        const stmt = db.prepare(`
             DELETE FROM channels 
             WHERE session_id = ?
         `)
-        const info = query.run(sessionId)
+        const info = stmt.run(sessionId)
         return info.changes
     }
 }
