@@ -56,7 +56,7 @@ const createWindow = () => {
                             if (resolved.json === null) {
                                 sendSessionId(resolved.metadata.metadata)
                             } else {
-                                const sessionId = processAndPersistData(resolved.json, resolved.metadata.metadata)
+                                const sessionId = processAndPersistData(resolved.inputFileName, resolved.json, resolved.metadata.metadata)
                                 sendSessionId(sessionId)
                             }
                         }).catch(err => {
