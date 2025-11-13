@@ -1,8 +1,20 @@
-import EmgChart from "./components/EmgChart.jsx";
+import { useEffect, useState } from 'react'
+
 
 function App() {
+    const [providedSessionId, setProvidedSessionId] = useState(null)
+
+    useEffect(() => {
+        if (window.biosignalApi?.on?.sessionId) {
+            const unsubscribe = window.biosignalApi.on.sessionId((sessionId) => {
+                setProvidedSessionId(sessionId)
+            })
+            return () => unsubscribe && unsubscribe()
+        }
+    }, [])
+
     return (
-        <EmgChart/>
+        {/* <Dashboard sessionId={providedSessionId} /> */}
     )
 }
 

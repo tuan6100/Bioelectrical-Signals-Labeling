@@ -7,14 +7,39 @@ import {
 } from "../../app/api/provider";
 
 /**
- * Fetches session information for a given session ID.
+ * Fetches session information including patient details, channels, and default channel samples for display on the dashboard.
  *
  * @async
- * @function fetchSessionInfo
+ * @function fetchSessionDashboard
  * @param {number} sessionId - The ID of the session to fetch information for.
- * @returns {Promise<Object>} A promise that resolves to the session information.
+ * @returns {Promise<{
+ *   session: {
+ *     patientId: number,
+ *     patientFirstName: string,
+ *     patientGender: string,
+ *     sessionStartTime: string,
+ *     sessionEndTime: string,
+ *     channels: Array<{channelId: number, channelNumber: number, dataKind: string, sweepIndex: number|null}>
+ *   },
+ *   defaultChannel: {
+ *     channelId: number|null,
+ *     name: string,
+ *     samples: {
+ *       samplingRateHz: number|null,
+ *       durationMs: number|null,
+ *       samples: Array<{time: number, value: number}>,
+ *       annotations: {
+ *         annotationId: number,
+ *         startTimeMs: number,
+ *         endTimeMs: number,
+ *         note: string|null,
+ *         label: {labelId: number, name: string, type: string}|null
+ *       }|null
+ *     }|null
+ *   }
+ * }>} A promise that resolves to the session dashboard data including patient info, channels list, and default averaged channel samples.
  */
-export async function fetchSessionInfo(sessionId) {
+export async function fetchSessionDashboard(sessionId) {
     if (isDesktopEnv()) {
         return await getSessionInfoAppApi(sessionId);
     } else {
@@ -23,12 +48,24 @@ export async function fetchSessionInfo(sessionId) {
 }
 
 /**
- * Fetches channel samples for a given channel ID.
+ * Fetches channel samples data including time series, sampling rate, duration, and annotations.
  *
  * @async
  * @function fetchChannelSamples
  * @param {number} channelId - The ID of the channel to fetch samples for.
- * @returns {Promise<Object>} A promise that resolves to the channel samples.
+ * @returns {Promise<{
+ *   samplingRateHz: number|null,
+ *   durationMs: number|null,
+ *   samples: Array<{time: number, value: number}>,
+ *   annotations: {
+ *     annotationId: number,
+ *     startTimeMs: number,
+ *     endTimeMs: number,
+ *     note: string|null,
+ *     label: {labelId: number, name: string, type: string}|null
+ *   }|null
+ * }>} A promise that resolves to the channel samples with time series data and any associated annotations.
+ * @throws {Error} If channelId is null or undefined.
  */
 export async function fetchChannelSamples(channelId) {
     if (isDesktopEnv()) {
@@ -39,14 +76,20 @@ export async function fetchChannelSamples(channelId) {
 }
 
 /**
- * Creates a new label .
+ * Creates a new label on the samples.
  *
  * @async
  * @function fetchCreateLabel
- * @param {Object} labelDto - The data transfer object containing label details,
- * includes channelId, startTime, endTime, name and maybe its note.
- * @returns {Promise<Object>} A promise that resolves to the created label.
+ * @param {Object} labelDto - The data transfer object containing label details.
+ * @param {number} labelDto.channelId - The ID of the channel the label is associated with.
+ * @param {number} labelDto.startTime - The start time of the label in milliseconds.
+ * @param {number} labelDto.endTime - The end time of the label in milliseconds.
+ * @param {string} labelDto.name - The name of the label.
+ * @param {string} [labelDto.note] - An optional note for the label.
+ * @returns {Promise<{annotationId: number, channelId: number, labelId: number, labelName: string, startTimeMs: number, endTimeMs: number, note: string|null}>}
  */
+
+
 export async function fetchCreateLabel(labelDto) {
     if (isDesktopEnv()) {
         return await createLabelAppApi(labelDto);
