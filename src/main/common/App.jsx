@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import Dashboard from "./pages/Dashboard.jsx";
 
 
 function App() {
@@ -14,7 +15,7 @@ function App() {
     }, [])
 
     return (
-        {/* <Dashboard sessionId={providedSessionId} /> */}
+         <Dashboard sessionId={providedSessionId} />
     )
 }
 

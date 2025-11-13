@@ -4,18 +4,18 @@ import Channel from "../../../../persistence/dao/channel.dao.js";
 export function getSessionInfo(sessionId) {
     const sessionInfo =  Session.findAllRelatedById(sessionId)
     const defaultChannelId = Channel.findByDataKindAndSweepIndex(sessionId, 'average', null)
-    const defaultChannelSamples = defaultChannelId ? getChannelSamples(defaultChannelId) : null
+    const defaultChannelSignal = defaultChannelId ? getDefaultChannelSignal(defaultChannelId) : null
     return {
         session: sessionInfo,
         defaultChannel: {
             channelId: defaultChannelId,
             name: 'Averaged Data',
-            samples: defaultChannelSamples
+            signal: defaultChannelSignal
         }
     }
 }
 
-export function getChannelSamples(channelId) {
+export function getDefaultChannelSignal(channelId) {
     if (channelId == null) {
         throw new Error('Channel ID must be provided')
     }
