@@ -50,16 +50,18 @@ const createWindow = () => {
                         const outputPath = path.join(outputStorageDir, 'data.json')
 
                         try {
-                            const {json, metadata}  = readFile(inputPath, outputPath)
-                            function sendSessionId (sessionId) {
-                                mainWindow.webContents.send("provide:session-id", sessionId)
-                            }
-                            if (json === null) {
-                                sendSessionId(metadata.metadata)
-                            } else {
-                                const sessionId = processAndStoreData(json, metadata.metadata)
-                                sendSessionId(sessionId)
-                            }
+                            readFile(inputPath, outputPath).then((resolve) => {
+                                function sendSessionId (sessionId) {
+                                    mainWindow.webContents.send("provide:session-id", sessionId)
+                                }
+                                if (resolve.json === null) {
+                                    sendSessionId(resolve.metadata.metadata)
+                                } else {
+                                    const sessionId = processAndStoreData(resolve.json, resolve.metadata.metadata)
+                                    sendSessionId(sessionId)
+                                }
+                            })
+
                         } catch (err) {
                             console.error('Failed to read or process file:', err)
                         } finally {
@@ -118,6 +120,7 @@ app.whenReady().then(() => {
 
 // Quit when all windows are closed, except on macOS.
 app.on('window-all-closed', () => {
+    db.close()
     if (process.platform !== 'darwin') {
         app.quit()
     }

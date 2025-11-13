@@ -8,7 +8,7 @@ function isTxt(filePath) {
     return path.extname(filePath).toLowerCase() === '.txt'
 }
 
-export function readFile(inputPath, outputPath) {
+export async function readFile(inputPath, outputPath) {
     if (!isTxt(inputPath)) {
         throw new Error("This file extension is not supported")
     }
@@ -28,12 +28,13 @@ export function readFile(inputPath, outputPath) {
         }
     }
     const jsonParsed = parseText(content)
-    saveJson(jsonParsed, outputPath)
+    await saveJson(jsonParsed, outputPath)
     return {
         json: jsonParsed,
         metadata: result
     }
 }
+
 
 function parseText(text) {
     text = text.replace(/\/\r?\n/g, "");
