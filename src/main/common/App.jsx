@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-
+import EmgLabelingApp from './components/EmgLabeling';
 
 function App() {
     const [providedSessionId, setProvidedSessionId] = useState(null)
@@ -13,6 +13,12 @@ function App() {
         }
     }, [])
 
+    return (
+        <div>
+            <h1>EMG Labeling Preview</h1>
+            <EmgLabelingApp />
+        </div>
+    );
     return (
         {/* <Dashboard sessionId={providedSessionId} /> */}
     )
