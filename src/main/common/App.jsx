@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import Dashboard from "./pages/Dashboard.jsx";
-
+import EmgLabelingApp from './components/EmgLabeling';
 
 function App() {
     const [providedSessionId, setProvidedSessionId] = useState(null)
@@ -15,7 +15,14 @@ function App() {
     }, [])
 
     return (
-         <Dashboard sessionId={providedSessionId} />
+        <div>
+            <Dashboard sessionId={providedSessionId} />
+            <h1>EMG Labeling Preview</h1>
+            <EmgLabelingApp />
+        </div>
+    );
+    return (
+        {/* <Dashboard sessionId={providedSessionId} /> */}
     )
 }
 
