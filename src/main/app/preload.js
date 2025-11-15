@@ -9,8 +9,8 @@ contextBridge.exposeInMainWorld("biosignalApi", {
     on: {
         sessionId: (callback) => {
             const listener = (_event, sessionId) => callback(sessionId)
-            ipcRenderer.on("provide:session-id", listener)
-            return () => ipcRenderer.removeListener("provide:session-id", listener)
+            ipcRenderer.on("send:session-id", listener)
+            return () => ipcRenderer.removeListener("send:session-id", listener)
         }
     },
 
