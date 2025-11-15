@@ -16,7 +16,8 @@ const RightPanel = ({
   isLabeled,
   isDoubleChecked,
   onToggleLabeled,
-  onToggleDoubleChecked
+  onToggleDoubleChecked,
+  onLabelChange
 }) => {
   return (
     <div className="right-panel">
@@ -31,6 +32,7 @@ const RightPanel = ({
       <LabelTable
         data={tableData}
         onDeleteRow={onDeleteRow}
+        onLabelChange={onLabelChange}
       />
       
       <BottomControls
