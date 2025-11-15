@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import LabelTableRow from './LabelTableRow';
 
-const LabelTable = ({ data, onDeleteRow }) => {
+const LabelTable = ({ data, onDeleteRow, onLabelChange }) => {
   const [selectedId, setSelectedId] = useState(null);
   const prevLengthRef = React.useRef(null);
 
@@ -59,6 +59,7 @@ const LabelTable = ({ data, onDeleteRow }) => {
                 onDelete={onDeleteRow}
                 isHighlight={row.id === selectedId}
                 onRowClick={handleRowClick}
+                onLabelChange={onLabelChange}
               />
             ))
           )}

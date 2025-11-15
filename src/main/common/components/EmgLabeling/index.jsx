@@ -58,6 +58,12 @@ const EmgLabelingApp = () => {
     console.log('Lưu kết quả:', tableData);
   };
 
+  const handleLabelChange = (rowId, labelField, value) => {
+    setTableData(tableData.map(row => 
+      row.id === rowId ? { ...row, [labelField]: value } : row
+    ));
+  };
+
   return (
     <div className="container">
       <LeftPanel onBack={handleBack} />
@@ -76,6 +82,7 @@ const EmgLabelingApp = () => {
         isDoubleChecked={isDoubleChecked}
         onToggleLabeled={setIsLabeled}
         onToggleDoubleChecked={setIsDoubleChecked}
+        onLabelChange={handleLabelChange}
       />
     </div>
   );
