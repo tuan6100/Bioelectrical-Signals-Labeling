@@ -22,11 +22,10 @@ export async function readFile(inputPath, outputPath) {
     const inputFileName = path.basename(inputPath)
     const result = checkFileImported(content)
     if (result.imported) {
-        console.info("File has been already imported")
         return {
             inputFileName: null,
             json: null,
-            metadata: result
+            sessionCode: result.metadata
         }
     }
     const jsonParsed = parseText(content)
@@ -34,7 +33,7 @@ export async function readFile(inputPath, outputPath) {
     return {
         inputFileName: inputFileName,
         json: jsonParsed,
-        metadata: result
+        sessionCode: result.metadata
     }
 }
 

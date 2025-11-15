@@ -11,6 +11,7 @@ export default function Dashboard({ sessionId }) {
     useEffect(() => {
         fetchSessionDashboard(sessionId)
             .then((data) => {
+                console.log(`received session data for sessionId=${sessionId}`);
                 setSession(data.session);
                 setChannels(data.session?.channels || []);
                 const defaultId = data.defaultChannel?.channelId || null;

@@ -1,29 +1,23 @@
-import { useEffect, useState } from 'react'
+import {useEffect, useState} from 'react'
 import Dashboard from "./pages/Dashboard.jsx";
 import EmgLabelingApp from './components/EmgLabeling';
 
 function App() {
-    const [providedSessionId, setProvidedSessionId] = useState(null)
+    const [sessionKey, setSessionKey] = useState({ id: null, refresh: 0 });
 
     useEffect(() => {
-        if (window.biosignalApi?.on?.sessionId) {
-            const unsubscribe = window.biosignalApi.on.sessionId((sessionId) => {
-                setProvidedSessionId(sessionId)
-            })
-            return () => unsubscribe && unsubscribe()
-        }
-    }, [])
+        return window.biosignalApi.on.sessionId(({sessionId, refresh}) => {
+            setSessionKey({id: sessionId, refresh});
+        });
+    }, []);
 
     return (
         <div>
-            <Dashboard sessionId={providedSessionId} />
+            <Dashboard sessionId={sessionKey.id} />
             <h1>EMG Labeling Preview</h1>
             <EmgLabelingApp />
         </div>
     );
-    return (
-        {/* <Dashboard sessionId={providedSessionId} /> */}
-    )
 }
 
 export default App
