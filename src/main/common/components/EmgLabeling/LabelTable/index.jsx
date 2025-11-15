@@ -1,7 +1,34 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import LabelTableRow from './LabelTableRow';
 
 const LabelTable = ({ data, onDeleteRow }) => {
+  const [selectedId, setSelectedId] = useState(null);
+  const prevLengthRef = React.useRef(null);
+
+  useEffect(() => {
+    if (!Array.isArray(data) || data.length === 0) {
+      setSelectedId(null);
+      prevLengthRef.current = data ? data.length : 0;
+      return;
+    }
+
+    const prevLength = prevLengthRef.current;
+
+    if (prevLength == null) {
+      setSelectedId(data[0].id);
+    } else if (data.length > prevLength) {
+      setSelectedId(data[data.length - 1].id);
+    } else {
+      setSelectedId(data[0].id);
+    }
+
+    prevLengthRef.current = data.length;
+  }, [data]);
+
+  function handleRowClick(id) {
+    setSelectedId(id);
+  }
+
   return (
     <div className="table-container">
       <table>
@@ -25,12 +52,13 @@ const LabelTable = ({ data, onDeleteRow }) => {
               </td>
             </tr>
           ) : (
-            data.map((row, index) => (
+            data.map((row) => (
               <LabelTableRow
                 key={row.id}
                 data={row}
                 onDelete={onDeleteRow}
-                isHighlight={index === 0}
+                isHighlight={row.id === selectedId}
+                onRowClick={handleRowClick}
               />
             ))
           )}
@@ -40,4 +68,5 @@ const LabelTable = ({ data, onDeleteRow }) => {
   );
 };
 
+  
 export default LabelTable;
