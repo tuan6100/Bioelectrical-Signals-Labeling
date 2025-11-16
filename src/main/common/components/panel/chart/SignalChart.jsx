@@ -10,15 +10,15 @@ import './SignalChart.css';
 import LabelContextMenu from './LabelContextMenu.jsx';
 
 export default function SignalChart({
-                                        samples,
-                                        samplingRateHz,
-                                        durationMs,
-                                        viewport,
-                                        onViewportChange,
-                                        channelId,
-                                        existingLabels,
-                                        minLabelDurationMs
-                                    }) {
+    samples,
+    samplingRateHz,
+    durationMs,
+    viewport,
+    onViewportChange,
+    channelId,
+    existingLabels,
+    minLabelDurationMs
+}) {
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
     const [dimensions, setDimensions] = useState({ width: 800, height: 400 });
@@ -29,6 +29,7 @@ export default function SignalChart({
     const [allLabelOptions, setAllLabelOptions] = useState([]);
     const [hoveredLabelId, setHoveredLabelId] = useState(null);
     const [resizeEdge, setResizeEdge] = useState(null);
+    const [hoverSample, setHoverSample] = useState(null);
 
     const [contextMenu, setContextMenu] = useState({
         visible: false,
@@ -171,6 +172,33 @@ export default function SignalChart({
         return null;
     }, [labels, clampedViewport, chartWidth]);
 
+    // Efficient nearest sample finder (binary search)
+    const findNearestSample = useCallback((targetTime) => {
+        if (!samples || samples.length === 0) return null;
+        let lo = 0;
+        let hi = samples.length - 1;
+        // Ensure times ascending; assume input is sorted.
+        while (lo < hi) {
+            const mid = Math.floor((lo + hi) / 2);
+            if (samples[mid].time === targetTime) {
+                lo = hi = mid;
+                break;
+            }
+            if (samples[mid].time < targetTime) {
+                lo = mid + 1;
+            } else {
+                hi = mid;
+            }
+        }
+        let idx = lo;
+        // Compare with previous sample for proximity
+        const prevIdx = Math.max(0, idx - 1);
+        const distCurr = Math.abs(samples[idx].time - targetTime);
+        const distPrev = Math.abs(samples[prevIdx].time - targetTime);
+        if (distPrev < distCurr) idx = prevIdx;
+        return samples[idx];
+    }, [samples]);
+
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -185,6 +213,8 @@ export default function SignalChart({
 
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, dimensions.width, dimensions.height);
+
+        // Rectangles (pending / hovered persisted)
         labels.forEach(label => {
             const isHovered = hoveredLabelId === label.annotationId;
             const inView = !(label.endTimeMs < clampedViewport.startMs || label.startTimeMs > clampedViewport.endMs);
@@ -209,6 +239,7 @@ export default function SignalChart({
             }
         });
 
+        // Grid
         ctx.strokeStyle = '#ddd';
         ctx.lineWidth = 1;
         const timeStep = (clampedViewport.endMs - clampedViewport.startMs) / 10;
@@ -230,6 +261,7 @@ export default function SignalChart({
             ctx.stroke();
         }
 
+        // Waveform line
         if (samples && samples.length > 0) {
             let pathStarted = false;
             let prevX = null;
@@ -286,6 +318,7 @@ export default function SignalChart({
             flushSegment();
         }
 
+        // Drag selection preview
         if (dragState.active) {
             const s = Math.min(dragState.startTime, dragState.endTime);
             const e = Math.max(dragState.startTime, dragState.endTime);
@@ -298,6 +331,30 @@ export default function SignalChart({
             ctx.setLineDash([]);
         }
 
+        // Hover sample marker (NEW) - does not alter existing logic
+        if (hoverSample) {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(30,30,30,0.6)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([4, 3]);
+            ctx.beginPath();
+            ctx.moveTo(hoverSample.canvasX, MARGIN.top);
+            ctx.lineTo(hoverSample.canvasX, MARGIN.top + chartHeight);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Point marker
+            ctx.fillStyle = '#ff8800';
+            ctx.beginPath();
+            ctx.arc(hoverSample.canvasX, hoverSample.canvasY, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#cc6600';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        // Axes
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -305,6 +362,8 @@ export default function SignalChart({
         ctx.lineTo(MARGIN.left, MARGIN.top + chartHeight);
         ctx.lineTo(MARGIN.left + chartWidth, MARGIN.top + chartHeight);
         ctx.stroke();
+
+        // Axis labels
         ctx.fillStyle = '#000';
         ctx.font = '11px sans-serif';
         ctx.textAlign = 'center';
@@ -336,7 +395,7 @@ export default function SignalChart({
     }, [
         dimensions, samples, clampedViewport, dataRange, labels, dragState,
         timeToX, valueToY, chartWidth, chartHeight, samplingRateHz,
-        hoveredLabelId, findLabelAtTime, getColorScheme
+        hoveredLabelId, findLabelAtTime, getColorScheme, hoverSample
     ]);
 
     const handleMouseDown = (e) => {
@@ -392,12 +451,33 @@ export default function SignalChart({
                 );
                 if (isOverMenu) {
                     if (hoveredLabelId !== null) setHoveredLabelId(null);
+                    setHoverSample(null);
                     return;
                 }
             }
         }
 
         const time = xToTime(x);
+
+        // Update hover sample (only when inside chart area)
+        if (x >= MARGIN.left && x <= MARGIN.left + chartWidth &&
+            y >= MARGIN.top && y <= MARGIN.top + chartHeight &&
+            !panState.active && !resizeState.active) {
+            const nearest = findNearestSample(time);
+            if (nearest) {
+                setHoverSample({
+                    timeMs: nearest.time,
+                    value: nearest.value,
+                    canvasX: timeToX(nearest.time),
+                    canvasY: valueToY(nearest.value)
+                });
+            } else {
+                setHoverSample(null);
+            }
+        } else {
+            setHoverSample(null);
+        }
+
         if (resizeState.active) {
             const newTime = Math.max(0, Math.min(xToTime(x), effectiveDurationMs));
             setLabels(prev => prev.map(l => {
@@ -418,14 +498,14 @@ export default function SignalChart({
         if (x >= MARGIN.left && x <= MARGIN.left + chartWidth &&
             y >= MARGIN.top && y <= MARGIN.top + chartHeight) {
             const edgeInfo = findLabelEdgeAtTime(time);
-            if (edgeInfo) {
+            if (edgeInfo && !panState.active) {
                 setResizeEdge(edgeInfo.edge);
                 setHoveredLabelId(edgeInfo.label.annotationId);
             } else {
                 setResizeEdge(null);
                 const hit = findLabelAtTime(time);
                 const newHoverId = hit ? hit.annotationId : null;
-                if (newHoverId !== hoveredLabelId) setHoveredLabelId(newHoverId);
+                if (newHoverId !== hoveredLabelId && !panState.active) setHoveredLabelId(newHoverId);
             }
         } else {
             if (hoveredLabelId !== null) setHoveredLabelId(null);
@@ -550,6 +630,7 @@ export default function SignalChart({
 
     const handleMouseLeave = () => {
         setHoveredLabelId(null);
+        setHoverSample(null);
         handleMouseUp();
     };
 
@@ -773,7 +854,6 @@ export default function SignalChart({
         autoFitDoneRef.current = true;
     }, [labels, effectiveDurationMs, viewport, onViewportChange]);
 
-    const MIN_SELECTION_SAMPLES = 3;
     const sampleDtMs = useMemo(() => {
         if (!samples || samples.length < 2) return 0;
         const dt = samples[1].time - samples[0].time;
@@ -816,6 +896,30 @@ export default function SignalChart({
                 onContextMenu={handleContextMenu}
                 style={{ display: 'block' }}
             />
+
+            {/* Hover sample tooltip (NEW) - absolute overlay, non-intrusive */}
+            {hoverSample && (
+                <div
+                    style={{
+                        position: 'absolute',
+                        top: Math.max(MARGIN.top, Math.min(hoverSample.canvasY - 28, dimensions.height - 55)),
+                        left: Math.min(Math.max(hoverSample.canvasX + 8, MARGIN.left), dimensions.width - 160),
+                        background: 'rgba(0,0,0,0.75)',
+                        color: '#fff',
+                        padding: '6px 8px',
+                        fontSize: '12px',
+                        borderRadius: 6,
+                        pointerEvents: 'none',
+                        lineHeight: 1.3,
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+                        zIndex: 10,
+                        maxWidth: 150
+                    }}
+                >
+                    <div>t: {hoverSample.timeMs.toFixed(2)} ms</div>
+                    <div>v: {typeof hoverSample.value === 'number' ? hoverSample.value.toFixed(3) : hoverSample.value}</div>
+                </div>
+            )}
 
             {contextMenu.visible && (
                 <LabelContextMenu

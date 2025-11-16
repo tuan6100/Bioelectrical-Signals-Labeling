@@ -55,8 +55,8 @@ const ddl = `
 
     CREATE TABLE IF NOT EXISTS annotations (
         annotation_id INTEGER PRIMARY KEY NOT NULL,
-        channel_id INTEGER,
-        label_id INTEGER,
+        channel_id INTEGER NOT NULL,
+        label_id INTEGER NOT NULL,
         start_time_ms REAL NOT NULL,
         end_time_ms REAL NOT NULL,
         note TEXT,
