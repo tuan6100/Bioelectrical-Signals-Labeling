@@ -47,11 +47,29 @@ contextBridge.exposeInMainWorld("biosignalApi", {
             labelId
         ),
 
+        updateAnnotation: (annotationId, updateFields) => ipcRenderer.invoke(
+            "annotation:update",
+            annotationId,
+            updateFields
+        ),
+
+        deleteAnnotation: (annotationId) => ipcRenderer.invoke(
+            "annotation:delete",
+            annotationId
+        ),
+
         exportLabel: (sessionId) => ipcRenderer.send(
             "label:export",
             sessionId
         )
+    },
+
+    dialog: {
+        showError: (title, message) => ipcRenderer.invoke(
+            "dialog:showError",
+            title,
+            message
+        )
     }
 
 });
-

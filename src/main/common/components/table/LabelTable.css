@@ -1,0 +1,36 @@
+.table-container {
+    width: 100%;
+    overflow-x: auto;
+    margin-top: 10px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    min-width: 700px;
+}
+
+th, td {
+    border: 1px solid #e0e0e0;
+    padding: 8px;
+    text-align: center;
+}
+
+th {
+    background-color: #f0f2f5;
+}
+
+tr:nth-child(even) {
+    background-color: #fafafa;
+}
+
+tr.highlight {
+    background-color: #ff6b6b;
+    color: white;
+}
+
+.back-btn {
+    align-self: flex-start;
+    margin-bottom: 10px;
+}

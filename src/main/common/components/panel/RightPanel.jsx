@@ -1,10 +1,11 @@
 import React from 'react';
-import TopControls from './TopControls';
-import LabelTable from './LabelTable';
-import BottomControls from './BottomControls';
+import TopControl from './control/TopControl.jsx';
+import LabelTable from '../table/LabelTable.jsx';
+import BottomControl from './control/BottomControl.jsx';
+import './RightPanel.css'
 
-const RightPanel = ({ 
-  startPosition, 
+const RightPanel = ({
+  startPosition,
   onStartPositionChange,
   onSetup,
   onUpload,
@@ -21,21 +22,21 @@ const RightPanel = ({
 }) => {
   return (
     <div className="right-panel">
-      <TopControls
+      <TopControl
         startPosition={startPosition}
         onStartPositionChange={onStartPositionChange}
         onSetup={onSetup}
         onUpload={onUpload}
         onDownload={onDownload}
       />
-      
+
       <LabelTable
         data={tableData}
         onDeleteRow={onDeleteRow}
         onLabelChange={onLabelChange}
       />
-      
-      <BottomControls
+
+      <BottomControl
         onAddLabel={onAddLabel}
         onSave={onSave}
         isLabeled={isLabeled}

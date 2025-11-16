@@ -195,7 +195,7 @@ export default class Channel {
             LEFT JOIN labels AS l ON a.label_id = l.label_id
             WHERE c.channel_id = ?
         `)
-        const result = stmt.get(channelId)
+        const result = stmt.all(channelId)
         return result || null
     }
 

@@ -62,7 +62,7 @@ const ddl = `
         note TEXT,
         labeled_at TEXT DEFAULT (datetime('now')),
         updated_at TEXT,
-        FOREIGN KEY (channel_id) REFERENCES channel(channel_id) ON DELETE CASCADE,
+        FOREIGN KEY (channel_id) REFERENCES channels(channel_id) ON DELETE CASCADE,
         FOREIGN KEY (label_id) REFERENCES labels(label_id)
     );
 

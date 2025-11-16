@@ -1,12 +1,13 @@
 import React from 'react';
+import './BottomControl.css'
 
-const BottomControls = ({ 
-  onAddLabel, 
-  onSave, 
-  isLabeled, 
-  isDoubleChecked, 
-  onToggleLabeled, 
-  onToggleDoubleChecked 
+const BottomControl = ({
+  onAddLabel,
+  onSave,
+  isLabeled,
+  isDoubleChecked,
+  onToggleLabeled,
+  onToggleDoubleChecked
 }) => {
   return (
     <div className="bottom-controls">
@@ -16,13 +17,13 @@ const BottomControls = ({
       </div>
       <div className="toggle">
         <label>Đánh dấu đã gán nhãn xong</label>
-        <input 
-          type="checkbox" 
+        <input
+          type="checkbox"
           checked={isLabeled}
           onChange={(e) => onToggleLabeled(e.target.checked)}
         />
         <label>Đánh dấu đã doublecheck</label>
-        <input 
+        <input
           type="checkbox"
           checked={isDoubleChecked}
           onChange={(e) => onToggleDoubleChecked(e.target.checked)}
@@ -32,4 +33,4 @@ const BottomControls = ({
   );
 };
 
-export default BottomControls;
+export default BottomControl;

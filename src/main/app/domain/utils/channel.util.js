@@ -1,18 +1,14 @@
 import Channel from "../../persistence/dao/channel.dao.js";
 
-// Parse a numeric value that may use comma as decimal separator or include thousand separators.
 function toNumber(v) {
     if (v === null || v === undefined) return null;
     if (typeof v === "number") return Number.isFinite(v) ? v : null;
     let s = String(v).trim();
     if (!s) return null;
-    // Remove spaces used as thousand separators
     s = s.replace(/\s+/g, "");
-    // If both comma and dot are present, assume dot is decimal and comma is thousands
     if (s.includes(",") && s.includes(".")) {
         s = s.replace(/,/g, "");
     } else if (s.includes(",")) {
-        // Only comma present: treat comma as decimal separator
         s = s.replace(/,/g, ".");
     }
     const num = parseFloat(s);

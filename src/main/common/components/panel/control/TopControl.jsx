@@ -1,12 +1,12 @@
 import React, { useRef } from 'react';
 
-const TopControls = ({ 
-  startPosition, 
-  onStartPositionChange, 
-  onSetup, 
-  onUpload, 
-  onDownload 
-}) => {
+export default function TopControl ({
+  startPosition,
+  onStartPositionChange,
+  onSetup,
+  onUpload,
+  onDownload
+}) {
   const fileInputRef = useRef(null);
 
   function handleUploadClick() {
@@ -30,11 +30,11 @@ const TopControls = ({
     <div className="top-controls">
       <div>
         <label>Thiết lập gán nhãn từ vị trí thứ: </label>
-        <input 
-          type="number" 
-          value={startPosition} 
+        <input
+          type="number"
+          value={startPosition}
           onChange={(e) => onStartPositionChange(e.target.value)}
-          min="1" 
+          min="1"
           style={{width: '50px'}}
         />
         <button onClick={onSetup}>Thiết lập</button>
@@ -53,5 +53,3 @@ const TopControls = ({
     </div>
   );
 };
-
-export default TopControls;

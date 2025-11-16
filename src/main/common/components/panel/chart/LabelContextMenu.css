@@ -1,0 +1,83 @@
+.signal-label-menu {
+  position: fixed;
+  z-index: 1000;
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  border-radius: 6px;
+  padding: 12px;
+  min-width: 220px;
+  font-family: sans-serif;
+  animation: fadeIn 120ms ease-out;
+}
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-4px);} to { opacity:1; transform:translateY(0);} }
+
+.signal-label-menu__title {
+  font-size: 12px;
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: #666;
+}
+
+.signal-label-menu__list {
+  max-height: 220px;
+  overflow-y: auto;
+  margin-bottom: 8px;
+}
+
+.signal-label-menu__option {
+  padding: 8px 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color .18s;
+  font-size: 14px;
+}
+.signal-label-menu__option:hover { background: #f0f0f0; }
+
+.signal-label-menu__btn {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  color: #333;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 6px;
+  transition: background-color .18s, color .18s, border-color .18s;
+}
+
+.signal-label-menu__btn--primary { border-color: #4a90e2; color: #4a90e2; }
+.signal-label-menu__btn--primary:hover { background:#4a90e2; color:#fff; }
+
+.signal-label-menu__btn--danger { border-color: #dc3545; color: #dc3545; }
+.signal-label-menu__btn--danger:hover { background:#dc3545; color:#fff; }
+
+.signal-label-menu__btn--add { border:1px dashed #999; color:#666; }
+.signal-label-menu__btn--add:hover { background:#f8f8f8; border-color:#666; }
+
+.signal-label-menu__btn-icon { font-size:18px; font-weight:bold; line-height:1; }
+
+.signal-label-menu__input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  margin-bottom: 8px;
+  outline: none;
+  box-sizing: border-box;
+}
+.signal-label-menu__input:focus { border-color:#4a90e2; }
+
+.signal-label-menu__actions { display:flex; gap:8px; }
+
+.signal-label-menu__btn--primary:active,
+.signal-label-menu__btn--danger:active,
+.signal-label-menu__btn--add:active,
+.signal-label-menu__option:active { transform: translateY(1px); }
+
