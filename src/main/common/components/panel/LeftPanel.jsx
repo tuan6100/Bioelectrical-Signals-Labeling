@@ -1,21 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import {
-    fetchSessionDashboard,
     fetchChannelSamples,
     fetchCreateLabel,
     fetchExportLabel
 } from '../../api/index.js';
-import LabelModal from '../label/LabelModal.jsx';
 import { useSignalViewport } from '../../hooks/useSignalViewport.js';
-import LabelView from '../table/LabelView.jsx';
 import './LeftPanel.css';
 import SignalChart from "./chart/SignalChart.jsx";
 
-export default function LeftPanel ({ sessionId, onBack }) {
+export default function LeftPanel ({
+    session,
+    sessionId,
+    channels,
+    channelId,
+    defaultSignal,
+    onChannelSelected,
+    onBack
+}) {
     const [loading, setLoading] = useState(false);
-    const [session, setSession] = useState(null);
-    const [channels, setChannels] = useState([]);
-    const [channelId, setChannelId] = useState(null);
     const [samples, setSamples] = useState([]);
     const [samplingRate, setSamplingRate] = useState(null);
     const [durationMs, setDurationMs] = useState(null);
@@ -24,47 +26,38 @@ export default function LeftPanel ({ sessionId, onBack }) {
 
     const { viewport, updateViewport, resetViewport } = useSignalViewport(durationMs);
 
+    // Initialize from default signal when it changes
     useEffect(() => {
-        if (!sessionId) return;
-        setLoading(true);
-        fetchSessionDashboard(sessionId)
-            .then(data => {
-                setSession(data.session);
-                // Store available channels
-                setChannels(data.session?.channels || []);
-                const sig = data.defaultChannel?.signal;
-                const cid = data.defaultChannel?.channelId || null;
-                setChannelId(cid);
-                if (sig) {
-                    setSamples(sig.samples || []);
-                    setSamplingRate(sig.samplingRateHz || null);
-                    setDurationMs(
-                        sig.durationMs ||
-                        (sig.samples?.length ? sig.samples[sig.samples.length - 1].time : null)
-                    );
-                    const ann = sig.annotations
-                        ? Array.isArray(sig.annotations)
-                            ? sig.annotations
-                            : [sig.annotations]
-                        : [];
-                    setLabels(
-                        ann.map(a => ({
-                            annotationId: a.annotationId,
-                            startTimeMs: a.startTimeMs,
-                            endTimeMs: a.endTimeMs,
-                            labelName: a.label?.name || a.labelName || 'Unknown',
-                            note: a.note || null,
-                            label: a.label || null
-                        }))
-                    )
-                } else {
-                    setSamples([]);
-                    setLabels([]);
-                }
-            })
-            .catch(console.error)
-            .finally(() => setLoading(false));
-    }, [sessionId]);
+        if (!defaultSignal) {
+            setSamples([]);
+            setSamplingRate(null);
+            setDurationMs(null);
+            setLabels([]);
+            return;
+        }
+        const sig = defaultSignal;
+        setSamples(sig.samples || []);
+        setSamplingRate(sig.samplingRateHz || null);
+        setDurationMs(
+            sig.durationMs || (sig.samples?.length ? sig.samples[sig.samples.length - 1].time : null)
+        );
+        const ann = sig.annotations
+            ? Array.isArray(sig.annotations)
+                ? sig.annotations
+                : [sig.annotations]
+            : [];
+        setLabels(
+            ann.map(a => ({
+                annotationId: a.annotationId,
+                startTimeMs: a.startTimeMs,
+                endTimeMs: a.endTimeMs,
+                labelName: a.label?.name || a.labelName || 'Unknown',
+                note: a.note || null,
+                label: a.label || null
+            }))
+        );
+        resetViewport();
+    }, [defaultSignal, resetViewport]);
 
     const handleConfirmLabel = async ({ name, note }) => {
         if (!channelId || !selectionForModal) {
@@ -110,17 +103,15 @@ export default function LeftPanel ({ sessionId, onBack }) {
     const handleChannelChange = async (event) => {
         const newChannelId = Number(event.target.value);
         if (!newChannelId || newChannelId === channelId) return;
-
         setLoading(true);
         try {
             const sig = await fetchChannelSamples(newChannelId);
-            setChannelId(newChannelId);
+            onChannelSelected(newChannelId);
             if (sig) {
                 setSamples(sig.samples || []);
                 setSamplingRate(sig.samplingRateHz || null);
                 setDurationMs(
-                    sig.durationMs ||
-                    (sig.samples?.length ? sig.samples[sig.samples.length - 1].time : null)
+                    sig.durationMs || (sig.samples?.length ? sig.samples[sig.samples.length - 1].time : null)
                 );
                 const ann = sig.annotations
                     ? Array.isArray(sig.annotations)
@@ -178,21 +169,6 @@ export default function LeftPanel ({ sessionId, onBack }) {
                 </div>
             </div>
 
-            <div className="patient-info-box">
-                {session ? (
-                    <div className="patient-grid">
-                        <div><strong>Patient ID:</strong> {session.patientId}</div>
-                        <div><strong>Name:</strong> {session.patientFirstName}</div>
-                        <div><strong>Gender:</strong> {session.patientGender}</div>
-                        <div><strong>Start:</strong> {session.sessionStartTime}</div>
-                        <div><strong>End:</strong> {session.sessionEndTime}</div>
-                        <div><strong>Channel:</strong> {channelId ?? 'N/A'}</div>
-                        <div><strong>Rate(Hz):</strong> {samplingRate ?? 'N/A'}</div>
-                        <div><strong>Duration(ms):</strong> {durationMs ?? 'N/A'}</div>
-                    </div>
-                ) : loading ? <span>Loading...</span> : <span>No session</span>}
-            </div>
-
             <div className="chart-wrapper">
                 <SignalChart
                     samples={samples}
@@ -204,17 +180,6 @@ export default function LeftPanel ({ sessionId, onBack }) {
                     channelId={channelId}
                 />
             </div>
-
-            <div className="labels-dashboard">
-                <h3>Labels</h3>
-                <LabelView labels={labels} />
-            </div>
-
-            <LabelModal
-                selection={selectionForModal}
-                onCancel={() => setSelectionForModal(null)}
-                onConfirm={handleConfirmLabel}
-            />
         </div>
     );
 };

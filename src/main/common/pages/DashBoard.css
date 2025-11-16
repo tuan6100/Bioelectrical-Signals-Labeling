@@ -1,58 +1,134 @@
+
 .dashboard-root {
     display: flex;
     flex-direction: column;
     height: 100vh;
-    background: #f7f7f7;
+    min-height: 0;
+    background: #f7f8fa;
 }
 
 .workspace-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 14px;
-    background: #ffffff;
-    border-bottom: 1px solid #d0d0d0;
+    gap: 12px;
+    padding: 8px 12px;
+    border-bottom: 1px solid #e6e8eb;
+    background: #fff;
 }
 
-.toggle-workspace-btn {
-    padding: 6px 12px;
-    border: 1px solid #888;
-    background: #fafafa;
-    border-radius: 4px;
+.layout-toggle {
+    display: inline-flex;
+    gap: 6px;
+}
+
+.toggle-btn {
+    padding: 6px 10px;
+    font-size: 13px;
+    border-radius: 6px;
+    border: 1px solid #d0d5dd;
+    background: #fff;
+    color: #344054;
     cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.toggle-btn:hover {
+    background: #f2f4f7;
+}
+.toggle-btn.active {
+    color: #fff;
+    background: #3b82f6;
+    border-color: #3b82f6;
+}
+.toggle-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.header-status .session-loading {
+    color: #475467;
+    font-size: 13px;
+}
+.header-status .session-error {
+    color: #dc2626;
     font-size: 13px;
 }
 
 .dashboard-panels {
-    flex: 1;
-    display: flex;
+    display: grid;
+    grid-auto-flow: column;
+    gap: 12px;
+    padding: 12px;
+    flex: 1 1 auto;
     min-height: 0;
-    overflow: hidden;
+    align-items: stretch;
+    align-content: stretch;
 }
 
-.panel-left,
-.panel-right {
+.panel {
+    background: #fff;
+    border: 1px solid #e6e8eb;
+    border-radius: 10px;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+    overflow: hidden;
+    min-height: 0;
     display: flex;
     flex-direction: column;
-    flex: 1;
-    min-width: 0;
-    padding: 6px;
-    box-sizing: border-box;
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.panel-left {
-    background: #fff;
-    border-right: 1px solid #d4d4d4;
+body.dragging .panel {
+    transition: none !important;
 }
 
-.panel-right {
-    background: #fff;
+.panel-resizer {
+    width: 6px;
+    cursor: col-resize;
+    background: transparent;
+    position: relative;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease;
 }
 
-.panel-left.full-width {
-    flex: 1 1 100%;
+.panel-resizer::before {
+    content: '';
+    position: absolute;
+    width: 2px;
+    height: 60px;
+    background: #d0d5dd;
+    border-radius: 1px;
+    opacity: 0;
+    transition: opacity 0.2s ease, background 0.2s ease;
+    pointer-events: none;
 }
 
-.expanded .panel-right {
+.panel-resizer:hover::before,
+.panel-resizer.active::before {
+    opacity: 1;
+    background: #3b82f6;
+}
+
+.panel-resizer.active {
+    background: rgba(59, 130, 246, 0.1);
+}
+
+@media (max-width: 640px) {
+    .panel-resizer {
+        width: 16px;
+    }
+    .panel-resizer::before {
+        height: 80px;
+    }
+}
+
+.dashboard-root.single .panel-resizer {
     display: none;
+}
+
+body.dragging {
+    user-select: none !important;
+    cursor: col-resize !important;
 }
