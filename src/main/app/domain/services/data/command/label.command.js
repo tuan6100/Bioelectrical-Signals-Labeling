@@ -52,3 +52,15 @@ export function exportLabels(sessionId) {
         }];
     });
 }
+
+export function updateLabel(labelId, updateFields) {
+    return asTransaction(function (labelId, updateFields) {
+        return Label.update(labelId, updateFields);
+    })(labelId, updateFields);
+}
+
+export function deleteLabel(labelId) {
+    return asTransaction(function (labelId) {
+        return Label.delete(labelId);
+    })(labelId);
+}
