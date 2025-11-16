@@ -26,7 +26,7 @@ ChartJS.register(
     zoomPlugin
 );
 
-function DrawChart({ jsonData }) {
+export function DrawChart({ jsonData }) {
     const averagedData = useMemo(() => {
         if (!jsonData) return null;
         return findKeyValue(jsonData, 'Averaged Data');
