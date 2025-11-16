@@ -331,7 +331,7 @@ export default function SignalChart({
         ctx.rotate(-Math.PI / 2);
         ctx.font = '12px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('Amplitude', 0, 0);
+        ctx.fillText('Sample (µV)', 0, 0);
         ctx.restore();
     }, [
         dimensions, samples, clampedViewport, dataRange, labels, dragState,
