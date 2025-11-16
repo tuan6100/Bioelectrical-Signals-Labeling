@@ -2,6 +2,7 @@ import db from "../connection/sqlite.connection.js";
 
 export default class Session {
     constructor(
+        sessionId,
         patientId,
         measurementType,
         startTime,
@@ -9,7 +10,7 @@ export default class Session {
         inputFileName,
         contentHash
     ) {
-        this.sessionId = 0
+        this.sessionId = sessionId
         this.patientId = patientId
         this.measurementType = measurementType
         this.startTime = startTime
@@ -21,11 +22,12 @@ export default class Session {
     insert() {
         const stmt = db.prepare(`
             INSERT INTO sessions (
-                patient_id, measurement_type, start_time, end_time, input_file_name, content_hash
+                session_id, patient_id, measurement_type, start_time, end_time, input_file_name, content_hash
             )
-            VALUES (?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         `);
         const resultingChanges = stmt.run(
+            this.sessionId,
             this.patientId,
             this.measurementType,
             this.startTime,
@@ -38,7 +40,6 @@ export default class Session {
         }
         return this;
     }
-
 
     static findOneById(sessionId) {
         const stmt = db.prepare(`

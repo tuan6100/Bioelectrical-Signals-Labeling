@@ -115,6 +115,7 @@ export function extractChannelsFromJson(jsonData, sessionId) {
                 const scale = deriveScale(found?.key || null, data, value);
                 const samples = parseRawSamples(found?.value, scale);
                 const ch = new Channel(
+                    null,
                     sessionId,
                     channelNumber,
                     "average",
@@ -137,6 +138,7 @@ export function extractChannelsFromJson(jsonData, sessionId) {
                 const scale = deriveScale(found?.key || null, data, value);
                 const samples = parseRawSamples(found?.value, scale);
                 const ch = new Channel(
+                    null,
                     sessionId,
                     channelNumber,
                     "trace",
@@ -159,6 +161,7 @@ export function extractChannelsFromJson(jsonData, sessionId) {
                 const scale = deriveScale(found?.key || null, data, value);
                 const samples = parseRawSamples(found?.value, scale);
                 const ch = new Channel(
+                    null,
                     sessionId,
                     channelNumber,
                     "longtrace",

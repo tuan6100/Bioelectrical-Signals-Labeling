@@ -2,6 +2,7 @@ import db from "../connection/sqlite.connection.js";
 
 export default class Channel {
     constructor(
+        channelId,
         sessionId,
         channelNumber,
         dataKind,
@@ -13,7 +14,7 @@ export default class Channel {
         traceDurationMs ,
         algorithm
     ) {
-        this.channelId = 0
+        this.channelId = channelId
         this.sessionId = sessionId
         this.channelNumber = channelNumber
         this.dataKind = dataKind
@@ -28,14 +29,15 @@ export default class Channel {
 
     insert() {
         const stmt = db.prepare(`
-            INSERT INTO channels (
+            INSERT INTO channels ( channel_id,
                 session_id, channel_number, data_kind, sweep_index, raw_samples_uv,
                 sampling_frequency_khz, subsampled_khz, sweep_duration_ms,
                 trace_duration_ms, algorithm
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `)
         const resultingChanges = stmt.run(
+            this.channelId,
             this.sessionId,
             this.channelNumber,
             this.dataKind,
@@ -55,14 +57,15 @@ export default class Channel {
         const insertMany = db.transaction((channelList) => {
             const stmt = db.prepare(`
                 INSERT INTO channels (
-                    session_id, channel_number, data_kind, sweep_index, raw_samples_uv,
+                    channel_id, session_id, channel_number, data_kind, sweep_index, raw_samples_uv,
                     sampling_frequency_khz, subsampled_khz, sweep_duration_ms,
                     trace_duration_ms, algorithm
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `)
             for (const channel of channelList) {
                 const resultingChanges = stmt.run(
+                    channel.channelId,
                     channel.sessionId,
                     channel.channelNumber,
                     channel.dataKind,

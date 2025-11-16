@@ -2,13 +2,14 @@ import db from "../connection/sqlite.connection.js";
 
 export default class Annotation {
     constructor(
+        annotationId,
         channelId,
         labelId,
         startTimeMs,
         endTimeMs,
         note
     ) {
-        this.annotationId = 0
+        this.annotationId = annotationId
         this.channelId = channelId
         this.labelId = labelId
         this.startTimeMs = startTimeMs
@@ -21,11 +22,12 @@ export default class Annotation {
     insert() {
     const stmt = db.prepare(`
         INSERT INTO annotations (
-            channel_id, label_id, start_time_ms, end_time_ms, note, labeled_at, updated_at
+            annotation_id, channel_id, label_id, start_time_ms, end_time_ms, note, labeled_at, updated_at
         ) 
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `)
     const info = stmt.run(
+        this.annotationId,
         this.channelId,
         this.labelId,
         this.startTimeMs,
