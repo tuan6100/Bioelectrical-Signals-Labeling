@@ -836,6 +836,18 @@ export default function SignalChart({
         });
     }, [existingLabels]);
 
+    // Listen for table row selection events to highlight corresponding label region
+    useEffect(() => {
+        const handleAnnotationSelect = (e) => {
+            const id = e?.detail?.id;
+            if (id == null) return;
+            const match = labels.find(l => (l.annotationId ?? l.id) === id);
+            if (match && match.annotationId != null) setHoveredLabelId(match.annotationId);
+        };
+        window.addEventListener('annotation-select', handleAnnotationSelect);
+        return () => window.removeEventListener('annotation-select', handleAnnotationSelect);
+    }, [labels]);
+
     const autoFitDoneRef = useRef(false);
 
     useEffect(() => {
