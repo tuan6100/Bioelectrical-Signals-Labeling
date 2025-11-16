@@ -2,19 +2,20 @@ import db from "../connection/sqlite.connection.js";
 
 export default class Label {
     constructor(
+        labelId,
         name
     ) {
-        this.labelId = 0
+        this.labelId = labelId
         this.name = name
         this.createdAt = new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' })
     }
 
     insert() {
         const stmt = db.prepare(`
-        INSERT INTO labels(name) 
-        VALUES (?)
+        INSERT INTO labels(label_id, name) 
+        VALUES (?, ?)
     `)
-        const info = stmt.run(this.name)
+        const info = stmt.run(this.labelId, this.name)
         this.labelId = info.lastInsertRowid
         return this
 }
