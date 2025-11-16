@@ -4,6 +4,9 @@ import {
     getAllLabelsAppApi,
     updateLabelAppApi,
     deleteLabelAppApi,
+    updateAnnotationAppApi,
+    deleteAnnotationAppApi,
+    showErrorDialogAppApi,
     getChannelSamplesAppApi,
     getSessionInfoAppApi,
     isDesktopEnv
@@ -164,3 +167,55 @@ export async function fetchExportLabel(sessionId) {
         // TODO: Implement web version
     }
 }
+
+/**
+ * Updates an annotation by ID (changes label name, time range, or note).
+ *
+ * @async
+ * @function fetchUpdateAnnotation
+ * @param {number} annotationId - The ID of the annotation to update.
+ * @param {Object} updateFields - Fields to update (e.g., {labelName: 'newName', note: 'new note'}).
+ * @returns {Promise<{annotationId: number, channelId: number, labelId: number, labelName: string, startTimeMs: number, endTimeMs: number, note: string|null}>} A promise that resolves to the updated annotation.
+ */
+export async function fetchUpdateAnnotation(annotationId, updateFields) {
+    if (isDesktopEnv()) {
+        return await updateAnnotationAppApi(annotationId, updateFields);
+    } else {
+        // TODO: Implement web version
+    }
+}
+
+/**
+ * Deletes an annotation by ID.
+ *
+ * @async
+ * @function fetchDeleteAnnotation
+ * @param {number} annotationId - The ID of the annotation to delete.
+ * @returns {Promise<boolean>} A promise that resolves to true if deleted successfully, false otherwise.
+ */
+export async function fetchDeleteAnnotation(annotationId) {
+    if (isDesktopEnv()) {
+        return await deleteAnnotationAppApi(annotationId);
+    } else {
+        // TODO: Implement web version
+    }
+}
+
+/**
+ * Shows a native error dialog box.
+ *
+ * @async
+ * @function fetchShowErrorDialog
+ * @param {string} title - The title of the error dialog.
+ * @param {string} message - The error message to display.
+ * @returns {Promise<void>} A promise that resolves when the dialog is closed.
+ */
+export async function fetchShowErrorDialog(title, message) {
+    if (isDesktopEnv()) {
+        return await showErrorDialogAppApi(title, message);
+    } else {
+        // Fallback to browser alert for web version
+        alert(`${title}\n\n${message}`);
+    }
+}
+

@@ -48,11 +48,11 @@ export default function LeftPanel ({ sessionId, onBack }) {
                             annotationId: a.annotationId,
                             startTimeMs: a.startTimeMs,
                             endTimeMs: a.endTimeMs,
-                            labelName: a.label?.name || null,
+                            labelName: a.label?.name || a.labelName || 'Unknown',
                             note: a.note || null,
                             label: a.label || null
                         }))
-                    );
+                    )
                 } else {
                     setSamples([]);
                     setLabels([]);
@@ -61,10 +61,6 @@ export default function LeftPanel ({ sessionId, onBack }) {
             .catch(console.error)
             .finally(() => setLoading(false));
     }, [sessionId]);
-
-    const handleNewSelection = ({ startMs, endMs }) => {
-        setSelectionForModal({ startMs, endMs });
-    };
 
     const handleConfirmLabel = async ({ name, note }) => {
         if (!channelId || !selectionForModal) {
@@ -101,7 +97,6 @@ export default function LeftPanel ({ sessionId, onBack }) {
         if (!sessionId) return;
         try {
             await fetchExportLabel(sessionId);
-            alert('Labels export triggered.');
         } catch (e) {
             console.error(e);
             alert('Export failed: ' + e.message);
@@ -136,7 +131,7 @@ export default function LeftPanel ({ sessionId, onBack }) {
             <div className="chart-wrapper">
                 <SignalChart
                     samples={samples}
-                    // labels={labels}
+                    existingLabels={labels}
                     samplingRateHz={samplingRate}
                     durationMs={durationMs}
                     viewport={viewport}

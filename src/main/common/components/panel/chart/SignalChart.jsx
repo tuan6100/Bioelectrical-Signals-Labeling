@@ -1,43 +1,76 @@
 import React, { useRef, useState, useMemo, useEffect, useCallback } from 'react';
-import {fetchCreateLabel, fetchGetAllLabels} from "../../../api/index.js";
+import {
+    fetchCreateLabel,
+    fetchGetAllLabels,
+    fetchUpdateAnnotation,
+    fetchDeleteAnnotation,
+    fetchShowErrorDialog
+} from "../../../api/index.js";
+import './SignalChart.css';
+import LabelContextMenu from './LabelContextMenu.jsx';
 
-export default function SignalChartWithLabels({
-                                                  samples,
-                                                  samplingRateHz,
-                                                  durationMs,
-                                                  viewport,
-                                                  onViewportChange,
-                                                  channelId,
-                                                  labels: externalLabels
-                                              }) {
+export default function SignalChart({
+                                        samples,
+                                        samplingRateHz,
+                                        durationMs,
+                                        viewport,
+                                        onViewportChange,
+                                        channelId,
+                                        existingLabels,
+                                        minLabelDurationMs
+                                    }) {
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
     const [dimensions, setDimensions] = useState({ width: 800, height: 400 });
     const [dragState, setDragState] = useState({ active: false, startTime: null, endTime: null });
     const [panState, setPanState] = useState({ active: false, startX: null, startViewport: null });
+    const [resizeState, setResizeState] = useState({ active: false, label: null, edge: null, originalStart: null, originalEnd: null });
     const [labels, setLabels] = useState([]);
     const [allLabelOptions, setAllLabelOptions] = useState([]);
-    const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, pendingLabel: null });
+    const [hoveredLabelId, setHoveredLabelId] = useState(null);
+    const [resizeEdge, setResizeEdge] = useState(null);
+
+    const [contextMenu, setContextMenu] = useState({
+        visible: false,
+        x: 0,
+        y: 0,
+        type: null,
+        targetLabel: null
+    });
+
     const [isCreatingNewLabel, setIsCreatingNewLabel] = useState(false);
+    const [isEditingPersisted, setIsEditingPersisted] = useState(false);
+    const [isCreatingNewLabelPersisted, setIsCreatingNewLabelPersisted] = useState(false);
+
     const MARGIN = { top: 20, right: 20, bottom: 50, left: 60 };
+
+    const buildLabelOptions = useCallback((raw) => {
+        const options = (raw || [])
+            .filter(l => l.name && l.name.trim() && l.name.toLowerCase() !== 'pending')
+            .map(l => ({ value: l.name.trim(), label: l.name.trim() }));
+        const unique = options.filter((opt, idx, arr) =>
+            arr.findIndex(o => o.value.toLowerCase() === opt.value.toLowerCase()) === idx
+        );
+        if (!unique.some(o => o.value.toLowerCase() === 'unknown')) {
+            unique.unshift({ value: 'Unknown', label: 'Unknown' });
+        }
+        return unique;
+    }, []);
+
+    const refreshLabelCatalog = useCallback(async () => {
+        try {
+            const latest = await fetchGetAllLabels();
+            setAllLabelOptions(buildLabelOptions(latest));
+        } catch (e) {
+            console.error('Failed to refresh label catalog:', e);
+        }
+    }, [buildLabelOptions]);
 
     useEffect(() => {
         fetchGetAllLabels().then(ls => {
-            const options = ls
-                .filter(l => l.name && l.name.trim() && l.name.toLowerCase() !== 'pending')
-                .map(l => ({
-                    value: l.name.trim(),
-                    label: l.name.trim()
-                }));
-            const uniqueOptions = options.filter((opt, idx, arr) =>
-                arr.findIndex(o => o.value.toLowerCase() === opt.value.toLowerCase()) === idx
-            );
-            if (!uniqueOptions.some(o => o.value.toLowerCase() === 'unknown')) {
-                uniqueOptions.unshift({ value: 'Unknown', label: 'Unknown' });
-            }
-            setAllLabelOptions(uniqueOptions);
+            setAllLabelOptions(buildLabelOptions(ls));
         });
-    }, []);
+    }, [buildLabelOptions]);
 
     const effectiveDurationMs = useMemo(() => {
         if (durationMs != null) return durationMs;
@@ -62,7 +95,6 @@ export default function SignalChartWithLabels({
             const rect = container.getBoundingClientRect();
             setDimensions({ width: rect.width, height: rect.height });
         };
-
         updateSize();
         const observer = new ResizeObserver(updateSize);
         observer.observe(container);
@@ -92,6 +124,53 @@ export default function SignalChartWithLabels({
         return MARGIN.top + chartHeight - ((value - dataRange.min) / range) * chartHeight;
     }, [dataRange, chartHeight]);
 
+    const getColorScheme = useCallback((label, hovered) => {
+        const baseName = (label.name || '').trim().toLowerCase();
+        const pending = label.state === 'pending' || baseName === 'pending';
+        if (pending) {
+            return {
+                fill: hovered ? 'rgba(50,50,50,0.30)' : 'rgba(50,50,50,0.25)',
+                stroke: hovered ? 'rgba(0,0,0,0.95)' : 'rgba(0,0,0,0.85)',
+                line: 'rgba(0,0,0,0.85)'
+            };
+        }
+        if (baseName === 'unknown') {
+            return {
+                fill: hovered ? 'rgba(0,100,255,0.40)' : 'rgba(0,100,255,0.30)',
+                stroke: hovered ? 'rgba(0,80,200,1.0)' : 'rgba(0,80,200,0.9)',
+                line: 'rgba(0,80,200,0.95)'
+            };
+        }
+        return {
+            fill: hovered ? 'rgba(255,50,50,0.40)' : 'rgba(255,50,50,0.30)',
+            stroke: hovered ? 'rgba(200,0,0,1.0)' : 'rgba(200,0,0,0.9)',
+            line: 'rgba(200,0,0,0.95)'
+        };
+    }, []);
+
+    const findLabelAtTime = useCallback((timeMs) => {
+        for (let i = labels.length - 1; i >= 0; i--) {
+            const l = labels[i];
+            if (timeMs >= l.startTimeMs && timeMs <= l.endTimeMs) return l;
+        }
+        return null;
+    }, [labels]);
+
+    const findLabelEdgeAtTime = useCallback((timeMs, tolerance = 5) => {
+        const toleranceMs = tolerance * (clampedViewport.endMs - clampedViewport.startMs) / chartWidth;
+        for (let i = labels.length - 1; i >= 0; i--) {
+            const l = labels[i];
+            if (l.state === 'pending' || (l.name || '').toLowerCase() === 'pending') continue;
+            if (Math.abs(timeMs - l.startTimeMs) < toleranceMs) {
+                return { label: l, edge: 'left' };
+            }
+            if (Math.abs(timeMs - l.endTimeMs) < toleranceMs) {
+                return { label: l, edge: 'right' };
+            }
+        }
+        return null;
+    }, [labels, clampedViewport, chartWidth]);
+
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -101,45 +180,35 @@ export default function SignalChartWithLabels({
         canvas.height = dimensions.height * dpr;
         canvas.style.width = `${dimensions.width}px`;
         canvas.style.height = `${dimensions.height}px`;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.scale(dpr, dpr);
+
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, dimensions.width, dimensions.height);
         labels.forEach(label => {
-            const lname = (label.name || '').toLowerCase();
-            const isUnknown = lname === 'unknown';
-            const isPending = lname === 'pending';
-            if (label.endTimeMs >= clampedViewport.startMs && label.startTimeMs <= clampedViewport.endMs) {
-                const x1 = Math.max(timeToX(label.startTimeMs), MARGIN.left);
-                const x2 = Math.min(timeToX(label.endTimeMs), MARGIN.left + chartWidth);
-                if (isPending) {
-                    ctx.fillStyle = 'rgba(50,50,50,0.4)';
-                    ctx.strokeStyle = 'rgba(0,0,0,0.9)';
-                } else if (isUnknown) {
-                    ctx.fillStyle = 'rgba(0,100,255,0.3)';
-                    ctx.strokeStyle = 'rgba(0,80,200,0.9)';
-                } else {
-                    ctx.fillStyle = 'rgba(255,50,50,0.3)';
-                    ctx.strokeStyle = 'rgba(200,0,0,0.9)';
-                }
-                ctx.fillRect(x1, MARGIN.top, x2 - x1, chartHeight);
-                ctx.lineWidth = 2;
-                ctx.strokeRect(x1, MARGIN.top, x2 - x1, chartHeight);
-                ctx.fillStyle = ctx.strokeStyle;
-                ctx.font = 'bold 12px sans-serif';
-                ctx.fillText(label.name, x1 + 5, MARGIN.top + 15);
+            const isHovered = hoveredLabelId === label.annotationId;
+            const inView = !(label.endTimeMs < clampedViewport.startMs || label.startTimeMs > clampedViewport.endMs);
+            if (!inView) return;
+            const baseName = (label.name || '').trim().toLowerCase();
+            const isPending = label.state === 'pending' || baseName === 'pending';
+            if (!isPending && !isHovered) return;
+            const x1 = Math.max(timeToX(label.startTimeMs), MARGIN.left);
+            const x2 = Math.min(timeToX(label.endTimeMs), MARGIN.left + chartWidth);
+            if (x2 <= x1) return;
+            const scheme = getColorScheme(label, isHovered);
+            ctx.fillStyle = scheme.fill;
+            ctx.fillRect(x1, MARGIN.top, x2 - x1, chartHeight);
+            ctx.strokeStyle = scheme.stroke;
+            ctx.lineWidth = isHovered ? 3 : 2;
+            ctx.strokeRect(x1, MARGIN.top, x2 - x1, chartHeight);
+
+            if (isPending || isHovered) {
+                ctx.fillStyle = scheme.stroke;
+                ctx.font = isHovered ? 'bold 13px sans-serif' : 'bold 11px sans-serif';
+                ctx.fillText(label.name || 'Pending', x1 + 5, MARGIN.top + 15);
             }
         });
-        if (dragState.active) {
-            const s = Math.min(dragState.startTime, dragState.endTime);
-            const e = Math.max(dragState.startTime, dragState.endTime);
-            const x1 = timeToX(s);
-            const x2 = timeToX(e);
-            ctx.strokeStyle = 'rgba(100,100,100,0.6)';
-            ctx.lineWidth = 1.5;
-            ctx.setLineDash([5, 5]);
-            ctx.strokeRect(x1, MARGIN.top, x2 - x1, chartHeight);
-            ctx.setLineDash([]);
-        }
+
         ctx.strokeStyle = '#ddd';
         ctx.lineWidth = 1;
         const timeStep = (clampedViewport.endMs - clampedViewport.startMs) / 10;
@@ -160,25 +229,75 @@ export default function SignalChartWithLabels({
             ctx.lineTo(MARGIN.left + chartWidth, y);
             ctx.stroke();
         }
+
         if (samples && samples.length > 0) {
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            let started = false;
-            samples.forEach(s => {
-                if (s.time >= clampedViewport.startMs && s.time <= clampedViewport.endMs) {
-                    const x = timeToX(s.time);
-                    const y = valueToY(s.value);
-                    if (!started) {
+            let pathStarted = false;
+            let prevX = null;
+            let prevY = null;
+            let currentColor = null;
+            let currentWidth = 1.5;
+
+            const flushSegment = () => {
+                if (!pathStarted) return;
+                ctx.stroke();
+                pathStarted = false;
+                prevX = prevY = null;
+            };
+
+            for (let i = 0; i < samples.length; i++) {
+                const s = samples[i];
+                if (s.time < clampedViewport.startMs || s.time > clampedViewport.endMs) continue;
+                const x = timeToX(s.time);
+                const y = valueToY(s.value);
+                const label = findLabelAtTime(s.time);
+                const scheme = label ? getColorScheme(label, hoveredLabelId === label.annotationId) : null;
+                const lineColor = scheme ? scheme.line : '#000';
+                const lineWidth = scheme ? 2.0 : 1.25;
+
+                if (lineColor !== currentColor || lineWidth !== currentWidth) {
+                    flushSegment();
+                    currentColor = lineColor;
+                    currentWidth = lineWidth;
+                    ctx.strokeStyle = currentColor;
+                    ctx.lineWidth = currentWidth;
+                    ctx.beginPath();
+                    pathStarted = true;
+                    if (prevX != null && prevY != null) {
+                        ctx.moveTo(prevX, prevY);
+                        ctx.lineTo(x, y);
+                    } else {
                         ctx.moveTo(x, y);
-                        started = true;
+                    }
+                } else {
+                    if (!pathStarted) {
+                        ctx.strokeStyle = lineColor;
+                        ctx.lineWidth = lineWidth;
+                        ctx.beginPath();
+                        pathStarted = true;
+                        ctx.moveTo(x, y);
                     } else {
                         ctx.lineTo(x, y);
                     }
                 }
-            });
-            ctx.stroke();
+
+                prevX = x;
+                prevY = y;
+            }
+            flushSegment();
         }
+
+        if (dragState.active) {
+            const s = Math.min(dragState.startTime, dragState.endTime);
+            const e = Math.max(dragState.startTime, dragState.endTime);
+            const x1 = timeToX(s);
+            const x2 = timeToX(e);
+            ctx.strokeStyle = 'rgba(100,100,100,0.6)';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([5, 5]);
+            ctx.strokeRect(x1, MARGIN.top, x2 - x1, chartHeight);
+            ctx.setLineDash([]);
+        }
+
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -214,7 +333,11 @@ export default function SignalChartWithLabels({
         ctx.textAlign = 'center';
         ctx.fillText('Amplitude', 0, 0);
         ctx.restore();
-    }, [dimensions, samples, clampedViewport, dataRange, labels, dragState, timeToX, valueToY, chartWidth, chartHeight, samplingRateHz]);
+    }, [
+        dimensions, samples, clampedViewport, dataRange, labels, dragState,
+        timeToX, valueToY, chartWidth, chartHeight, samplingRateHz,
+        hoveredLabelId, findLabelAtTime, getColorScheme
+    ]);
 
     const handleMouseDown = (e) => {
         const rect = canvasRef.current.getBoundingClientRect();
@@ -224,6 +347,19 @@ export default function SignalChartWithLabels({
             y < MARGIN.top || y > MARGIN.top + chartHeight) {
             return;
         }
+        const time = xToTime(x);
+        const edgeInfo = findLabelEdgeAtTime(time);
+        if (edgeInfo) {
+            setResizeState({
+                active: true,
+                label: edgeInfo.label,
+                edge: edgeInfo.edge,
+                originalStart: edgeInfo.label.startTimeMs,
+                originalEnd: edgeInfo.label.endTimeMs
+            });
+            return;
+        }
+
         if (e.ctrlKey || e.metaKey) {
             setPanState({
                 active: true,
@@ -231,7 +367,6 @@ export default function SignalChartWithLabels({
                 startViewport: { ...viewport }
             });
         } else {
-            const time = xToTime(x);
             setDragState({
                 active: true,
                 startTime: time,
@@ -243,9 +378,61 @@ export default function SignalChartWithLabels({
     const handleMouseMove = (e) => {
         const rect = canvasRef.current.getBoundingClientRect();
         const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        if (contextMenu.visible) {
+            const menuElement = document.getElementById('label-context-menu');
+            if (menuElement) {
+                const menuRect = menuElement.getBoundingClientRect();
+                const isOverMenu = (
+                    e.clientX >= menuRect.left &&
+                    e.clientX <= menuRect.right &&
+                    e.clientY >= menuRect.top &&
+                    e.clientY <= menuRect.bottom
+                );
+                if (isOverMenu) {
+                    if (hoveredLabelId !== null) setHoveredLabelId(null);
+                    return;
+                }
+            }
+        }
+
+        const time = xToTime(x);
+        if (resizeState.active) {
+            const newTime = Math.max(0, Math.min(xToTime(x), effectiveDurationMs));
+            setLabels(prev => prev.map(l => {
+                if (l.annotationId !== resizeState.label.annotationId) return l;
+                if (resizeState.edge === 'left') {
+                    const maxStart = resizeState.originalEnd - effectiveMinResizeMs;
+                    const newStart = Math.min(newTime, maxStart);
+                    return { ...l, startTimeMs: newStart };
+                } else {
+                    const minEnd = resizeState.originalStart + effectiveMinResizeMs;
+                    const newEnd = Math.max(newTime, minEnd);
+                    return { ...l, endTimeMs: newEnd };
+                }
+            }));
+            return;
+        }
+
+        if (x >= MARGIN.left && x <= MARGIN.left + chartWidth &&
+            y >= MARGIN.top && y <= MARGIN.top + chartHeight) {
+            const edgeInfo = findLabelEdgeAtTime(time);
+            if (edgeInfo) {
+                setResizeEdge(edgeInfo.edge);
+                setHoveredLabelId(edgeInfo.label.annotationId);
+            } else {
+                setResizeEdge(null);
+                const hit = findLabelAtTime(time);
+                const newHoverId = hit ? hit.annotationId : null;
+                if (newHoverId !== hoveredLabelId) setHoveredLabelId(newHoverId);
+            }
+        } else {
+            if (hoveredLabelId !== null) setHoveredLabelId(null);
+            setResizeEdge(null);
+        }
 
         if (dragState.active) {
-            const time = xToTime(x);
             setDragState(prev => ({ ...prev, endTime: time }));
         } else if (panState.active) {
             const dx = x - panState.startX;
@@ -265,24 +452,105 @@ export default function SignalChartWithLabels({
         }
     };
 
-    const handleMouseUp = () => {
+    const handleMouseUp = async () => {
+        if (resizeState.active) {
+            const resizedLabel = labels.find(l => l.annotationId === resizeState.label.annotationId);
+            if (resizedLabel) {
+                const newStart = resizedLabel.startTimeMs;
+                const newEnd = resizedLabel.endTimeMs;
+                if (newStart !== resizeState.originalStart || newEnd !== resizeState.originalEnd) {
+                    const hasOverlap = labels.some(l => {
+                        if (l.annotationId === resizedLabel.annotationId) return false;
+                        if (l.state === 'pending' || (l.name || '').toLowerCase() === 'pending') return false;
+                        return l.endTimeMs > newStart && l.startTimeMs < newEnd;
+                    });
+                    if (hasOverlap) {
+                        setLabels(prev => prev.map(l =>
+                            l.annotationId === resizeState.label.annotationId
+                                ? { ...l, startTimeMs: resizeState.originalStart, endTimeMs: resizeState.originalEnd }
+                                : l
+                        ));
+                    } else {
+                        try {
+                            await fetchUpdateAnnotation(resizedLabel.annotationId, {
+                                channelId: channelId,
+                                startTimeMs: newStart,
+                                endTimeMs: newEnd
+                            });
+                        } catch (err) {
+                            console.error('Failed to update label time range:', err);
+                            setLabels(prev => prev.map(l =>
+                                l.annotationId === resizeState.label.annotationId
+                                    ? { ...l, startTimeMs: resizeState.originalStart, endTimeMs: resizeState.originalEnd }
+                                    : l
+                            ));
+                        }
+                    }
+                }
+            }
+            setResizeState({ active: false, label: null, edge: null, originalStart: null, originalEnd: null });
+            return;
+        }
+
         if (dragState.active) {
-            const s = Math.min(dragState.startTime, dragState.endTime);
-            const e = Math.max(dragState.startTime, dragState.endTime);
-            if (e - s > 10) {
-                setLabels(prev => [...prev, {
-                    annotationId: Date.now(),
-                    name: 'Pending',
-                    startTimeMs: s,
-                    endTimeMs: e,
-                    state: 'pending' // mark incoming selection
-                }]);
+            let s = Math.min(dragState.startTime, dragState.endTime);
+            let e = Math.max(dragState.startTime, dragState.endTime);
+            let width = e - s;
+            if (width <= 0) {
+                setDragState({ active: false, startTime: null, endTime: null });
+                return;
+            }
+
+            const pendingPredicate = (l) => l.state === 'pending' || (l.name || '').toLowerCase() === 'pending';
+            const persistedPredicate = (l) => !pendingPredicate(l);
+            const overlappingPersisted = labels.filter(l => persistedPredicate(l) && l.endTimeMs > s && l.startTimeMs < e);
+            if (overlappingPersisted.length) {
+                fetchShowErrorDialog(
+                    'Overlap',
+                    `Selection ${s.toFixed(2)} - ${e.toFixed(2)} ms overlaps an existing label. Choose a free region.`
+                );
+            } else {
+                const overlappingPending = labels.filter(l => pendingPredicate(l) && l.endTimeMs > s && l.startTimeMs < e);
+                if (overlappingPending.length) {
+                    const mergedStart = Math.min(s, ...overlappingPending.map(l => l.startTimeMs));
+                    const mergedEnd = Math.max(e, ...overlappingPending.map(l => l.endTimeMs));
+                    setLabels(prev => {
+                        const filtered = prev.filter(l => !overlappingPending.includes(l));
+                        return [
+                            ...filtered,
+                            {
+                                annotationId: Date.now(),
+                                name: 'Pending',
+                                startTimeMs: mergedStart,
+                                endTimeMs: mergedEnd,
+                                state: 'pending'
+                            }
+                        ];
+                    });
+                } else {
+                    setLabels(prev => [
+                        ...prev,
+                        {
+                            annotationId: Date.now(),
+                            name: 'Pending',
+                            startTimeMs: s,
+                            endTimeMs: e,
+                            state: 'pending'
+                        }
+                    ]);
+                }
             }
             setDragState({ active: false, startTime: null, endTime: null });
         }
+
         if (panState.active) {
             setPanState({ active: false, startX: null, startViewport: null });
         }
+    };
+
+    const handleMouseLeave = () => {
+        setHoveredLabelId(null);
+        handleMouseUp();
     };
 
     const handleWheel = (e) => {
@@ -304,48 +572,59 @@ export default function SignalChartWithLabels({
             newStart = newStart - (newEnd - effectiveDurationMs);
             newEnd = effectiveDurationMs;
         }
+        if (newEnd - newStart < minViewportSpanMs) {
+            const mid = (newStart + newEnd) / 2;
+            newStart = Math.max(0, mid - minViewportSpanMs / 2);
+            newEnd = Math.min(effectiveDurationMs, mid + minViewportSpanMs / 2);
+        }
         onViewportChange({ startMs: Math.max(0, newStart), endMs: Math.min(effectiveDurationMs, newEnd) });
     };
 
-    // Helper: find a pending selection under a given time
-    const findPendingHitAtTime = useCallback((timeMs) => {
-        const hits = labels.filter(l => timeMs >= l.startTimeMs && timeMs <= l.endTimeMs);
-        // If multiple, prefer most recently added
-        return [...hits].reverse().find(
-            l => l.state === 'pending' || (l.name || '').toLowerCase() === 'pending'
-        ) || null;
-    }, [labels]);
-
     const handleContextMenu = (e) => {
         e.preventDefault();
+        refreshLabelCatalog();
         const rect = canvasRef.current.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const time = xToTime(x);
-        const hitPending = findPendingHitAtTime(time);
-        if (hitPending) {
+        const hits = [];
+        for (let i = labels.length - 1; i >= 0; i--) {
+            const l = labels[i];
+            if (time >= l.startTimeMs && time <= l.endTimeMs) hits.push(l);
+        }
+        const isPending = (l) => l.state === 'pending' || (l.name || '').trim().toLowerCase() === 'pending';
+        const persistedHit = hits.find(l => !isPending(l));
+        const pendingHit = hits.find(l => isPending(l));
+        if (persistedHit) {
             setContextMenu({
                 visible: true,
                 x: e.clientX,
                 y: e.clientY,
-                pendingLabel: hitPending
+                type: 'persisted',
+                targetLabel: persistedHit
             });
+            setIsCreatingNewLabel(false);
+            setIsEditingPersisted(false);
+        } else if (pendingHit) {
+            setContextMenu({
+                visible: true,
+                x: e.clientX,
+                y: e.clientY,
+                type: 'pending',
+                targetLabel: pendingHit
+            });
+            setIsCreatingNewLabel(false);
+            setIsEditingPersisted(false);
         } else {
-            setContextMenu({ visible: false, x: 0, y: 0, pendingLabel: null });
+            setContextMenu({ visible: false, x: 0, y: 0, type: null, targetLabel: null });
+            setIsCreatingNewLabel(false);
+            setIsEditingPersisted(false);
         }
     };
 
     const handleSelectLabel = async (option) => {
-        const label = contextMenu.pendingLabel;
+        const label = contextMenu.targetLabel;
         if (!label) return;
-
-        const isPending = label.state === 'pending' || (label.name || '').toLowerCase() === 'pending';
-        if (!isPending) {
-            setContextMenu({ visible: false, x: 0, y: 0, pendingLabel: null });
-            return;
-        }
-
         const newName = option.value;
-
         let savedLabel = label;
         try {
             if (newName !== 'Pending') {
@@ -355,23 +634,74 @@ export default function SignalChartWithLabels({
                     endTime: label.endTimeMs,
                     name: newName
                 };
-                // This may throw if overlap is detected on the server
                 savedLabel = await fetchCreateLabel(labelDto);
             }
-
-            // Success: replace pending with persisted result
             setLabels(prev => prev.map(l =>
                 l.annotationId === label.annotationId
                     ? { ...l, name: newName, ...savedLabel, state: 'persisted' }
                     : l
             ));
         } catch (err) {
-            // Overlap or other error: remove incoming/pending selection
-            console.error('Failed to persist label, removing pending selection:', err);
+            console.error('Create label failed, removing pending selection:', err);
             setLabels(prev => prev.filter(l => l.annotationId !== label.annotationId));
         } finally {
-            setContextMenu({ visible: false, x: 0, y: 0, pendingLabel: null });
+            setContextMenu({ visible: false, x: 0, y: 0, type: null, targetLabel: null });
             setIsCreatingNewLabel(false);
+        }
+    };
+
+    const handlePersistedEditChoose = async (option) => {
+        const label = contextMenu.targetLabel;
+        if (!label) return;
+        const newName = option.value;
+        try {
+            const updated = await fetchUpdateAnnotation(label.annotationId, { labelName: newName });
+            if (updated) {
+                setLabels(prev => prev.map(l =>
+                    l.annotationId === label.annotationId
+                        ? { ...l, name: updated.labelName, labelName: updated.labelName, labelId: updated.labelId }
+                        : l
+                ));
+            }
+        } catch (err) {
+            console.error('Update annotation failed:', err);
+            fetchShowErrorDialog('Update Failed', `Failed to update annotation: ${err.message || err}`);
+        } finally {
+            setContextMenu({ visible: false, x: 0, y: 0, type: null, targetLabel: null });
+            setIsEditingPersisted(false);
+        }
+    };
+
+    const handleCreateNewLabelPersisted = async (inputValue) => {
+        const label = contextMenu.targetLabel;
+        if (!label) return;
+        const name = (inputValue || '').trim();
+        if (!name) return;
+        setIsCreatingNewLabelPersisted(false);
+        await handlePersistedEditChoose({ value: name, label: name });
+        refreshLabelCatalog();
+    };
+
+    const handlePersistedDelete = async () => {
+        const label = contextMenu.targetLabel;
+        if (!label) return;
+        const confirmed = window.confirm(`Delete label "${label.name || 'Unknown'}"?\nRange: ${label.startTimeMs.toFixed(1)} - ${label.endTimeMs.toFixed(1)} ms`);
+        if (!confirmed) {
+            setContextMenu({ visible: false, x: 0, y: 0, type: null, targetLabel: null });
+            return;
+        }
+        try {
+            const success = await fetchDeleteAnnotation(label.annotationId);
+            if (success) {
+                setLabels(prev => prev.filter(l => l.annotationId !== label.annotationId));
+            } else {
+                throw new Error('Delete operation returned false');
+            }
+        } catch (err) {
+            console.error('Delete annotation failed:', err);
+            fetchShowErrorDialog('Delete Failed', `Failed to delete annotation: ${err.message || err}`);
+        } finally {
+            setContextMenu({ visible: false, x: 0, y: 0, type: null, targetLabel: null });
         }
     };
 
@@ -391,8 +721,9 @@ export default function SignalChartWithLabels({
     };
 
     const handleCancelContextMenu = () => {
-        setContextMenu({ visible: false, x: 0, y: 0, pendingLabel: null });
+        setContextMenu({ visible: false, x: 0, y: 0, type: null, targetLabel: null });
         setIsCreatingNewLabel(false);
+        setIsEditingPersisted(false);
     };
 
     useEffect(() => {
@@ -410,7 +741,7 @@ export default function SignalChartWithLabels({
     }, [contextMenu.visible]);
 
     useEffect(() => {
-        const normalized = (externalLabels || []).map(l => ({
+        const normalized = (existingLabels || []).map(l => ({
             annotationId: l.annotationId,
             startTimeMs: Number(l.startTimeMs),
             endTimeMs: Number(l.endTimeMs),
@@ -422,7 +753,44 @@ export default function SignalChartWithLabels({
             const transient = prev.filter(x => x.state === 'pending' || x.state === 'temporary');
             return [...normalized, ...transient];
         });
-    }, [externalLabels]);
+    }, [existingLabels]);
+
+    const autoFitDoneRef = useRef(false);
+
+    useEffect(() => {
+        if (!labels || labels.length === 0) return;
+        if (autoFitDoneRef.current) return;
+        const minStart = Math.min(...labels.map(l => Number(l.startTimeMs) || 0));
+        const maxEnd = Math.max(...labels.map(l => Number(l.endTimeMs) || 0));
+        if (!isFinite(minStart) || !isFinite(maxEnd) || maxEnd <= minStart) return;
+        const pad = Math.max(10, (maxEnd - minStart) * 0.02);
+        const fitStart = Math.max(0, minStart - pad);
+        const fitEnd = Math.min(effectiveDurationMs, maxEnd + pad);
+        const includesAll = viewport.startMs <= fitStart && viewport.endMs >= fitEnd;
+        if (!includesAll) {
+            onViewportChange({ startMs: fitStart, endMs: fitEnd });
+        }
+        autoFitDoneRef.current = true;
+    }, [labels, effectiveDurationMs, viewport, onViewportChange]);
+
+    const MIN_SELECTION_SAMPLES = 3;
+    const sampleDtMs = useMemo(() => {
+        if (!samples || samples.length < 2) return 0;
+        const dt = samples[1].time - samples[0].time;
+        return (dt > 0 && isFinite(dt)) ? dt : 0;
+    }, [samples]);
+
+    const effectiveMinResizeMs = useMemo(() => {
+        const v = Number(minLabelDurationMs);
+        if (Number.isFinite(v) && v >= 0) return v;
+        return 0;
+    }, [minLabelDurationMs]);
+
+    const minViewportSpanMs = useMemo(() => {
+        const base = effectiveMinResizeMs && effectiveMinResizeMs > 0 ? effectiveMinResizeMs : 0;
+        const dt = sampleDtMs && sampleDtMs > 0 ? sampleDtMs : 1;
+        return Math.max(base / 2, dt);
+    }, [effectiveMinResizeMs, sampleDtMs]);
 
     return (
         <div
@@ -431,7 +799,11 @@ export default function SignalChartWithLabels({
                 width: '100%',
                 height: '100%',
                 position: 'relative',
-                cursor: dragState.active ? 'crosshair' : (panState.active ? 'grabbing' : 'default')
+                cursor: resizeState.active ? 'ew-resize' :
+                    resizeEdge ? 'ew-resize' :
+                        dragState.active ? 'crosshair' :
+                            panState.active ? 'grabbing' :
+                                'default'
             }}
         >
             <canvas
@@ -439,201 +811,38 @@ export default function SignalChartWithLabels({
                 onMouseDown={handleMouseDown}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseUp}
+                onMouseLeave={handleMouseLeave}
                 onWheel={handleWheel}
                 onContextMenu={handleContextMenu}
                 style={{ display: 'block' }}
             />
 
             {contextMenu.visible && (
-                <div
-                    id="label-context-menu"
-                    style={{
-                        position: 'fixed',
-                        top: contextMenu.y,
-                        left: contextMenu.x,
-                        zIndex: 1000,
-                        backgroundColor: 'white',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-                        borderRadius: 6,
-                        padding: '12px',
-                        minWidth: '200px'
+                <LabelContextMenu
+                    x={contextMenu.x}
+                    y={contextMenu.y}
+                    type={contextMenu.type}
+                    allLabelOptions={allLabelOptions}
+                    isCreatingNewLabel={contextMenu.type === 'pending' ? isCreatingNewLabel : false}
+                    isEditingPersisted={contextMenu.type === 'persisted' ? isEditingPersisted : false}
+                    isCreatingNewLabelPersisted={contextMenu.type === 'persisted' ? isCreatingNewLabelPersisted : false}
+                    onSelectLabel={handleSelectLabel}
+                    onAddNewLabelClick={(val) => setIsCreatingNewLabel(val !== false)}
+                    onCancelPendingClick={() => {
+                        const pending = contextMenu.targetLabel;
+                        if (pending) {
+                            setLabels(prev => prev.filter(l => l.annotationId !== pending.annotationId));
+                        }
+                        setContextMenu({ visible: false, x: 0, y: 0, type: null, targetLabel: null });
                     }}
-                    onMouseDown={e => e.stopPropagation()}
-                >
-                    {!isCreatingNewLabel ? (
-                        <div>
-                            <div style={{
-                                fontSize: '12px',
-                                fontWeight: 'bold',
-                                marginBottom: '8px',
-                                color: '#666'
-                            }}>
-                                Select Label:
-                            </div>
-                            <div style={{
-                                maxHeight: '200px',
-                                overflowY: 'auto',
-                                marginBottom: '8px'
-                            }}>
-                                {allLabelOptions.map(opt => (
-                                    <div
-                                        key={opt.value}
-                                        onClick={() => handleSelectLabel(opt)}
-                                        style={{
-                                            padding: '8px 12px',
-                                            cursor: 'pointer',
-                                            borderRadius: 4,
-                                            transition: 'background-color 0.2s',
-                                            fontSize: '14px'
-                                        }}
-                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f0f0'}
-                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                    >
-                                        {opt.label}
-                                    </div>
-                                ))}
-                            </div>
-                            <button
-                                onClick={() => setIsCreatingNewLabel(true)}
-                                style={{
-                                    width: '100%',
-                                    padding: '8px',
-                                    border: '1px dashed #999',
-                                    borderRadius: 4,
-                                    backgroundColor: 'transparent',
-                                    cursor: 'pointer',
-                                    fontSize: '14px',
-                                    color: '#666',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '6px',
-                                    marginBottom: '8px'
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.backgroundColor = '#f8f8f8';
-                                    e.currentTarget.style.borderColor = '#666';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.backgroundColor = 'transparent';
-                                    e.currentTarget.style.borderColor = '#999';
-                                }}
-                            >
-                                <span style={{ fontSize: '18px', fontWeight: 'bold' }}>+</span>
-                                <span>Add New Label</span>
-                            </button>
-                            <button
-                                onClick={() => {
-                                    const pending = contextMenu.pendingLabel;
-                                    if (pending && (pending.state === 'pending' || (pending.name || '').toLowerCase() === 'pending')) {
-                                        setLabels(prev => prev.filter(l => l.annotationId !== pending.annotationId));
-                                    }
-                                    setContextMenu({ visible: false, x: 0, y: 0, pendingLabel: null });
-                                }}
-                                style={{
-                                    width: '100%',
-                                    padding: '8px',
-                                    border: '1px solid #dc3545',
-                                    borderRadius: 4,
-                                    backgroundColor: 'transparent',
-                                    cursor: 'pointer',
-                                    fontSize: '14px',
-                                    color: '#dc3545',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '6px'
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.backgroundColor = '#dc3545';
-                                    e.currentTarget.style.color = 'white';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.backgroundColor = 'transparent';
-                                    e.currentTarget.style.color = '#dc3545';
-                                }}
-                            >
-                                <span style={{ fontSize: '16px', fontWeight: 'bold' }}>×</span>
-                                <span>Cancel Pending</span>
-                            </button>
-                        </div>
-                    ) : (
-                        <div>
-                            <div style={{
-                                fontSize: '12px',
-                                fontWeight: 'bold',
-                                marginBottom: '8px',
-                                color: '#666'
-                            }}>
-                                New Label Name:
-                            </div>
-                            <input
-                                type="text"
-                                autoFocus
-                                placeholder="Enter label name..."
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                        const value = e.currentTarget.value;
-                                        if (value.trim()) {
-                                            handleCreateLabelOption(value);
-                                        }
-                                    } else if (e.key === 'Escape') {
-                                        setIsCreatingNewLabel(false);
-                                    }
-                                }}
-                                style={{
-                                    width: '100%',
-                                    padding: '8px',
-                                    border: '1px solid #ddd',
-                                    borderRadius: 4,
-                                    fontSize: '14px',
-                                    marginBottom: '8px',
-                                    outline: 'none',
-                                    boxSizing: 'border-box'
-                                }}
-                                onFocus={(e) => e.currentTarget.style.borderColor = '#4a90e2'}
-                                onBlur={(e) => e.currentTarget.style.borderColor = '#ddd'}
-                            />
-                            <div style={{ display: 'flex', gap: '8px' }}>
-                                <button
-                                    onClick={(e) => {
-                                        const input = e.currentTarget.closest('#label-context-menu')?.querySelector('input');
-                                        if (input && input.value.trim()) {
-                                            handleCreateLabelOption(input.value);
-                                        }
-                                    }}
-                                    style={{
-                                        flex: 1,
-                                        padding: '6px',
-                                        border: 'none',
-                                        borderRadius: 4,
-                                        backgroundColor: '#4a90e2',
-                                        color: 'white',
-                                        cursor: 'pointer',
-                                        fontSize: '13px'
-                                    }}
-                                >
-                                    Create
-                                </button>
-                                <button
-                                    onClick={() => setIsCreatingNewLabel(false)}
-                                    style={{
-                                        flex: 1,
-                                        padding: '6px',
-                                        border: '1px solid #ddd',
-                                        borderRadius: 4,
-                                        backgroundColor: 'white',
-                                        cursor: 'pointer',
-                                        fontSize: '13px'
-                                    }}
-                                >
-                                    Cancel
-                                </button>
-                            </div>
-                        </div>
-                    )}
-                </div>
+                    onCreateNewLabelInputSubmit={(value) => handleCreateLabelOption(value)}
+                    onEditPersistedClick={() => setIsEditingPersisted(true)}
+                    onDeletePersistedClick={handlePersistedDelete}
+                    onBackPersistedClick={() => { setIsEditingPersisted(false); setIsCreatingNewLabelPersisted(false); }}
+                    onChoosePersistedLabel={handlePersistedEditChoose}
+                    onCreateNewPersistedLabelClick={() => setIsCreatingNewLabelPersisted(true)}
+                    onCreateNewPersistedLabelSubmit={(value) => handleCreateNewLabelPersisted(value)}
+                />
             )}
         </div>
     );

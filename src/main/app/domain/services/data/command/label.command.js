@@ -65,3 +65,54 @@ export function deleteLabel(labelId) {
         return Label.delete(labelId);
     })(labelId);
 }
+
+export function updateAnnotation(annotationId, updates) {
+    return asTransaction(function (annotationId, updates) {
+        const annotation = Annotation.findOneById(annotationId);
+        if (!annotation) {
+            throw new Error(`Annotation ${annotationId} not found`);
+        }
+        if (updates.labelName) {
+            let label = Label.findOneByName(updates.labelName);
+            if (!label) {
+                label = new Label(null, updates.labelName);
+                label = label.insert();
+            }
+            updates.labelId = label.labelId;
+            delete updates.labelName;
+        }
+        if (updates.startTimeMs !== undefined || updates.endTimeMs !== undefined) {
+            const channelId = updates.channelId;
+            const newStart = updates.startTimeMs ?? annotation.startTimeMs;
+            const newEnd = updates.endTimeMs ?? annotation.endTimeMs;
+            if (!Annotation.canResize(annotationId, channelId, newStart, newEnd)) {
+                throw new Error('Annotation time range is overlapping with an existing annotation.')
+            }
+        }
+        const updated = Annotation.update(annotationId, updates);
+        if (!updated) {
+            throw new Error('Failed to update annotation');
+        }
+        const label = Label.findOneById(updated.labelId);
+        return {
+            annotationId: updated.annotationId,
+            channelId: updated.channelId,
+            labelId: updated.labelId,
+            labelName: label ? label.name : 'Unknown',
+            startTimeMs: updated.startTimeMs,
+            endTimeMs: updated.endTimeMs,
+            note: updated.note
+        };
+    })(annotationId, updates);
+}
+
+/**
+ * Delete an annotation by ID
+ * @param {number} annotationId - The annotation ID to delete
+ * @returns {boolean} True if deleted successfully
+ */
+export function deleteAnnotation(annotationId) {
+    return asTransaction(function (annotationId) {
+        return Annotation.delete(annotationId);
+    })(annotationId);
+}
