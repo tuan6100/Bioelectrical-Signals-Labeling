@@ -1,6 +1,9 @@
 import {
     createLabelAppApi,
     exportLabelAppApi,
+    getAllLabelsAppApi,
+    updateLabelAppApi,
+    deleteLabelAppApi,
     getChannelSamplesAppApi,
     getSessionInfoAppApi,
     isDesktopEnv
@@ -93,6 +96,54 @@ export async function fetchChannelSamples(channelId) {
 export async function fetchCreateLabel(labelDto) {
     if (isDesktopEnv()) {
         return await createLabelAppApi(labelDto);
+    } else {
+        // TODO: Implement web version
+    }
+}
+
+/**
+ * Gets all labels from the database.
+ *
+ * @async
+ * @function fetchGetAllLabels
+ * @returns {Promise<Array<{labelId: number, name: string, createdAt: string}>>} A promise that resolves to an array of all labels.
+ */
+export async function fetchGetAllLabels() {
+    if (isDesktopEnv()) {
+        return await getAllLabelsAppApi();
+    } else {
+        // TODO: Implement web version
+    }
+}
+
+/**
+ * Updates a label by ID.
+ *
+ * @async
+ * @function fetchUpdateLabel
+ * @param {number} labelId - The ID of the label to update.
+ * @param {Object} updateFields - Fields to update (e.g., {name: 'newName'}).
+ * @returns {Promise<{labelId: number, name: string, createdAt: string}|null>} A promise that resolves to the updated label or null if not found.
+ */
+export async function fetchUpdateLabel(labelId, updateFields) {
+    if (isDesktopEnv()) {
+        return await updateLabelAppApi(labelId, updateFields);
+    } else {
+        // TODO: Implement web version
+    }
+}
+
+/**
+ * Deletes a label by ID.
+ *
+ * @async
+ * @function fetchDeleteLabel
+ * @param {number} labelId - The ID of the label to delete.
+ * @returns {Promise<boolean>} A promise that resolves to true if deleted successfully, false otherwise.
+ */
+export async function fetchDeleteLabel(labelId) {
+    if (isDesktopEnv()) {
+        return await deleteLabelAppApi(labelId);
     } else {
         // TODO: Implement web version
     }
