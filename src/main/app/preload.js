@@ -23,6 +23,10 @@ contextBridge.exposeInMainWorld("biosignalApi", {
         channelSamples: (channelId) => ipcRenderer.invoke(
             "channel:getSamples",
             channelId
+        ),
+
+        allLabels: () => ipcRenderer.invoke(
+            "label:getAll"
         )
     },
 
@@ -30,6 +34,17 @@ contextBridge.exposeInMainWorld("biosignalApi", {
         createLabel: (labelDto) => ipcRenderer.invoke(
             "label:create",
             labelDto
+        ),
+
+        updateLabel: (labelId, updateFields) => ipcRenderer.invoke(
+            "label:update",
+            labelId,
+            updateFields
+        ),
+
+        deleteLabel: (labelId) => ipcRenderer.invoke(
+            "label:delete",
+            labelId
         ),
 
         exportLabel: (sessionId) => ipcRenderer.send(

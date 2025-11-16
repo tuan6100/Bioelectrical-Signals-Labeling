@@ -1,5 +1,6 @@
 import {ipcMain, dialog} from "electron";
-import {exportLabels, persistLabel} from "../../../domain/services/data/command/label.command.js";
+import {exportLabels, persistLabel, updateLabel, deleteLabel} from "../../../domain/services/data/command/label.command.js";
+import {getAllLabels} from "../../../domain/services/data/query/label.query.js";
 import {saveLabelsToCSV} from "../../../domain/services/file/writer/csv.writer.js";
 
 ipcMain.handle('label:create', (event, labelDto) => {
@@ -10,6 +11,18 @@ ipcMain.handle('label:create', (event, labelDto) => {
         labelDto.name,
         labelDto.note
     )
+})
+
+ipcMain.handle('label:getAll', (event) => {
+    return getAllLabels();
+})
+
+ipcMain.handle('label:update', (event, labelId, updateFields) => {
+    return updateLabel(labelId, updateFields);
+})
+
+ipcMain.handle('label:delete', (event, labelId) => {
+    return deleteLabel(labelId);
 })
 
 ipcMain.on('label:export', async (event, sessionId) => {
