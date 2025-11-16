@@ -172,12 +172,10 @@ export default function SignalChart({
         return null;
     }, [labels, clampedViewport, chartWidth]);
 
-    // Efficient nearest sample finder (binary search)
     const findNearestSample = useCallback((targetTime) => {
         if (!samples || samples.length === 0) return null;
         let lo = 0;
         let hi = samples.length - 1;
-        // Ensure times ascending; assume input is sorted.
         while (lo < hi) {
             const mid = Math.floor((lo + hi) / 2);
             if (samples[mid].time === targetTime) {
@@ -191,7 +189,6 @@ export default function SignalChart({
             }
         }
         let idx = lo;
-        // Compare with previous sample for proximity
         const prevIdx = Math.max(0, idx - 1);
         const distCurr = Math.abs(samples[idx].time - targetTime);
         const distPrev = Math.abs(samples[prevIdx].time - targetTime);
@@ -214,7 +211,6 @@ export default function SignalChart({
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, dimensions.width, dimensions.height);
 
-        // Rectangles (pending / hovered persisted)
         labels.forEach(label => {
             const isHovered = hoveredLabelId === label.annotationId;
             const inView = !(label.endTimeMs < clampedViewport.startMs || label.startTimeMs > clampedViewport.endMs);
@@ -239,7 +235,6 @@ export default function SignalChart({
             }
         });
 
-        // Grid
         ctx.strokeStyle = '#ddd';
         ctx.lineWidth = 1;
         const timeStep = (clampedViewport.endMs - clampedViewport.startMs) / 10;
@@ -261,7 +256,6 @@ export default function SignalChart({
             ctx.stroke();
         }
 
-        // Waveform line
         if (samples && samples.length > 0) {
             let pathStarted = false;
             let prevX = null;
@@ -318,7 +312,6 @@ export default function SignalChart({
             flushSegment();
         }
 
-        // Drag selection preview
         if (dragState.active) {
             const s = Math.min(dragState.startTime, dragState.endTime);
             const e = Math.max(dragState.startTime, dragState.endTime);
@@ -331,7 +324,6 @@ export default function SignalChart({
             ctx.setLineDash([]);
         }
 
-        // Hover sample marker (NEW) - does not alter existing logic
         if (hoverSample) {
             ctx.save();
             ctx.strokeStyle = 'rgba(30,30,30,0.6)';
@@ -342,8 +334,6 @@ export default function SignalChart({
             ctx.lineTo(hoverSample.canvasX, MARGIN.top + chartHeight);
             ctx.stroke();
             ctx.setLineDash([]);
-
-            // Point marker
             ctx.fillStyle = '#ff8800';
             ctx.beginPath();
             ctx.arc(hoverSample.canvasX, hoverSample.canvasY, 4, 0, Math.PI * 2);
@@ -354,7 +344,6 @@ export default function SignalChart({
             ctx.restore();
         }
 
-        // Axes
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -362,8 +351,6 @@ export default function SignalChart({
         ctx.lineTo(MARGIN.left, MARGIN.top + chartHeight);
         ctx.lineTo(MARGIN.left + chartWidth, MARGIN.top + chartHeight);
         ctx.stroke();
-
-        // Axis labels
         ctx.fillStyle = '#000';
         ctx.font = '11px sans-serif';
         ctx.textAlign = 'center';
@@ -458,8 +445,6 @@ export default function SignalChart({
         }
 
         const time = xToTime(x);
-
-        // Update hover sample (only when inside chart area)
         if (x >= MARGIN.left && x <= MARGIN.left + chartWidth &&
             y >= MARGIN.top && y <= MARGIN.top + chartHeight &&
             !panState.active && !resizeState.active) {

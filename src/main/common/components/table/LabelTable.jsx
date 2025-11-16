@@ -33,17 +33,14 @@ const LabelTable = ({ data, onDeleteRow, onLabelChange }) => {
   function handleRowClick(id) {
     setSelectedId(id);
     try {
-      // Notify other components (e.g., SignalChart) about the selected annotation
       const evt = new CustomEvent('annotation-select', { detail: { id } });
       window.dispatchEvent(evt);
     } catch (_) {
-      // no-op: environments without CustomEvent/window
     }
   }
 
   const formatMs = (ms) => {
     if (ms == null) return '';
-    // show seconds with 3 decimals for readability
     const s = Number(ms) / 1000;
     return `${s.toFixed(3)} s`;
   };
