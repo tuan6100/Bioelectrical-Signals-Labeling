@@ -29,7 +29,6 @@ export default function LeftPanel ({ sessionId, onBack }) {
             .then(data => {
                 setSession(data.session);
                 const sig = data.defaultChannel?.signal;
-                console.log(JSON.stringify(data.defaultChannel?.signal))
                 const cid = data.defaultChannel?.channelId || null;
                 setChannelId(cid);
                 if (sig) {
@@ -137,12 +136,12 @@ export default function LeftPanel ({ sessionId, onBack }) {
             <div className="chart-wrapper">
                 <SignalChart
                     samples={samples}
-                    labels={labels}
+                    // labels={labels}
                     samplingRateHz={samplingRate}
                     durationMs={durationMs}
                     viewport={viewport}
                     onViewportChange={updateViewport}
-                    onCreateSelection={handleNewSelection}
+                    channelId={channelId}
                 />
             </div>
 
