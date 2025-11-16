@@ -191,7 +191,8 @@ export default class Annotation {
         SELECT COUNT(*) AS count
         FROM annotations 
         WHERE channel_id = ?
-        AND NOT (end_time_ms <= ? OR start_time_ms >= ?)
+        AND end_time_ms > ?
+        AND start_time_ms < ?
     `)
     const row = stmt.get(channelId, newStartMs, newEndMs)
     return row.count > 0

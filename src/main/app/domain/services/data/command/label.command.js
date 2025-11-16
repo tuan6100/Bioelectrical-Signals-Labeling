@@ -18,7 +18,7 @@ export function persistLabel(channelId, startTime, endTime, labelName, labelNote
             endTime,
             labelNote
         )
-        if (Annotation.isOverlapping(startTime, endTime)) {
+        if (Annotation.isOverlapping(channelId, startTime, endTime)) {
             throw new Error('Annotation time range is overlapping with an existing annotation.')
         }
         annotation = annotation.insert()
