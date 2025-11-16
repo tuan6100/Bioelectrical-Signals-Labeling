@@ -1,8 +1,10 @@
 .right-panel {
-    width: 50%;
-    flex: 0 0 50%;
+    display: flex;
+    flex-direction: column;
     padding: 20px;
     overflow-y: auto;
-    overflow-x: hidden;
+    overflow-x: auto;
     box-sizing: border-box;
+    flex: 1;
+    min-width: 0;
 }
