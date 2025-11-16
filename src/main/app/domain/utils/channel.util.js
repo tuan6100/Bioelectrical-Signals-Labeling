@@ -1,5 +1,24 @@
 import Channel from "../../persistence/dao/channel.dao.js";
 
+// Parse a numeric value that may use comma as decimal separator or include thousand separators.
+function toNumber(v) {
+    if (v === null || v === undefined) return null;
+    if (typeof v === "number") return Number.isFinite(v) ? v : null;
+    let s = String(v).trim();
+    if (!s) return null;
+    // Remove spaces used as thousand separators
+    s = s.replace(/\s+/g, "");
+    // If both comma and dot are present, assume dot is decimal and comma is thousands
+    if (s.includes(",") && s.includes(".")) {
+        s = s.replace(/,/g, "");
+    } else if (s.includes(",")) {
+        // Only comma present: treat comma as decimal separator
+        s = s.replace(/,/g, ".");
+    }
+    const num = parseFloat(s);
+    return isNaN(num) ? null : num;
+}
+
 function findDataKey(data, baseKey) {
     const patterns = [
         `${baseKey}(mV)<1920>`,
@@ -29,7 +48,7 @@ function findDataKey(data, baseKey) {
 function getUnitScale(valueObj) {
     const adcKey = Object.keys(valueObj).find(k => k.toLowerCase().includes("adc unit"));
     if (!adcKey) return 1.0;
-    const val = parseFloat(valueObj[adcKey]);
+    const val = toNumber(valueObj[adcKey]);
     if (isNaN(val)) return 1.0;
     const keyLower = adcKey.toLowerCase();
     if (keyLower.includes("mv")) {
@@ -52,7 +71,7 @@ function parseRawSamples(raw, scale = 1.0) {
     if (!raw) return [];
     let arr = [];
     if (typeof raw === "string") {
-        const trimmed = raw.trim();
+        let trimmed = raw.trim();
         if (trimmed.startsWith("[")) {
             try {
                 arr = JSON.parse(trimmed);
@@ -60,19 +79,19 @@ function parseRawSamples(raw, scale = 1.0) {
                 arr = trimmed.split(",").map(v => parseFloat(v));
             }
         } else if (trimmed.includes(",")) {
-            arr = trimmed.split(",").map(v => parseFloat(v));
+            arr = trimmed
+                .split(",")
+                .map(v => parseFloat(v.trim()))
+                .filter(v => !isNaN(v));
         } else {
             const single = parseFloat(trimmed);
-            arr = isNaN(single) ? [] : [single];
+            if (!isNaN(single)) arr = [single];
         }
     } else if (Array.isArray(raw)) {
         arr = raw.map(v => parseFloat(v));
     }
-    return arr
-        .filter(v => !isNaN(v))
-        .map(v => Number((v * scale).toFixed(8)));
+    return arr.map(v => Number((v * scale).toFixed(8)));
 }
-
 
 /**
  * Extracts channel information from JSON data and creates channel objects.
@@ -101,9 +120,9 @@ export function extractChannelsFromJson(jsonData, sessionId) {
                     "average",
                     null,
                     JSON.stringify(samples),
-                    parseFloat(data["Sampling Frequency(kHz)"]) || null,
-                    parseFloat(data["Subsampled(kHz)"]) || null,
-                    parseFloat(data["Sweep Duration(ms)"]) || null,
+                    toNumber(data["Sampling Frequency(kHz)"]) ?? null,
+                    toNumber(data["Subsampled(kHz)"]) ?? null,
+                    toNumber(data["Sweep Duration(ms)"]) ?? null,
                     null,
                     data["Algorithm"] || null
                 );
@@ -123,9 +142,9 @@ export function extractChannelsFromJson(jsonData, sessionId) {
                     "trace",
                     parseInt(key) || null,
                     JSON.stringify(samples),
-                    parseFloat(data["Sampling Frequency(kHz)"]) || null,
-                    parseFloat(data["Subsampled(kHz)"]) || null,
-                    parseFloat(data["Sweep Duration(ms)"]) || null,
+                    toNumber(data["Sampling Frequency(kHz)"]) ?? null,
+                    toNumber(data["Subsampled(kHz)"]) ?? null,
+                    toNumber(data["Sweep Duration(ms)"]) ?? null,
                     null,
                     data["Algorithm"] || null
                 );
@@ -145,10 +164,10 @@ export function extractChannelsFromJson(jsonData, sessionId) {
                     "longtrace",
                     null,
                     JSON.stringify(samples),
-                    parseFloat(data["Sampling Frequency(kHz)"]) || null,
-                    parseFloat(data["Subsampled(kHz)"]) || null,
-                    parseFloat(data["Sweep Duration(ms)"]) || null,
-                    parseFloat(data["Trace Duration(ms)"]) || null,
+                    toNumber(data["Sampling Frequency(kHz)"]) ?? null,
+                    toNumber(data["Subsampled(kHz)"]) ?? null,
+                    toNumber(data["Sweep Duration(ms)"]) ?? null,
+                    toNumber(data["Trace Duration(ms)"]) ?? null,
                     data["Algorithm"] || null
                 );
                 channels.push(ch);

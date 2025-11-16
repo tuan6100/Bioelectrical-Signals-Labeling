@@ -11,7 +11,7 @@ export default class Label {
 
     insert() {
         const stmt = db.prepare(`
-        INSERT INTO labels (name) 
+        INSERT INTO labels(name) 
         VALUES (?)
     `)
         const info = stmt.run(this.name)
@@ -22,7 +22,7 @@ export default class Label {
     static findOneById(labelId) {
         const stmt = db.prepare(`
         SELECT 
-            label_id, name, created_at, type
+            label_id, name, created_at
         FROM labels 
         WHERE label_id = ?
     `)
@@ -31,15 +31,14 @@ export default class Label {
         return new Label(
             row.label_id,
             row.name,
-            row.created_at,
-            row.type
+            row.created_at
         )
 }
 
     static findOneByName(name) {
         const stmt = db.prepare(`
         SELECT 
-            label_id, name, created_at, type
+            label_id, name, created_at
         FROM labels 
         WHERE name = ?
     `)
@@ -48,43 +47,25 @@ export default class Label {
         return new Label(
             row.label_id,
             row.name,
-            row.created_at,
-            row.type
+            row.created_at
         )
 }
 
     static findAll() {
         const stmt = db.prepare(`
-        SELECT 
-            label_id, name, created_at, type
-        FROM labels 
-        ORDER BY name
-    `)
+            SELECT label_id,
+                   name,
+                   created_at
+            FROM labels
+            ORDER BY name
+        `)
         const rows = stmt.all()
         return rows.map(row => new Label(
             row.label_id,
             row.name,
-            row.created_at,
-            row.type
+            row.created_at
         ))
-}
-
-    static findByType(type) {
-        const stmt = db.prepare(`
-        SELECT 
-            label_id, name, created_at, type
-        FROM labels 
-        WHERE type = ?
-        ORDER BY name
-    `)
-        const rows = stmt.all(type)
-        return rows.map(row => new Label(
-            row.label_id,
-            row.name,
-            row.created_at,
-            row.type
-        ))
-}
+    }
 
     static update(labelId, updateFields) {
         const fields = Object.keys(updateFields)
