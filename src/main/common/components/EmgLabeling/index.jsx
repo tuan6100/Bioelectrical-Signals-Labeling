@@ -30,7 +30,6 @@ const EmgLabelingApp = () => {
   };
 
   const handleUpload = (file) => {
-    // file is a File object from the hidden file input
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (ev) => {
@@ -47,7 +46,6 @@ const EmgLabelingApp = () => {
         console.error('Failed to parse EMG file', err);
       }
     };
-    // read as utf-16le (Natus files are UTF-16LE)
     reader.readAsText(file, 'utf-16le');
   };
 
@@ -83,15 +81,12 @@ const EmgLabelingApp = () => {
     ));
   };
 
-  // Helpers to extract Averaged Data and First Name from raw Natus text
   function extractAveragedData(text) {
     if (!text) return null;
-    // find a section header that contains 'Averaged Data'
     const headerRegex = /^\[[^\]]*Averaged Data[^\]]*\]/gmi;
     const match = headerRegex.exec(text);
     if (!match) return null;
     const startIndex = match.index + match[0].length;
-    // find next section header
     const nextHeaderRegex = /^\[/gm;
     nextHeaderRegex.lastIndex = startIndex;
     const nextMatch = nextHeaderRegex.exec(text);
