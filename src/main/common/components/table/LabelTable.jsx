@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import LabelTableRow from './LabelTableRow';
+import LabelTableRow from './LabelTableRow.jsx';
+import './LabelTable.css'
 
 const LabelTable = ({ data, onDeleteRow, onLabelChange }) => {
   const [selectedId, setSelectedId] = useState(null);
@@ -69,5 +70,5 @@ const LabelTable = ({ data, onDeleteRow, onLabelChange }) => {
   );
 };
 
-  
+
 export default LabelTable;

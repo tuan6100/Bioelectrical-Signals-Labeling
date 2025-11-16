@@ -1,0 +1,58 @@
+.dashboard-root {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background: #f7f7f7;
+}
+
+.workspace-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px;
+    background: #ffffff;
+    border-bottom: 1px solid #d0d0d0;
+}
+
+.toggle-workspace-btn {
+    padding: 6px 12px;
+    border: 1px solid #888;
+    background: #fafafa;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.dashboard-panels {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.panel-left,
+.panel-right {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    padding: 6px;
+    box-sizing: border-box;
+}
+
+.panel-left {
+    background: #fff;
+    border-right: 1px solid #d4d4d4;
+}
+
+.panel-right {
+    background: #fff;
+}
+
+.panel-left.full-width {
+    flex: 1 1 100%;
+}
+
+.expanded .panel-right {
+    display: none;
+}
