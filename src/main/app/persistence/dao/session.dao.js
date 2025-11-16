@@ -6,6 +6,7 @@ export default class Session {
         measurementType,
         startTime,
         endTime,
+        inputFileName,
         contentHash
     ) {
         this.sessionId = 0
@@ -13,21 +14,23 @@ export default class Session {
         this.measurementType = measurementType
         this.startTime = startTime
         this.endTime = endTime
+        this.inputFileName = inputFileName
         this.contentHash = contentHash
     }
 
     insert() {
         const stmt = db.prepare(`
             INSERT INTO sessions (
-                patient_id, measurement_type, start_time, end_time, content_hash
+                patient_id, measurement_type, start_time, end_time, input_file_name, content_hash
             )
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?)
         `);
         const resultingChanges = stmt.run(
             this.patientId,
             this.measurementType,
             this.startTime,
             this.endTime,
+            this.inputFileName,
             this.contentHash
         );
         if (!this.sessionId) {
@@ -40,7 +43,7 @@ export default class Session {
     static findOneById(sessionId) {
         const stmt = db.prepare(`
             SELECT 
-                session_id, patient_id, measurement_type, start_time, end_time, content_hash
+                session_id, patient_id, measurement_type, start_time, end_time, input_file_name, content_hash
             FROM sessions 
             WHERE session_id = ?
         `)
@@ -54,6 +57,7 @@ export default class Session {
             row.end_time,
             row.subsampled,
             row.sampling_frequency,
+            row.input_file_name,
             row.content_hash
         )
     }
@@ -72,8 +76,9 @@ export default class Session {
             row.type,
             row.start_time,
             row.end_time,
-            row.subsampled,
-            row.sampling_frequency,
+            row.subsampled_khz,
+            row.sampling_frequency_khz,
+            row.input_file_name,
             row.content_hash
         ))
     }
@@ -115,6 +120,7 @@ export default class Session {
             row.end_time,
             row.subsampled,
             row.sampling_frequency,
+            row.input_file_name,
             row.content_hash
         ))
     }
@@ -136,11 +142,12 @@ export default class Session {
             row.end_time,
             row.subsampled,
             row.sampling_frequency,
+            row.input_file_name,
             row.content_hash
         ))
     }
 
-    static findByContentHash(contentHash) {
+    static findSessionIdByContentHash(contentHash) {
         const stmt = db.prepare(`
             SELECT session_id
             FROM sessions
@@ -233,7 +240,7 @@ export default class Session {
             SELECT
                 c.channel_id,
                 c.channel_number,
-                c.raw_samples              AS samples,
+                c.raw_samples_uv              AS samples,
                 c.sampling_frequency_khz   AS sampling_frequency,
                 c.subsampled_khz           AS subsampled,
                 a.annotation_id,

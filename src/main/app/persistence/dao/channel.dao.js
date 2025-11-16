@@ -6,9 +6,9 @@ export default class Channel {
         channelNumber,
         dataKind,
         sweepIndex,
-        raw_samples,
-        samplingFrequency,
-        subsampled ,
+        rawSamplesUv,
+        samplingFrequencyKhz,
+        subsampledKhz ,
         sweepDurationMs ,
         traceDurationMs ,
         algorithm
@@ -18,9 +18,9 @@ export default class Channel {
         this.channelNumber = channelNumber
         this.dataKind = dataKind
         this.sweepIndex = sweepIndex
-        this.rawSamples = raw_samples
-        this.samplingFrequency = samplingFrequency
-        this.subsampled = subsampled
+        this.rawSamplesUv = rawSamplesUv
+        this.samplingFrequencyKhz = samplingFrequencyKhz
+        this.subsampledKhz = subsampledKhz
         this.sweepDurationMs = sweepDurationMs
         this.traceDurationMs = traceDurationMs
         this.algorithm = algorithm
@@ -29,7 +29,7 @@ export default class Channel {
     insert() {
         const stmt = db.prepare(`
             INSERT INTO channels (
-                session_id, channel_number, data_kind, sweep_index, raw_samples,
+                session_id, channel_number, data_kind, sweep_index, raw_samples_uv,
                 sampling_frequency_khz, subsampled_khz, sweep_duration_ms,
                 trace_duration_ms, algorithm
             )
@@ -40,9 +40,9 @@ export default class Channel {
             this.channelNumber,
             this.dataKind,
             this.sweepIndex,
-            JSON.stringify(this.rawSamples),
-            this.samplingFrequency,
-            this.subsampled,
+            JSON.stringify(this.rawSamplesUv),
+            this.samplingFrequencyKhz,
+            this.subsampledKhz,
             this.sweepDurationMs,
             this.traceDurationMs,
             this.algorithm
@@ -55,7 +55,7 @@ export default class Channel {
         const insertMany = db.transaction((channelList) => {
             const stmt = db.prepare(`
                 INSERT INTO channels (
-                    session_id, channel_number, data_kind, sweep_index, raw_samples,
+                    session_id, channel_number, data_kind, sweep_index, raw_samples_uv,
                     sampling_frequency_khz, subsampled_khz, sweep_duration_ms,
                     trace_duration_ms, algorithm
                 )
@@ -67,9 +67,9 @@ export default class Channel {
                     channel.channelNumber,
                     channel.dataKind,
                     channel.sweepIndex,
-                    JSON.stringify(channel.rawSamples),
-                    channel.samplingFrequency,
-                    channel.subsampled,
+                    JSON.stringify(channel.rawSamplesUv),
+                    channel.samplingFrequencyKhz,
+                    channel.subsampledKhz,
                     channel.sweepDurationMs,
                     channel.traceDurationMs,
                     channel.algorithm
@@ -180,7 +180,7 @@ export default class Channel {
     static findSamplesById(channelId) {
         const stmt = db.prepare(`
             SELECT 
-                c.raw_samples, 
+                c.raw_samples_uv, 
                 c.sampling_frequency_khz, 
                 c.subsampled_khz, 
                 c.sweep_duration_ms,
@@ -204,8 +204,8 @@ export default class Channel {
             channelNumber: 'channel_number',
             dataKind: 'data_kind',
             sweepIndex: 'sweep_index',
-            samplingFrequency: 'sampling_frequency_khz',
-            subsampled: 'subsampled_khz',
+            samplingFrequencyKhz: 'sampling_frequency_khz',
+            subsampledKhz: 'subsampled_khz',
             sweepDurationMs: 'sweep_duration_ms',
             traceDurationMs: 'trace_duration_ms',
             algorithm: 'algorithm'

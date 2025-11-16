@@ -1,10 +1,11 @@
-import fs from "fs";
+import fs from "fs/promises";
 
 export async function saveJson(jsonData, outputPath) {
-    fs.writeFile(outputPath, JSON.stringify(jsonData, null, 2), 'utf-8', (err) => {
-        if (err) {
-            console.error('Error writing JSON file:', err);
-        }
-    })
-
+    try {
+        const content = JSON.stringify(jsonData, null, 2);
+        await fs.writeFile(outputPath, content, { encoding: "utf-8" });
+    } catch (err) {
+        console.error("Error writing JSON file:", err);
+        throw err;
+    }
 }

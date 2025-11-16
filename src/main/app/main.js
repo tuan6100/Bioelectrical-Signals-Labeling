@@ -51,18 +51,23 @@ const createWindow = () => {
 
                         readFile(inputPath, outputPath).then((resolved) => {
                             function sendSessionId (sessionId) {
-                                mainWindow.webContents.send("provide:session-id", sessionId)
+                                mainWindow.webContents.send("send:session-id", { sessionId, refresh: Date.now() });
                             }
                             if (resolved.json === null) {
-                                sendSessionId(resolved.metadata.metadata)
+                                console.log(`File already imported, session ID: ${resolved.sessionCode}`)
+                                sendSessionId(resolved.sessionCode)
                             } else {
-                                const sessionId = processAndPersistData(resolved.json, resolved.metadata.metadata)
+                                const sessionId = processAndPersistData(resolved.inputFileName, resolved.json, resolved.sessionCode)
+                                console.log(`File imported successfully, session ID: ${sessionId}`)
                                 sendSessionId(sessionId)
                             }
                         }).catch(err => {
                             console.error('Failed to read or process file:', err)
+                            dialog.showErrorBox('Error occurred when reading the file', err.message || String(err))
                         }).finally(() => {
-                            fs.writeFile(outputPath, '', () => {})
+                            if (process.env.BUILD_TYPE !== 'dev') {
+                                fs.writeFile(outputPath, '', () => {})
+                            }
                             lastOpenedDir = path.dirname(inputPath)
                         })
                     },

@@ -6,7 +6,7 @@ import Channel from "../../../../persistence/dao/channel.dao.js"
 import {parseVietnameseDateTime} from "../../../utils/parse-time.util.js";
 import asTransaction from "../../../../persistence/transaction";
 
-export function processAndPersistData(data, contentHash) {
+export function processAndPersistData(inputFileName, data, contentHash) {
     return asTransaction(function (data, contentHash) {
         let patientId = findKeyValue(data, 'Patient ID')
         const firstName = findKeyValue(data, 'First Name')
@@ -19,7 +19,7 @@ export function processAndPersistData(data, contentHash) {
                 measurementType.toUpperCase().includes("EMG") ? "EMG" : "UNKNOWN"
         const startTime = findKeyValue(data, "Acquisition Start Time")
         const endTime = findKeyValue(data, "Acquisition End Time")
-        const sessionId = insertSession(patientId, measurementType, startTime, endTime, contentHash)
+        const sessionId = insertSession(patientId, measurementType, startTime, endTime, inputFileName, contentHash)
 
         const channels  = extractChannelsFromJson(data, sessionId)
         Channel.insertBatch(channels)
@@ -41,7 +41,7 @@ function insertPatient(patientId, firstName, gender) {
     }
 }
 
-function insertSession(patientId, measurementType, startTime, endTime, contentHash) {
+function insertSession(patientId, measurementType, startTime, endTime, inputFileName, contentHash) {
     let parsedStartTime = startTime
     let parsedEndTime = endTime
     try {
@@ -56,6 +56,7 @@ function insertSession(patientId, measurementType, startTime, endTime, contentHa
             measurementType,
             parsedStartTime,
             parsedEndTime,
+            inputFileName,
             contentHash
         )
         dao.insert()

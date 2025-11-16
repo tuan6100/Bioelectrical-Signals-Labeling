@@ -9,32 +9,32 @@ db.pragma('foreign_keys = ON')
 
 const ddl = `
     CREATE TABLE IF NOT EXISTS patients (
-        patient_id TEXT PRIMARY KEY,
+        patient_id TEXT PRIMARY KEY NOT NULL,
         first_name TEXT NOT NULL,
         gender TEXT CHECK (gender IN ('M','F'))
     );
     CREATE INDEX IF NOT EXISTS patient_name_idx ON patients(first_name);
 
     CREATE TABLE IF NOT EXISTS sessions (
-        session_id INTEGER PRIMARY KEY,
+        session_id INTEGER PRIMARY KEY NOT NULL,
         patient_id TEXT NOT NULL,
         measurement_type TEXT DEFAULT 'UNKNOWN' CHECK (measurement_type IN ('ECG','EEG','EMG', 'UNKNOWN')),
         start_time TEXT NOT NULL,
         end_time TEXT NOT NULL,
+        input_file_name TEXT,
         content_hash TEXT UNIQUE,
-        FOREIGN KEY (patient_id) REFERENCES patients(patient_id) ON DELETE CASCADE,
-        UNIQUE(patient_id, start_time, end_time)
+        FOREIGN KEY (patient_id) REFERENCES patients(patient_id) ON DELETE CASCADE
     );
     CREATE INDEX IF NOT EXISTS session_time_idx ON sessions(start_time, end_time);
     CREATE INDEX IF NOT EXISTS session_content_hash_idx ON sessions(content_hash);
 
     CREATE TABLE IF NOT EXISTS channels (
-        channel_id INTEGER PRIMARY KEY,
-        session_id TEXT NOT NULL,
-        channel_number INTEGER NOT NULL,    
-        data_kind TEXT NOT NULL ,
+        channel_id INTEGER PRIMARY KEY NOT NULL,
+        session_id INTEGER NOT NULL,
+        channel_number INTEGER NOT NULL,
+        data_kind TEXT NOT NULL,
         sweep_index INTEGER,
-        raw_samples TEXT NOT NULL,
+        raw_samples_uv TEXT NOT NULL,
         sampling_frequency_khz REAL,
         subsampled_khz REAL,
         sweep_duration_ms REAL,
@@ -42,18 +42,19 @@ const ddl = `
         algorithm TEXT,
         FOREIGN KEY (session_id) REFERENCES sessions(session_id) ON DELETE CASCADE
     );
+
     CREATE INDEX IF NOT EXISTS channel_data_kind_sweep_idx ON channels(session_id, data_kind, sweep_index);
     CREATE INDEX IF NOT EXISTS channel_session_data_kind_idx ON channels(session_id, data_kind);
 
     CREATE TABLE IF NOT EXISTS labels (
-        label_id INTEGER PRIMARY KEY,
+        label_id INTEGER PRIMARY KEY NOT NULL,
         name TEXT NOT NULL UNIQUE,
         created_at TEXT DEFAULT (datetime('now'))
     );
     CREATE INDEX IF NOT EXISTS label_name_idx ON labels(name);
 
     CREATE TABLE IF NOT EXISTS annotations (
-        annotation_id INTEGER PRIMARY KEY,
+        annotation_id INTEGER PRIMARY KEY NOT NULL,
         channel_id INTEGER,
         label_id INTEGER,
         start_time_ms REAL NOT NULL,
