@@ -1,4 +1,4 @@
-import fs from "fs"
+import fs from "fs/promises"
 import path from "node:path"
 import {saveJson} from "../writer/json.writer.js"
 import {isNatusSignature} from "../../../utils/input-validation.util.js";
@@ -12,10 +12,11 @@ export async function readFile(inputPath, outputPath) {
     if (!isTxt(inputPath)) {
         throw new Error("This file extension is not supported")
     }
-    const content = fs.readFileSync(inputPath, {
+    let content = await fs.readFile(inputPath, {
         encoding: 'utf-16le',
         flag: 'r'
-    }).replace(/\r\n|\r|\n/g, '\n')
+    })
+    content = content.replace(/\r\n|\r|\n/g, '\n')
     if (!isNatusSignature(content)) {
         throw new Error("Not Natus data")
     }
@@ -39,8 +40,8 @@ export async function readFile(inputPath, outputPath) {
 
 
 function parseText(text) {
-    text = text.replace(/\/\r?\n/g, "");
-    text = text.replace(/(-?\d+),(\d+)/g, "$1.$2");
+    text = text.replace(/\/\r?\n/g, ",");
+    text = text.replace(/(-?\d+),(\d{2})/g, "$1.$2");
     const lines = text.split(/\r?\n/);
     const result = {};
     let currentObj = null;
