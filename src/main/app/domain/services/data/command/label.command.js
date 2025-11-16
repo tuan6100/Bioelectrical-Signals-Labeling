@@ -7,10 +7,11 @@ export function persistLabel(channelId, startTime, endTime, labelName, labelNote
     return asTransaction(function (channelId, startTime, endTime, labelName) {
         let label = Label.findOneByName(labelName)
         if (label === null) {
-            label = new Label(labelName)
+            label = new Label(null, labelName)
             label = label.insert()
         }
         let annotation = new Annotation(
+            null,
             channelId,
             label.labelId,
             startTime,

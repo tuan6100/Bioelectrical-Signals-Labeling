@@ -52,6 +52,7 @@ function insertSession(patientId, measurementType, startTime, endTime, inputFile
             parsedEndTime = parseVietnameseDateTime(endTime).toString()
         }
         const dao = new Session(
+            null,
             patientId,
             measurementType,
             parsedStartTime,
