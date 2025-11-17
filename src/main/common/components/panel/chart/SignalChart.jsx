@@ -45,6 +45,25 @@ export default function SignalChart({
 
     const MARGIN = { top: 20, right: 20, bottom: 50, left: 60 };
 
+    const dispatchAnnotationsUpdated = useCallback((next) => {
+        try {
+            const persisted = (next || labels || [])
+                .filter(l => !(l.state === 'pending' || (l.name || '').toLowerCase() === 'pending'))
+                .map(l => ({
+                    annotationId: l.annotationId,
+                    startTimeMs: Number(l.startTimeMs),
+                    endTimeMs: Number(l.endTimeMs),
+                    labelName: l.labelName || l.name || (l.label?.name) || 'Unknown',
+                    note: l.note ?? null,
+                    label: l.label ?? null
+                }));
+            const evt = new CustomEvent('annotations-updated', {
+                detail: { channelId, annotations: persisted }
+            });
+            window.dispatchEvent(evt);
+        } catch (_) {}
+    }, [labels, channelId]);
+
     const buildLabelOptions = useCallback((raw) => {
         const options = (raw || [])
             .filter(l => l.name && l.name.trim() && l.name.toLowerCase() !== 'pending')
@@ -256,61 +275,7 @@ export default function SignalChart({
             ctx.stroke();
         }
 
-        if (samples && samples.length > 0) {
-            let pathStarted = false;
-            let prevX = null;
-            let prevY = null;
-            let currentColor = null;
-            let currentWidth = 1.5;
-
-            const flushSegment = () => {
-                if (!pathStarted) return;
-                ctx.stroke();
-                pathStarted = false;
-                prevX = prevY = null;
-            };
-
-            for (let i = 0; i < samples.length; i++) {
-                const s = samples[i];
-                if (s.time < clampedViewport.startMs || s.time > clampedViewport.endMs) continue;
-                const x = timeToX(s.time);
-                const y = valueToY(s.value);
-                const label = findLabelAtTime(s.time);
-                const scheme = label ? getColorScheme(label, hoveredLabelId === label.annotationId) : null;
-                const lineColor = scheme ? scheme.line : '#000';
-                const lineWidth = scheme ? 2.0 : 1.25;
-
-                if (lineColor !== currentColor || lineWidth !== currentWidth) {
-                    flushSegment();
-                    currentColor = lineColor;
-                    currentWidth = lineWidth;
-                    ctx.strokeStyle = currentColor;
-                    ctx.lineWidth = currentWidth;
-                    ctx.beginPath();
-                    pathStarted = true;
-                    if (prevX != null && prevY != null) {
-                        ctx.moveTo(prevX, prevY);
-                        ctx.lineTo(x, y);
-                    } else {
-                        ctx.moveTo(x, y);
-                    }
-                } else {
-                    if (!pathStarted) {
-                        ctx.strokeStyle = lineColor;
-                        ctx.lineWidth = lineWidth;
-                        ctx.beginPath();
-                        pathStarted = true;
-                        ctx.moveTo(x, y);
-                    } else {
-                        ctx.lineTo(x, y);
-                    }
-                }
-
-                prevX = x;
-                prevY = y;
-            }
-            flushSegment();
-        }
+        drawWaveform(ctx, samples)
 
         if (dragState.active) {
             const s = Math.min(dragState.startTime, dragState.endTime);
@@ -385,6 +350,61 @@ export default function SignalChart({
         hoveredLabelId, findLabelAtTime, getColorScheme, hoverSample
     ]);
 
+    const drawWaveform = (ctx, samples) => {
+        if (!samples || samples.length === 0) return;
+        let prevX = null;
+        let prevY = null;
+        let currentColor = null;
+        let currentWidth = 1.5;
+        let pathStarted = false;
+        const flushSegment = () => {
+            if (!pathStarted) return;
+            ctx.stroke();
+            pathStarted = false;
+        };
+        for (let i = 0; i < samples.length; i++) {
+            const s = samples[i];
+            if (s.time < clampedViewport.startMs || s.time > clampedViewport.endMs) continue;
+            const x = timeToX(s.time);
+            const y = valueToY(s.value);
+            const label = findLabelAtTime(s.time);
+            const scheme = label ? getColorScheme(label, hoveredLabelId === label.annotationId) : null;
+            const nextColor = scheme ? scheme.line : '#000';
+            const nextWidth = scheme ? 2.0 : 1.25;
+            const styleChanged = nextColor !== currentColor || nextWidth !== currentWidth;
+            if (styleChanged) {
+                flushSegment();
+                currentColor = nextColor;
+                currentWidth = nextWidth;
+                ctx.strokeStyle = currentColor;
+                ctx.lineWidth = currentWidth;
+                ctx.beginPath();
+                pathStarted = true;
+                if (prevX != null && prevY != null) {
+                    ctx.moveTo(prevX, prevY);
+                    ctx.lineTo(x, y);
+                } else {
+                    ctx.moveTo(x, y);
+                }
+            } else {
+                if (!pathStarted) {
+                    ctx.strokeStyle = currentColor;
+                    ctx.lineWidth = currentWidth;
+                    ctx.beginPath();
+                    pathStarted = true;
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+
+            prevX = x;
+            prevY = y;
+        }
+        flushSegment();
+    };
+
+
     const handleMouseDown = (e) => {
         const rect = canvasRef.current.getBoundingClientRect();
         const x = e.clientX - rect.left;
@@ -405,7 +425,6 @@ export default function SignalChart({
             });
             return;
         }
-
         if (e.ctrlKey || e.metaKey) {
             setPanState({
                 active: true,
@@ -413,6 +432,19 @@ export default function SignalChart({
                 startViewport: { ...viewport }
             });
         } else {
+            const hit = findLabelAtTime(time);
+            const isPending = hit && (hit.state === 'pending' || (hit.name || '').trim().toLowerCase() === 'pending');
+            if (hit && !isPending) {
+                const id = hit.annotationId ?? hit.id;
+                if (id != null) {
+                    setHoveredLabelId(hit.annotationId);
+                    try {
+                        const evt = new CustomEvent('annotation-select', { detail: { id } });
+                        window.dispatchEvent(evt);
+                    } catch (_) {}
+                }
+                return;
+            }
             setDragState({
                 active: true,
                 startTime: time,
@@ -546,6 +578,12 @@ export default function SignalChart({
                                 startTimeMs: newStart,
                                 endTimeMs: newEnd
                             });
+                            // Notify others
+                            dispatchAnnotationsUpdated(labels.map(l =>
+                                l.annotationId === resizedLabel.annotationId
+                                    ? { ...l, startTimeMs: newStart, endTimeMs: newEnd }
+                                    : l
+                            ));
                         } catch (err) {
                             console.error('Failed to update label time range:', err);
                             setLabels(prev => prev.map(l =>
@@ -574,7 +612,7 @@ export default function SignalChart({
             const persistedPredicate = (l) => !pendingPredicate(l);
             const overlappingPersisted = labels.filter(l => persistedPredicate(l) && l.endTimeMs > s && l.startTimeMs < e);
             if (overlappingPersisted.length) {
-                fetchShowErrorDialog(
+                await fetchShowErrorDialog(
                     'Overlap',
                     `Selection ${s.toFixed(2)} - ${e.toFixed(2)} ms overlaps an existing label. Choose a free region.`
                 );
@@ -706,11 +744,16 @@ export default function SignalChart({
                 };
                 savedLabel = await fetchCreateLabel(labelDto);
             }
-            setLabels(prev => prev.map(l =>
-                l.annotationId === label.annotationId
-                    ? { ...l, name: newName, ...savedLabel, state: 'persisted' }
-                    : l
-            ));
+            setLabels(prev => {
+                const next = prev.map(l =>
+                    l.annotationId === label.annotationId
+                        ? { ...l, name: newName, labelName: savedLabel?.labelName || newName, ...savedLabel, state: 'persisted' }
+                        : l
+                );
+                // Notify others with new persisted list
+                dispatchAnnotationsUpdated(next);
+                return next;
+            });
         } catch (err) {
             console.error('Create label failed, removing pending selection:', err);
             setLabels(prev => prev.filter(l => l.annotationId !== label.annotationId));
@@ -727,15 +770,19 @@ export default function SignalChart({
         try {
             const updated = await fetchUpdateAnnotation(label.annotationId, { labelName: newName });
             if (updated) {
-                setLabels(prev => prev.map(l =>
-                    l.annotationId === label.annotationId
-                        ? { ...l, name: updated.labelName, labelName: updated.labelName, labelId: updated.labelId }
-                        : l
-                ));
+                setLabels(prev => {
+                    const next = prev.map(l =>
+                        l.annotationId === label.annotationId
+                            ? { ...l, name: updated.labelName, labelName: updated.labelName, labelId: updated.labelId }
+                            : l
+                    );
+                    dispatchAnnotationsUpdated(next);
+                    return next;
+                });
             }
         } catch (err) {
             console.error('Update annotation failed:', err);
-            fetchShowErrorDialog('Update Failed', `Failed to update annotation: ${err.message || err}`);
+            await fetchShowErrorDialog('Update Failed', `Failed to update annotation: ${err.message || err}`);
         } finally {
             setContextMenu({ visible: false, x: 0, y: 0, type: null, targetLabel: null });
             setIsEditingPersisted(false);
@@ -763,13 +810,17 @@ export default function SignalChart({
         try {
             const success = await fetchDeleteAnnotation(label.annotationId);
             if (success) {
-                setLabels(prev => prev.filter(l => l.annotationId !== label.annotationId));
+                setLabels(prev => {
+                    const next = prev.filter(l => l.annotationId !== label.annotationId);
+                    dispatchAnnotationsUpdated(next);
+                    return next;
+                });
             } else {
                 throw new Error('Delete operation returned false');
             }
         } catch (err) {
             console.error('Delete annotation failed:', err);
-            fetchShowErrorDialog('Delete Failed', `Failed to delete annotation: ${err.message || err}`);
+            await fetchShowErrorDialog('Delete Failed', `Failed to delete annotation: ${err.message || err}`);
         } finally {
             setContextMenu({ visible: false, x: 0, y: 0, type: null, targetLabel: null });
         }
@@ -825,7 +876,6 @@ export default function SignalChart({
         });
     }, [existingLabels]);
 
-    // Listen for table row selection events to highlight corresponding label region
     useEffect(() => {
         const handleAnnotationSelect = (e) => {
             const id = e?.detail?.id;
@@ -836,6 +886,29 @@ export default function SignalChart({
         window.addEventListener('annotation-select', handleAnnotationSelect);
         return () => window.removeEventListener('annotation-select', handleAnnotationSelect);
     }, [labels]);
+
+
+    useEffect(() => {
+        const handleAnnotationsUpdated = (e) => {
+            const detail = e?.detail;
+            if (!detail || detail.channelId !== channelId) return;
+            const anns = Array.isArray(detail.annotations) ? detail.annotations : [];
+            const normalized = anns.map(a => ({
+                annotationId: a.annotationId ?? a.id,
+                startTimeMs: Number(a.startTimeMs),
+                endTimeMs: Number(a.endTimeMs),
+                name: a.labelName || a.name || (a.label?.name) || 'Unknown',
+                note: a.note ?? null,
+                state: 'persisted'
+            }));
+            setLabels(prev => {
+                const transient = prev.filter(x => x.state === 'pending' || x.state === 'temporary');
+                return [...normalized, ...transient];
+            });
+        };
+        window.addEventListener('annotations-updated', handleAnnotationsUpdated);
+        return () => window.removeEventListener('annotations-updated', handleAnnotationsUpdated);
+    }, [channelId]);
 
     const autoFitDoneRef = useRef(false);
 
@@ -898,7 +971,6 @@ export default function SignalChart({
                 style={{ display: 'block' }}
             />
 
-            {/* Hover sample tooltip (NEW) - absolute overlay, non-intrusive */}
             {hoverSample && (
                 <div
                     style={{
