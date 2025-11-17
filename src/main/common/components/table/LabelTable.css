@@ -7,6 +7,12 @@
     flex-direction: column;
 }
 
+.table-viewport {
+    max-height: 240px;
+    overflow-y: auto;
+    overflow-x: auto;
+}
+
 table {
     width: 100%;
     border-collapse: collapse;
@@ -29,6 +35,11 @@ tr:nth-child(even) {
 
 tr.highlight {
     background-color: #ff6b6b;
+    color: white;
+}
+
+tr.highlight-unknown {
+    background-color: #4da3ff;
     color: white;
 }
 
