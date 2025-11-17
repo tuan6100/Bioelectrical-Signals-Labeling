@@ -1,6 +1,7 @@
 {
   "name": "biosignal-tool",
   "productName": "Biosignal Labeling",
+  "homepage": "",
   "version": "1.0.0",
   "description": "My Electron application description",
   "main": ".vite/build/main.js",
@@ -24,10 +25,12 @@
   ],
   "license": "Apache-2.0",
   "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^7.1.0",
+    "@fortawesome/free-brands-svg-icons": "^7.1.0",
+    "@fortawesome/free-regular-svg-icons": "^7.1.0",
+    "@fortawesome/free-solid-svg-icons": "^7.1.0",
+    "@fortawesome/react-fontawesome": "^3.1.0",
     "better-sqlite3": "^12.4.1",
-    "chart.js": "^4.5.1",
-    "chartjs-plugin-annotation": "^3.1.0",
-    "chartjs-plugin-zoom": "^2.2.0",
     "crc-32": "^1.2.2",
     "electron-squirrel-startup": "^1.0.1",
     "react": "^19.2.0",
