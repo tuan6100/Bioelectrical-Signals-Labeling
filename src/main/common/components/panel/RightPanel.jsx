@@ -1,5 +1,4 @@
 import React from 'react';
-import TopControl from './control/TopControl.jsx';
 import LabelTable from '../table/LabelTable.jsx';
 import BottomControl from './control/BottomControl.jsx';
 import './RightPanel.css';
@@ -7,11 +6,7 @@ import './RightPanel.css';
 const RightPanel = ({
    session,
    annotations,
-   startPosition,
-   onStartPositionChange,
-   onSetup,
-   onUpload,
-   onDownload,
+   channelId,
    tableData,
    onDeleteRow,
    onAddLabel,
@@ -42,18 +37,12 @@ const RightPanel = ({
             </div>
 
             <div className="right-panel-content">
-                <TopControl
-                    startPosition={startPosition}
-                    onStartPositionChange={onStartPositionChange}
-                    onSetup={onSetup}
-                    onUpload={onUpload}
-                    onDownload={onDownload}
-                />
                 <div className="panel-box panel-table">
                     <LabelTable
                         data={(Array.isArray(annotations) && annotations.length > 0) ? annotations : tableData}
                         onDeleteRow={onDeleteRow}
                         onLabelChange={onLabelChange}
+                        channelId={channelId}
                     />
                 </div>
 
