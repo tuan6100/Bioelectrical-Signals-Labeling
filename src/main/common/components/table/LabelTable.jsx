@@ -32,11 +32,15 @@ const LabelTable = ({ data, onDeleteRow, onLabelChange }) => {
 
   function handleRowClick(id) {
     setSelectedId(id);
+    try {
+      const evt = new CustomEvent('annotation-select', { detail: { id } });
+      window.dispatchEvent(evt);
+    } catch (_) {
+    }
   }
 
   const formatMs = (ms) => {
     if (ms == null) return '';
-    // show seconds with 3 decimals for readability
     const s = Number(ms) / 1000;
     return `${s.toFixed(3)} s`;
   };
