@@ -82,7 +82,7 @@ export function updateAnnotation(annotationId, updates) {
             delete updates.labelName;
         }
         if (updates.startTimeMs !== undefined || updates.endTimeMs !== undefined) {
-            const channelId = updates.channelId;
+            const channelId = updates.channelId ?? annotation.channelId;
             const newStart = updates.startTimeMs ?? annotation.startTimeMs;
             const newEnd = updates.endTimeMs ?? annotation.endTimeMs;
             if (!Annotation.canResize(annotationId, channelId, newStart, newEnd)) {
@@ -106,11 +106,7 @@ export function updateAnnotation(annotationId, updates) {
     })(annotationId, updates);
 }
 
-/**
- * Delete an annotation by ID
- * @param {number} annotationId - The annotation ID to delete
- * @returns {boolean} True if deleted successfully
- */
+
 export function deleteAnnotation(annotationId) {
     return asTransaction(function (annotationId) {
         return Annotation.delete(annotationId);

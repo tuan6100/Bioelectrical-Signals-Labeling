@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
     fetchChannelSamples,
-    fetchCreateLabel,
     fetchExportLabel
 } from '../../api/index.js';
 import { useSignalViewport } from '../../hooks/useSignalViewport.js';
@@ -9,7 +8,6 @@ import './LeftPanel.css';
 import SignalChart from "./chart/SignalChart.jsx";
 
 export default function LeftPanel ({
-    session,
     sessionId,
     channels,
     channelId,
@@ -22,11 +20,9 @@ export default function LeftPanel ({
     const [samplingRate, setSamplingRate] = useState(null);
     const [durationMs, setDurationMs] = useState(null);
     const [labels, setLabels] = useState([]);
-    const [selectionForModal, setSelectionForModal] = useState(null);
 
     const { viewport, updateViewport, resetViewport } = useSignalViewport(durationMs);
 
-    // Initialize from default signal when it changes
     useEffect(() => {
         if (!defaultSignal) {
             setSamples([]);
@@ -59,37 +55,27 @@ export default function LeftPanel ({
         resetViewport();
     }, [defaultSignal, resetViewport]);
 
-    const handleConfirmLabel = async ({ name, note }) => {
-        if (!channelId || !selectionForModal) {
-            setSelectionForModal(null);
-            return;
-        }
-        try {
-            const res = await fetchCreateLabel({
-                channelId,
-                startTime: selectionForModal.startMs,
-                endTime: selectionForModal.endMs,
-                name,
-                note
-            });
-            setLabels(prev => [
-                ...prev,
-                {
-                    annotationId: res.annotationId,
-                    startTimeMs: res.startTimeMs,
-                    endTimeMs: res.endTimeMs,
-                    labelName: res.labelName,
-                    note: res.note || null
-                }
-            ]);
-        } catch (e) {
-            console.error('Create label failed', e);
-            alert('Failed to create label: ' + (e.message || e));
-        } finally {
-            setSelectionForModal(null);
-        }
-    };
-
+    // Keep chart's labels in sync with table edits or other sources
+    useEffect(() => {
+        const handler = (e) => {
+            const detail = e?.detail;
+            if (!detail) return;
+            if (detail.channelId != null && detail.channelId !== channelId) return;
+            const anns = Array.isArray(detail.annotations) ? detail.annotations : [];
+            setLabels(
+                anns.map(a => ({
+                    annotationId: a.annotationId,
+                    startTimeMs: a.startTimeMs,
+                    endTimeMs: a.endTimeMs,
+                    labelName: a.label?.name || a.labelName || 'Unknown',
+                    note: a.note || null,
+                    label: a.label || null
+                }))
+            );
+        };
+        window.addEventListener('annotations-updated', handler);
+        return () => window.removeEventListener('annotations-updated', handler);
+    }, [channelId]);
     const handleExport = async () => {
         if (!sessionId) return;
         try {

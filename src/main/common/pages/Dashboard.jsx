@@ -14,7 +14,6 @@ export default function Dashboard({ sessionId }) {
     const [defaultChannelSignal, setDefaultChannelSignal] = useState(null)
     const [annotations, setAnnotations] = useState([])
     const [selectedChannelId, setSelectedChannelId] = useState(null)
-
     const [layoutMode, setLayoutMode] = useState('split')
     const [isLoading, setIsLoading] = useState(false)
     const [errorSession, setErrorSession] = useState(null)
@@ -40,7 +39,6 @@ export default function Dashboard({ sessionId }) {
                 setSelectedChannelId(cid)
                 setDefaultChannelSignal(data.defaultChannel?.signal || null)
 
-                // Normalize annotations from the default channel's signal, if available
                 const anns = data.defaultChannel?.signal?.annotations
                 if (Array.isArray(anns)) {
                     setAnnotations(anns)
@@ -131,6 +129,19 @@ export default function Dashboard({ sessionId }) {
         ))
     }
 
+    // Sync annotations between chart and table via global event
+    useEffect(() => {
+        const onUpdated = (e) => {
+            const detail = e?.detail;
+            if (!detail) return;
+            if (detail.channelId != null && detail.channelId !== selectedChannelId) return;
+            const anns = Array.isArray(detail.annotations) ? detail.annotations : [];
+            setAnnotations(anns);
+        };
+        window.addEventListener('annotations-updated', onUpdated);
+        return () => window.removeEventListener('annotations-updated', onUpdated);
+    }, [selectedChannelId])
+
     const rootClass = `dashboard-root ${layoutMode === 'split' ? 'split' : 'single'}`
 
     const containerStyle = useMemo(() => {
@@ -200,6 +211,7 @@ export default function Dashboard({ sessionId }) {
                         <RightPanel
                             session={session}
                             annotations={annotations}
+                            channelId={selectedChannelId}
                             startPosition={startPosition}
                             onStartPositionChange={setStartPosition}
                             onSetup={handleSetup}
