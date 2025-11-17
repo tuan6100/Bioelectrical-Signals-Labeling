@@ -221,7 +221,14 @@ const LabelTable = ({ data, onDeleteRow, onLabelChange, channelId }) => {
           />
         </div>
       )}
-      <table>
+      {(() => {
+        const displayedRowsCount = allAnnotationMode
+          ? (Array.isArray(filteredSortedData) ? filteredSortedData.length : 0)
+          : (Array.isArray(data) ? data.length : 0);
+        const needScroll = displayedRowsCount > 5;
+        return (
+          <div className={needScroll ? 'table-viewport' : ''}>
+            <table>
         <thead>
           {allAnnotationMode ? (
             <tr>
@@ -494,7 +501,10 @@ const LabelTable = ({ data, onDeleteRow, onLabelChange, channelId }) => {
             </tr>
           )}
         </tbody>
-      </table>
+            </table>
+          </div>
+        );
+      })()}
     </div>
   );
 };
