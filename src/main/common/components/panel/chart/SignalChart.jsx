@@ -479,18 +479,22 @@ export default function SignalChart({
             }));
             return;
         }
-
         if (x >= MARGIN.left && x <= MARGIN.left + chartWidth &&
             y >= MARGIN.top && y <= MARGIN.top + chartHeight) {
-            const edgeInfo = findLabelEdgeAtTime(time);
-            if (edgeInfo && !panState.active) {
-                setResizeEdge(edgeInfo.edge);
-                setHoveredLabelId(edgeInfo.label.annotationId);
-            } else {
+            if (e.ctrlKey || e.metaKey) {
+                if (hoveredLabelId !== null) setHoveredLabelId(null);
                 setResizeEdge(null);
-                const hit = findLabelAtTime(time);
-                const newHoverId = hit ? hit.annotationId : null;
-                if (newHoverId !== hoveredLabelId && !panState.active) setHoveredLabelId(newHoverId);
+            } else {
+                const edgeInfo = findLabelEdgeAtTime(time);
+                if (edgeInfo) {
+                    setResizeEdge(edgeInfo.edge);
+                    setHoveredLabelId(edgeInfo.label.annotationId);
+                } else {
+                    setResizeEdge(null);
+                    const hit = findLabelAtTime(time);
+                    const newHoverId = hit ? hit.annotationId : null;
+                    if (newHoverId !== hoveredLabelId) setHoveredLabelId(newHoverId);
+                }
             }
         } else {
             if (hoveredLabelId !== null) setHoveredLabelId(null);
