@@ -21,6 +21,7 @@ export default function SignalChart({
 }) {
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
+    const overlapDialogShownRef = useRef(false);
     const [dimensions, setDimensions] = useState({ width: 800, height: 400 });
     const [dragState, setDragState] = useState({ active: false, startTime: null, endTime: null });
     const [panState, setPanState] = useState({ active: false, startX: null, startViewport: null });
@@ -578,7 +579,6 @@ export default function SignalChart({
                                 startTimeMs: newStart,
                                 endTimeMs: newEnd
                             });
-                            // Notify others
                             dispatchAnnotationsUpdated(labels.map(l =>
                                 l.annotationId === resizedLabel.annotationId
                                     ? { ...l, startTimeMs: newStart, endTimeMs: newEnd }
@@ -612,10 +612,16 @@ export default function SignalChart({
             const persistedPredicate = (l) => !pendingPredicate(l);
             const overlappingPersisted = labels.filter(l => persistedPredicate(l) && l.endTimeMs > s && l.startTimeMs < e);
             if (overlappingPersisted.length) {
-                await fetchShowErrorDialog(
-                    'Overlap',
-                    `Selection ${s.toFixed(2)} - ${e.toFixed(2)} ms overlaps an existing label. Choose a free region.`
-                );
+                setDragState({ active: false, startTime: null, endTime: null });
+                if (!overlapDialogShownRef.current) {
+                    overlapDialogShownRef.current = true;
+                    await fetchShowErrorDialog(
+                        'Overlap',
+                        `Selection ${s.toFixed(2)} - ${e.toFixed(2)} ms overlaps an existing label. Choose a free region.`
+                    );
+                    overlapDialogShownRef.current = false;
+                }
+                return;
             } else {
                 const overlappingPending = labels.filter(l => pendingPredicate(l) && l.endTimeMs > s && l.startTimeMs < e);
                 if (overlappingPending.length) {
@@ -750,7 +756,6 @@ export default function SignalChart({
                         ? { ...l, name: newName, labelName: savedLabel?.labelName || newName, ...savedLabel, state: 'persisted' }
                         : l
                 );
-                // Notify others with new persisted list
                 dispatchAnnotationsUpdated(next);
                 return next;
             });
@@ -1024,3 +1029,4 @@ export default function SignalChart({
         </div>
     );
 }
+
