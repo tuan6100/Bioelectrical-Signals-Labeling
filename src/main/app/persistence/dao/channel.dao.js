@@ -108,6 +108,21 @@ export default class Channel {
         )
     }
 
+    static findOneDurationById(channelId) {
+        const stmt = db.prepare(`
+            SELECT 
+                sweep_duration_ms, trace_duration_ms
+            FROM channels 
+            WHERE channel_id = ?
+        `)
+        const row = stmt.get(channelId)
+        if (!row) return null
+        return {
+            sweepDurationMs: row.sweep_duration_ms,
+            traceDurationMs: row.trace_duration_ms
+        }
+    }
+
     static findAll() {
         const stmt  = db.prepare(`
             SELECT 

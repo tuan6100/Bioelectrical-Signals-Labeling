@@ -21,11 +21,8 @@ export function getChannelSignal(channelId) {
     }
     const rows = Channel.findSamplesById(channelId)
     if (!rows || rows.length === 0) return null
-
-    // All rows correspond to the same channel; raw samples & channel properties duplicated per join row.
     const first = rows[0]
     const raw = first.raw_samples_uv
-
     let samplesArr = []
     try {
         if (typeof raw === 'string') {
@@ -46,7 +43,6 @@ export function getChannelSignal(channelId) {
     const freqKHz = first.subsampled_khz ?? first.sampling_frequency_khz
     let freqHz = (freqKHz ?? 0) * 1000
     let durationMs = first.sweep_duration_ms ?? first.trace_duration_ms
-
     if ((!freqHz || freqHz <= 0) && durationMs && samplesArr.length > 1) {
         const dt = durationMs / samplesArr.length
         freqHz = 1000 / dt
@@ -60,8 +56,6 @@ export function getChannelSignal(channelId) {
         time: +(index * dtMs).toFixed(3),
         value
     }))
-
-    // Collect all annotations (one per joined row) - skip rows without annotation_id
     const seen = new Set()
     const annotations = rows.reduce((acc, r) => {
         if (!r.annotation_id) return acc

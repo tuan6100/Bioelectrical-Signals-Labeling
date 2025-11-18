@@ -186,7 +186,7 @@ export default class Annotation {
         return info.changes
     }
 
-    static isOverlapping(channelId, newStartMs, newEndMs) {
+    isOverlapping() {
         const stmt = db.prepare(`
             SELECT annotation_id, start_time_ms, end_time_ms
             FROM annotations 
@@ -194,7 +194,7 @@ export default class Annotation {
             AND end_time_ms > ?
             AND start_time_ms < ?
         `)
-        const rows = stmt.all(channelId, newStartMs, newEndMs)
+        const rows = stmt.all(this.channelId, this.startTimeMs, this.endTimeMs)
         return rows.length > 0
     }
 
