@@ -3,7 +3,8 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses';
 
 const config = {
   packagerConfig: {
-    asar: true,
+      asar: true,
+      icon: './public/favicon/biosignal.ico'
   },
   rebuildConfig: {
       force: true,

@@ -2,28 +2,24 @@ import React from 'react';
 import LabelTable from '../table/LabelTable.jsx';
 import BottomControl from '../control/BottomControl.jsx';
 import './RightPanel.css';
+import TopControl from "../control/TopControl.jsx";
 
 const RightPanel = ({
    session,
    annotations,
    channelId,
    tableData,
-   onDeleteRow,
    onAddLabel,
    onSave,
    isLabeled,
    isDoubleChecked,
    onToggleLabeled,
    onToggleDoubleChecked,
-   onLabelChange
 }) => {
+
     return (
         <div className="right-panel-root">
-            <div className="right-panel-toolbar">
-                <div className="toolbar-title">Label Tools</div>
-                <div className="toolbar-actions">
-                </div>
-            </div>
+            <TopControl />
 
             <div className="panel-box">
                 {session ? (
@@ -40,8 +36,6 @@ const RightPanel = ({
                 <div className="panel-box panel-table">
                     <LabelTable
                         data={(Array.isArray(annotations) && annotations.length > 0) ? annotations : tableData}
-                        onDeleteRow={onDeleteRow}
-                        onLabelChange={onLabelChange}
                         channelId={channelId}
                     />
                 </div>

@@ -23,7 +23,7 @@ export function persistLabel(channelId, startTime, endTime, labelName, labelNote
             throw new Error('Annotation time cannot be negative.')
         }
         let channelDuration = Channel. findOneDurationById(channelId)
-        channelDuration = channelDuration.sweepDurationMs !== null? channelDuration.sweepDurationMs : channelDuration.traceDurationMs
+        channelDuration = channelDuration.sweepDurationMs?? channelDuration.traceDurationMs
         if (endTime > channelDuration) {
             throw new Error('Annotation end time exceeds channel duration.')
         }
@@ -38,7 +38,8 @@ export function persistLabel(channelId, startTime, endTime, labelName, labelNote
             labelName: label.name,
             startTimeMs: annotation.startTimeMs,
             endTimeMs: annotation.endTimeMs,
-            note: annotation.note
+            note: annotation.note,
+            timeline: new Date(annotation.labeledAt)
         }
     })(channelId, startTime, endTime, labelName)
 }
@@ -98,7 +99,7 @@ export function updateAnnotation(annotationId, updates) {
                 throw new Error('Annotation time cannot be negative.')
             }
             let channelDuration = Channel. findOneDurationById(channelId)
-            channelDuration = channelDuration.sweepDurationMs !== null? channelDuration.sweepDurationMs : channelDuration.traceDurationMs
+            channelDuration = channelDuration.sweepDurationMs?? channelDuration.traceDurationMs
             if (newEnd > channelDuration) {
                 throw new Error('Annotation end time exceeds channel duration.')
             }
@@ -118,7 +119,8 @@ export function updateAnnotation(annotationId, updates) {
             labelName: label ? label.name : 'Unknown',
             startTimeMs: updated.startTimeMs,
             endTimeMs: updated.endTimeMs,
-            note: updated.note
+            note: updated.note,
+            timeline: new Date(updated.updatedAt?? updated.labeledAt)
         }
     })(annotationId, updates)
 }

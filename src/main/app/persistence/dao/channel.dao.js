@@ -203,11 +203,11 @@ export default class Channel {
                 c.subsampled_khz, 
                 c.sweep_duration_ms,
                 c.trace_duration_ms,
-                a.annotation_id, a.start_time_ms, a.end_time_ms, a.note,
+                a.annotation_id, a.start_time_ms, a.end_time_ms, a.note, a.labeled_at, a.updated_at,
                 l.label_id, l.name AS label_name
-            FROM channels AS c
-            LEFT JOIN annotations AS a ON c.channel_id = a.channel_id
-            LEFT JOIN labels AS l ON a.label_id = l.label_id
+            FROM channels c
+            LEFT JOIN annotations a ON c.channel_id = a.channel_id
+            LEFT JOIN labels l ON a.label_id = l.label_id
             WHERE c.channel_id = ?
         `)
         const result = stmt.all(channelId)

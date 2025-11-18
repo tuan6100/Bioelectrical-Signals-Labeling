@@ -72,7 +72,7 @@ export default class Annotation {
             row.channel_id,
             row.label_id,
             row.start_time_ms,
-            row.end_time_ms,
+            row.end_timeMs,
             row.note
         ))
 }
@@ -91,7 +91,7 @@ export default class Annotation {
             row.channel_id,
             row.label_id,
             row.start_time_ms,
-            row.end_time_ms,
+            row.end_timeMs,
             row.note
         ))
 }
@@ -110,7 +110,7 @@ export default class Annotation {
             row.channel_id,
             row.label_id,
             row.start_time_ms,
-            row.end_time_ms,
+            row.end_timeMs,
             row.note
         ))
     }
@@ -137,27 +137,29 @@ export default class Annotation {
     }
 
     static update(annotationId, updateFields) {
-        const fields = Object.keys(updateFields)
-        if (fields.length === 0) return null
+        const fields = Object.keys(updateFields);
+        if (fields.length === 0) return null;
         const fieldMap = {
             channelId: 'channel_id',
             labelId: 'label_id',
             startTimeMs: 'start_time_ms',
             endTimeMs: 'end_time_ms',
             note: 'note'
-        }
-        const setClause = fields.map(field => {
-            const dbField = fieldMap[field] || field
-            return `${dbField} = ?`
-        }).join(', ')
-        const values = fields.map(field => updateFields[field])
+        };
+        const validFields = fields.filter(f => fieldMap[f]);
+        if (validFields.length === 0) return null;
+        const assignments = validFields.map(f => `${fieldMap[f]} = ?`).join(', ');
+        const updatedAt = new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' });
+        const finalSetClause = assignments ? `${assignments}, updated_at = ?` : 'updated_at = ?';
+        const values = validFields.map(f => updateFields[f]);
+        values.push(updatedAt);
         const stmt = db.prepare(`
-        UPDATE annotations 
-        SET ${setClause}
-        WHERE annotation_id = ?
-    `)
-        const info = stmt.run(...values, annotationId)
-        return info.changes > 0 ? this.findOneById(annotationId) : null
+            UPDATE annotations
+            SET ${finalSetClause}
+            WHERE annotation_id = ?
+        `);
+        const info = stmt.run(...values, annotationId);
+        return info.changes > 0 ? this.findOneById(annotationId) : null;
     }
     static delete(annotationId) {
         const stmt = db.prepare(`
