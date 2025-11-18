@@ -5,7 +5,7 @@ import {
     fetchUpdateAnnotation,
     fetchDeleteAnnotation,
     fetchShowErrorDialog
-} from "../../../api/index.js";
+} from "../../api";
 import './SignalChart.css';
 import LabelContextMenu from './LabelContextMenu.jsx';
 

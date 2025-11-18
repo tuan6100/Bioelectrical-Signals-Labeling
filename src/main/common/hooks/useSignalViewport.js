@@ -3,7 +3,7 @@ import { useState, useCallback } from 'react';
 export function useSignalViewport(durationMs) {
     const [viewport, setViewport] = useState(() => ({
         startMs: 0,
-        endMs: durationMs ? Math.min(durationMs, 1000) : 1000 // initial 1s or duration
+        endMs: durationMs ? Math.min(durationMs, 1000) : 1000
     }));
 
     const updateViewport = useCallback((vp) => {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { fetchSessionDashboard } from '../api/index.js';
+import { fetchSessionDashboard } from '../api';
 
 export function useFetchSession(sessionId) {
     const [loading, setLoading] = useState(false);

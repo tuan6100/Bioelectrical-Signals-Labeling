@@ -1,6 +1,6 @@
 import React from 'react';
 import LabelTable from '../table/LabelTable.jsx';
-import BottomControl from './control/BottomControl.jsx';
+import BottomControl from '../control/BottomControl.jsx';
 import './RightPanel.css';
 
 const RightPanel = ({
