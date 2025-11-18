@@ -28,7 +28,6 @@ export function getChannelSignal(channelId) {
         if (typeof raw === 'string') {
             const cleaned = raw.trim().replace(/^\uFEFF/, "")
             let parsed = JSON.parse(cleaned)
-            // Handle double-encoded JSON strings
             if (typeof parsed === 'string') {
                 parsed = JSON.parse(parsed)
             }
@@ -57,7 +56,7 @@ export function getChannelSignal(channelId) {
         value
     }))
     const seen = new Set()
-    const annotations = rows.reduce((acc, r) => {
+    let annotations = rows.reduce((acc, r) => {
         if (!r.annotation_id) return acc
         if (seen.has(r.annotation_id)) return acc
         seen.add(r.annotation_id)
@@ -66,11 +65,14 @@ export function getChannelSignal(channelId) {
             startTimeMs: r.start_time_ms,
             endTimeMs: r.end_time_ms,
             note: r.note ?? null,
-            label: r.label_id ? { labelId: r.label_id, name: r.label_name } : null
+            label: r.label_id ? { labelId: r.label_id, name: r.label_name } : null,
+            // use consistent property name `timeline` across the app
+            timeline: new Date(r.updated_at ?? r.labeled_at)
         })
         return acc
     }, [])
-
+    // sort by timeline descending (newest first) by default
+    annotations.sort((a, b) => b.timeline - a.timeline)
     return {
         samplingRateHz: freqHz || null,
         durationMs: durationMs || (timeSeries.length ? timeSeries[timeSeries.length - 1].time : null),

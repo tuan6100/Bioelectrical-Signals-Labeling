@@ -8,15 +8,14 @@ const RightPanel = ({
    annotations,
    channelId,
    tableData,
-   onDeleteRow,
    onAddLabel,
    onSave,
    isLabeled,
    isDoubleChecked,
    onToggleLabeled,
    onToggleDoubleChecked,
-   onLabelChange
 }) => {
+
     return (
         <div className="right-panel-root">
             <div className="right-panel-toolbar">
@@ -40,8 +39,6 @@ const RightPanel = ({
                 <div className="panel-box panel-table">
                     <LabelTable
                         data={(Array.isArray(annotations) && annotations.length > 0) ? annotations : tableData}
-                        onDeleteRow={onDeleteRow}
-                        onLabelChange={onLabelChange}
                         channelId={channelId}
                     />
                 </div>

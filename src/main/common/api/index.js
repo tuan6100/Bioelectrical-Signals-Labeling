@@ -39,7 +39,8 @@ import {
  *         startTimeMs: number,
  *         endTimeMs: number,
  *         note: string|null,
- *         label: {labelId: number, name: string, type: string}|null
+ *         timeline: Date
+ *         label: {labelId: number, name: string}|null
  *       }|null
  *     }|null
  *   }
@@ -68,7 +69,8 @@ export async function fetchSessionDashboard(sessionId) {
  *     startTimeMs: number,
  *     endTimeMs: number,
  *     note: string|null,
- *     label: {labelId: number, name: string, type: string}|null
+ *     timeline: Date
+ *     label: {labelId: number, name: string}|null
  *   }|null
  * }>} A promise that resolves to the channel samples with time series data and any associated annotations.
  * @throws {Error} If channelId is null or undefined.
@@ -92,6 +94,7 @@ export async function fetchChannelSamples(channelId) {
  * @param {number} labelDto.endTime - The end time of the label in milliseconds.
  * @param {string} labelDto.name - The name of the label.
  * @param {string} [labelDto.note] - An optional note for the label.
+ * @param {string} labelDto.timeline - The timeline date for when the label was created.
  * @returns {Promise<{annotationId: number, channelId: number, labelId: number, labelName: string, startTimeMs: number, endTimeMs: number, note: string|null}>}
  */
 
@@ -175,7 +178,7 @@ export async function fetchExportLabel(sessionId) {
  * @function fetchUpdateAnnotation
  * @param {number} annotationId - The ID of the annotation to update.
  * @param {Object} updateFields - Fields to update (e.g., {labelName: 'newName', note: 'new note'}).
- * @returns {Promise<{annotationId: number, channelId: number, labelId: number, labelName: string, startTimeMs: number, endTimeMs: number, note: string|null}>} A promise that resolves to the updated annotation.
+ * @returns {Promise<{annotationId: number, channelId: number, labelId: number, labelName: string, startTimeMs: number, endTimeMs: number, note: string|null, timeline: Date}>} A promise that resolves to the updated annotation.
  */
 export async function fetchUpdateAnnotation(annotationId, updateFields) {
     if (isDesktopEnv()) {

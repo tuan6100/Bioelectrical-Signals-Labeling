@@ -38,7 +38,8 @@ export function persistLabel(channelId, startTime, endTime, labelName, labelNote
             labelName: label.name,
             startTimeMs: annotation.startTimeMs,
             endTimeMs: annotation.endTimeMs,
-            note: annotation.note
+            note: annotation.note,
+            timeline: new Date(annotation.labeledAt)
         }
     })(channelId, startTime, endTime, labelName)
 }
@@ -118,7 +119,8 @@ export function updateAnnotation(annotationId, updates) {
             labelName: label ? label.name : 'Unknown',
             startTimeMs: updated.startTimeMs,
             endTimeMs: updated.endTimeMs,
-            note: updated.note
+            note: updated.note,
+            timeline: new Date(updated.updatedAt?? updated.labeledAt)
         }
     })(annotationId, updates)
 }

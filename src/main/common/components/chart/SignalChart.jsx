@@ -995,7 +995,7 @@ export default function SignalChart({
                     }}
                 >
                     <div>t: {hoverSample.timeMs.toFixed(2)} ms</div>
-                    <div>v: {typeof hoverSample.value === 'number' ? hoverSample.value.toFixed(3) : hoverSample.value}</div>
+                    <div>v: {typeof hoverSample.value === 'number' ? hoverSample.value : hoverSample.value} μV</div>
                 </div>
             )}
 
