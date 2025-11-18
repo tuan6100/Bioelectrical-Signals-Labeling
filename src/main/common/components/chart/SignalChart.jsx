@@ -257,9 +257,11 @@ export default function SignalChart({
 
         ctx.strokeStyle = '#ddd';
         ctx.lineWidth = 1;
-        const timeStep = (clampedViewport.endMs - clampedViewport.startMs) / 10;
-        for (let i = 0; i <= 10; i++) {
-            const t = clampedViewport.startMs + i * timeStep;
+        const TICK_STEP_MS = 200;
+        const upperBoundMs = Math.ceil(effectiveDurationMs / TICK_STEP_MS) * TICK_STEP_MS;
+        const firstVisibleTick = Math.max(0, Math.ceil(clampedViewport.startMs / TICK_STEP_MS) * TICK_STEP_MS);
+        const lastVisibleTick = Math.min(upperBoundMs, Math.floor(clampedViewport.endMs / TICK_STEP_MS) * TICK_STEP_MS);
+        for (let t = firstVisibleTick; t <= lastVisibleTick; t += TICK_STEP_MS) {
             const x = timeToX(t);
             ctx.beginPath();
             ctx.moveTo(x, MARGIN.top);
@@ -320,10 +322,10 @@ export default function SignalChart({
         ctx.fillStyle = '#000';
         ctx.font = '11px sans-serif';
         ctx.textAlign = 'center';
-        for (let i = 0; i <= 10; i++) {
-            const t = clampedViewport.startMs + i * timeStep;
+
+        for (let t = firstVisibleTick; t <= lastVisibleTick; t += TICK_STEP_MS) {
             const x = timeToX(t);
-            ctx.fillText(t.toFixed(0), x, MARGIN.top + chartHeight + 20);
+            ctx.fillText(String(Math.round(t)), x, MARGIN.top + chartHeight + 20);
         }
         ctx.font = '12px sans-serif';
         ctx.fillText(
@@ -694,9 +696,9 @@ export default function SignalChart({
         onViewportChange({ startMs: Math.max(0, newStart), endMs: Math.min(effectiveDurationMs, newEnd) });
     };
 
-    const handleContextMenu = (e) => {
+    const handleContextMenu = async (e) => {
         e.preventDefault();
-        refreshLabelCatalog();
+        await refreshLabelCatalog();
         const rect = canvasRef.current.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const time = xToTime(x);

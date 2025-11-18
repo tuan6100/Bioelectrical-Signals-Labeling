@@ -26,6 +26,7 @@ const createWindow = () => {
             preload: path.join(__dirname, 'preload.js'),
             nodeIntegrationInWorker: true
         },
+        icon: `./public/favicon/biosignal.ico`
     })
 
     let lastOpenedDir = app.getPath('documents')
