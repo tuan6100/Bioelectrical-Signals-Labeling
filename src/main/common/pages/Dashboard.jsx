@@ -2,21 +2,27 @@ import React, { useRef, useState, useMemo, useEffect, useCallback } from 'react'
 import './Dashboard.css'
 import LeftPanel from "../components/panel/LeftPanel.jsx";
 import RightPanel from "../components/panel/RightPanel.jsx";
-import { fetchSessionDashboard } from "../api/index.js";
+import { useFetchSession } from "../hooks/useFetchSession.js";
 
 const COLLAPSE_BREAKPOINT = 1100
 const RESIZER_WIDTH_PX = 6
 
 export default function Dashboard({ sessionId }) {
     const containerRef = useRef(null)
-    const [session, setSession] = useState(null)
-    const [channels, setChannels] = useState([])
-    const [defaultChannelSignal, setDefaultChannelSignal] = useState(null)
+
+    const {
+        loading,
+        error,
+        session,
+        channels,
+        channelId,
+        defaultSignal,
+        labels: hookLabels,
+        setChannelId
+    } = useFetchSession(sessionId)
+
     const [annotations, setAnnotations] = useState([])
-    const [selectedChannelId, setSelectedChannelId] = useState(null)
     const [layoutMode, setLayoutMode] = useState('split')
-    const [isLoading, setIsLoading] = useState(false)
-    const [errorSession, setErrorSession] = useState(null)
     const [startPosition, setStartPosition] = useState(1)
     const [tableData, setTableData] = useState([])
     const [isLabeled, setIsLabeled] = useState(false)
@@ -27,33 +33,8 @@ export default function Dashboard({ sessionId }) {
     const startPercentRef = useRef(50)
 
     useEffect(() => {
-        if (!sessionId) return
-        setIsLoading(true)
-        setErrorSession(null)
-        fetchSessionDashboard(sessionId)
-            .then(data => {
-                setSession(data.session || null)
-                const chs = data.session?.channels || []
-                setChannels(chs)
-                const cid = data.defaultChannel?.channelId || (chs.length ? chs[0].channelId : null)
-                setSelectedChannelId(cid)
-                setDefaultChannelSignal(data.defaultChannel?.signal || null)
-
-                const anns = data.defaultChannel?.signal?.annotations
-                if (Array.isArray(anns)) {
-                    setAnnotations(anns)
-                } else if (anns && typeof anns === 'object') {
-                    setAnnotations([anns])
-                } else {
-                    setAnnotations([])
-                }
-            })
-            .catch(err => {
-                console.error('Failed to fetch session dashboard:', err)
-                setErrorSession(err)
-            })
-            .finally(() => setIsLoading(false))
-    }, [sessionId])
+        setAnnotations(Array.isArray(hookLabels) ? hookLabels : [])
+    }, [hookLabels])
 
     const applyAutoLayout = useCallback(() => {
         const small = window.innerWidth < COLLAPSE_BREAKPOINT
@@ -129,18 +110,17 @@ export default function Dashboard({ sessionId }) {
         ))
     }
 
-    // Sync annotations between chart and table via global event
     useEffect(() => {
         const onUpdated = (e) => {
             const detail = e?.detail;
             if (!detail) return;
-            if (detail.channelId != null && detail.channelId !== selectedChannelId) return;
+            if (detail.channelId != null && detail.channelId !== channelId) return;
             const anns = Array.isArray(detail.annotations) ? detail.annotations : [];
             setAnnotations(anns);
         };
         window.addEventListener('annotations-updated', onUpdated);
         return () => window.removeEventListener('annotations-updated', onUpdated);
-    }, [selectedChannelId])
+    }, [channelId])
 
     const rootClass = `dashboard-root ${layoutMode === 'split' ? 'split' : 'single'}`
 
@@ -157,29 +137,29 @@ export default function Dashboard({ sessionId }) {
                     <button
                         className={`toggle-btn ${layoutMode === 'left' ? 'active' : ''}`}
                         onClick={() => setLayoutMode('left')}
-                        disabled={isLoading}
+                        disabled={loading}
                     >
                         Left
                     </button>
                     <button
                         className={`toggle-btn ${layoutMode === 'split' ? 'active' : ''}`}
                         onClick={() => setLayoutMode('split')}
-                        disabled={isLoading || window.innerWidth < COLLAPSE_BREAKPOINT}
+                        disabled={loading || window.innerWidth < COLLAPSE_BREAKPOINT}
                     >
                         Split
                     </button>
                     <button
                         className={`toggle-btn ${layoutMode === 'right' ? 'active' : ''}`}
                         onClick={() => setLayoutMode('right')}
-                        disabled={isLoading}
+                        disabled={loading}
                     >
                         Right
                     </button>
                 </div>
 
                 <div className="header-status">
-                    {isLoading && <span className="session-loading">Đang tải...</span>}
-                    {errorSession && <span className="session-error">Lỗi tải dữ liệu</span>}
+                    {loading && <span className="session-loading">Đang tải...</span>}
+                    {error && <span className="session-error">Lỗi tải dữ liệu</span>}
                 </div>
             </div>
 
@@ -194,9 +174,9 @@ export default function Dashboard({ sessionId }) {
                             session={session}
                             sessionId={sessionId}
                             channels={channels}
-                            channelId={selectedChannelId}
-                            defaultSignal={defaultChannelSignal}
-                            onChannelSelected={setSelectedChannelId}
+                            channelId={channelId}
+                            defaultSignal={defaultSignal}
+                            onChannelSelected={setChannelId}
                             onBack={handleBack}
                         />
                     </div>
@@ -211,7 +191,7 @@ export default function Dashboard({ sessionId }) {
                         <RightPanel
                             session={session}
                             annotations={annotations}
-                            channelId={selectedChannelId}
+                            channelId={channelId}
                             startPosition={startPosition}
                             onStartPositionChange={setStartPosition}
                             onSetup={handleSetup}

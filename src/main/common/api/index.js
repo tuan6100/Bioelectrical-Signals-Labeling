@@ -214,7 +214,6 @@ export async function fetchShowErrorDialog(title, message) {
     if (isDesktopEnv()) {
         return await showErrorDialogAppApi(title, message);
     } else {
-        // Fallback to browser alert for web version
         alert(`${title}\n\n${message}`);
     }
 }

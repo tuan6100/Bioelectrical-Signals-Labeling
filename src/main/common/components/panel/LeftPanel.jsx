@@ -5,7 +5,7 @@ import {
 } from '../../api/index.js';
 import { useSignalViewport } from '../../hooks/useSignalViewport.js';
 import './LeftPanel.css';
-import SignalChart from "./chart/SignalChart.jsx";
+import SignalChart from "../chart/SignalChart.jsx";
 
 export default function LeftPanel ({
     sessionId,
