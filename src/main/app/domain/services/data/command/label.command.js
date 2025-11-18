@@ -22,8 +22,9 @@ export function persistLabel(channelId, startTime, endTime, labelName, labelNote
         if (startTime < 0 || endTime < 0) {
             throw new Error('Annotation time cannot be negative.')
         }
-        const channelDuration = Channel. findOneDurationById(channelId)
-        if (endTime > channelDuration.sweepDurationMs !== null? channelDuration.sweepDurationMs : channelDuration.traceDurationMs) {
+        let channelDuration = Channel. findOneDurationById(channelId)
+        channelDuration = channelDuration.sweepDurationMs !== null? channelDuration.sweepDurationMs : channelDuration.traceDurationMs
+        if (endTime > channelDuration) {
             throw new Error('Annotation end time exceeds channel duration.')
         }
         if (annotation.isOverlapping()) {
@@ -96,8 +97,9 @@ export function updateAnnotation(annotationId, updates) {
             if (newStart < 0 || newEnd< 0) {
                 throw new Error('Annotation time cannot be negative.')
             }
-            const channelDuration = Channel. findOneDurationById(channelId)
-            if (newEnd > channelDuration.sweepDurationMs !== null? channelDuration.sweepDurationMs : channelDuration.traceDurationMs) {
+            let channelDuration = Channel. findOneDurationById(channelId)
+            channelDuration = channelDuration.sweepDurationMs !== null? channelDuration.sweepDurationMs : channelDuration.traceDurationMs
+            if (newEnd > channelDuration) {
                 throw new Error('Annotation end time exceeds channel duration.')
             }
             if (!Annotation.canResize(annotationId, channelId, newStart, newEnd)) {
