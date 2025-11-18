@@ -26,7 +26,14 @@ const createWindow = () => {
             preload: path.join(__dirname, 'preload.js'),
             nodeIntegrationInWorker: true
         },
-        icon: `./public/favicon/biosignal.ico`
+        icon: `./public/favicon/biosignal.ico`,
+        ...(process.platform !== 'darwin' ? { titleBarOverlay: true } : {}),
+        titleBarOverlay: {
+            color: '#2f3241',
+            symbolColor: '#74b1be',
+            height: 60
+        },
+        titleBarStyle: 'customButtonsOnHover'
     })
 
     let lastOpenedDir = app.getPath('documents')
