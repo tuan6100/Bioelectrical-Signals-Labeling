@@ -1,7 +1,8 @@
-import Label from "../../../../persistence/dao/label.dao.js";
-import Annotation from "../../../../persistence/dao/annotation.dao.js";
-import Session from "../../../../persistence/dao/session.dao.js";
-import asTransaction from "../../../../persistence/transaction/index.js";
+import Label from "../../../../persistence/dao/label.dao.js"
+import Annotation from "../../../../persistence/dao/annotation.dao.js"
+import Session from "../../../../persistence/dao/session.dao.js"
+import asTransaction from "../../../../persistence/transaction/index.js"
+import Channel from "../../../../persistence/dao/channel.dao.js"
 
 export function persistLabel(channelId, startTime, endTime, labelName, labelNote = null) {
     return asTransaction(function (channelId, startTime, endTime, labelName) {
@@ -18,7 +19,14 @@ export function persistLabel(channelId, startTime, endTime, labelName, labelNote
             endTime,
             labelNote
         )
-        if (Annotation.isOverlapping(channelId, startTime, endTime)) {
+        if (startTime < 0 || endTime < 0) {
+            throw new Error('Annotation time cannot be negative.')
+        }
+        const channelDuration = Channel. findOneDurationById(channelId)
+        if (endTime > channelDuration.sweepDurationMs !== null? channelDuration.sweepDurationMs : channelDuration.traceDurationMs) {
+            throw new Error('Annotation end time exceeds channel duration.')
+        }
+        if (annotation.isOverlapping()) {
             throw new Error('Annotation time range is overlapping with an existing annotation.')
         }
         annotation = annotation.insert()
@@ -35,65 +43,72 @@ export function persistLabel(channelId, startTime, endTime, labelName, labelNote
 }
 
 export function exportLabels(sessionId) {
-    const data = Session.getAllLabelsBySessionId(sessionId);
+    const data = Session.getAllLabelsBySessionId(sessionId)
     return  data.flatMap(item => {
-        const freqKhz = item.subsampled || item.samplingFrequency;
-        const freqHz = (freqKhz || 0) * 1000;
-        if (!freqHz || !item.samples || !item.samples.length) return [];
-        const dtMs = 1000 / freqHz;
-        if (!item.annotation) return [];
-        const { startTimeMs, endTimeMs, labelName, note } = item.annotation;
-        const startIdx = Math.max(0, Math.floor(startTimeMs / dtMs));
-        const endIdx = Math.min(item.samples.length, Math.ceil(endTimeMs / dtMs));
-        const samplesSlice = item.samples.slice(startIdx, endIdx);
+        const freqKhz = item.subsampled || item.samplingFrequency
+        const freqHz = (freqKhz || 0) * 1000
+        if (!freqHz || !item.samples || !item.samples.length) return []
+        const dtMs = 1000 / freqHz
+        if (!item.annotation) return []
+        const { startTimeMs, endTimeMs, labelName, note } = item.annotation
+        const startIdx = Math.max(0, Math.floor(startTimeMs / dtMs))
+        const endIdx = Math.min(item.samples.length, Math.ceil(endTimeMs / dtMs))
+        const samplesSlice = item.samples.slice(startIdx, endIdx)
         return [{
             labelName,
             samplesSlice,
             note
-        }];
-    });
+        }]
+    })
 }
 
 export function updateLabel(labelId, updateFields) {
     return asTransaction(function (labelId, updateFields) {
-        return Label.update(labelId, updateFields);
-    })(labelId, updateFields);
+        return Label.update(labelId, updateFields)
+    })(labelId, updateFields)
 }
 
 export function deleteLabel(labelId) {
     return asTransaction(function (labelId) {
-        return Label.delete(labelId);
-    })(labelId);
+        return Label.delete(labelId)
+    })(labelId)
 }
 
 export function updateAnnotation(annotationId, updates) {
     return asTransaction(function (annotationId, updates) {
-        const annotation = Annotation.findOneById(annotationId);
+        const annotation = Annotation.findOneById(annotationId)
         if (!annotation) {
-            throw new Error(`Annotation ${annotationId} not found`);
+            throw new Error(`Annotation ${annotationId} not found`)
         }
         if (updates.labelName) {
-            let label = Label.findOneByName(updates.labelName);
+            let label = Label.findOneByName(updates.labelName)
             if (!label) {
-                label = new Label(null, updates.labelName);
-                label = label.insert();
+                label = new Label(null, updates.labelName)
+                label = label.insert()
             }
-            updates.labelId = label.labelId;
-            delete updates.labelName;
+            updates.labelId = label.labelId
+            delete updates.labelName
         }
         if (updates.startTimeMs !== undefined || updates.endTimeMs !== undefined) {
-            const channelId = updates.channelId ?? annotation.channelId;
-            const newStart = updates.startTimeMs ?? annotation.startTimeMs;
-            const newEnd = updates.endTimeMs ?? annotation.endTimeMs;
+            const channelId = updates.channelId ?? annotation.channelId
+            const newStart = updates.startTimeMs ?? annotation.startTimeMs
+            const newEnd = updates.endTimeMs ?? annotation.endTimeMs
+            if (newStart < 0 || newEnd< 0) {
+                throw new Error('Annotation time cannot be negative.')
+            }
+            const channelDuration = Channel. findOneDurationById(channelId)
+            if (newEnd > channelDuration.sweepDurationMs !== null? channelDuration.sweepDurationMs : channelDuration.traceDurationMs) {
+                throw new Error('Annotation end time exceeds channel duration.')
+            }
             if (!Annotation.canResize(annotationId, channelId, newStart, newEnd)) {
                 throw new Error('Annotation time range is overlapping with an existing annotation.')
             }
         }
-        const updated = Annotation.update(annotationId, updates);
+        const updated = Annotation.update(annotationId, updates)
         if (!updated) {
-            throw new Error('Failed to update annotation');
+            throw new Error('Failed to update annotation')
         }
-        const label = Label.findOneById(updated.labelId);
+        const label = Label.findOneById(updated.labelId)
         return {
             annotationId: updated.annotationId,
             channelId: updated.channelId,
@@ -102,13 +117,12 @@ export function updateAnnotation(annotationId, updates) {
             startTimeMs: updated.startTimeMs,
             endTimeMs: updated.endTimeMs,
             note: updated.note
-        };
-    })(annotationId, updates);
+        }
+    })(annotationId, updates)
 }
-
 
 export function deleteAnnotation(annotationId) {
     return asTransaction(function (annotationId) {
-        return Annotation.delete(annotationId);
-    })(annotationId);
+        return Annotation.delete(annotationId)
+    })(annotationId)
 }
