@@ -23,6 +23,7 @@ const ddl = `
         end_time TEXT NOT NULL,
         input_file_name TEXT,
         content_hash TEXT UNIQUE,
+        updated_at TEXT,
         FOREIGN KEY (patient_id) REFERENCES patients(patient_id) ON DELETE CASCADE
     );
     CREATE INDEX IF NOT EXISTS session_time_idx ON sessions(start_time, end_time);

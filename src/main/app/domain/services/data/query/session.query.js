@@ -66,12 +66,10 @@ export function getChannelSignal(channelId) {
             endTimeMs: r.end_time_ms,
             note: r.note ?? null,
             label: r.label_id ? { labelId: r.label_id, name: r.label_name } : null,
-            // use consistent property name `timeline` across the app
-            timeline: new Date(r.updated_at ?? r.labeled_at)
+            timeline: new Date(r.updated_at?? r.labeled_at).toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' })
         })
         return acc
     }, [])
-    // sort by timeline descending (newest first) by default
     annotations.sort((a, b) => b.timeline - a.timeline)
     return {
         samplingRateHz: freqHz || null,
@@ -81,6 +79,55 @@ export function getChannelSignal(channelId) {
     }
 }
 
-export function getSessionPage(page, size) {
-    return Session.findAllWithPagination(page, size)
+export function getSessionsByPage(page, size) {
+    const pageNumber = Math.max(1, Number(page) || 1)
+    const pageSize = Math.max(1, Number(size) || 10)
+    const rows =  Session.findAllWithPagination(pageNumber, pageSize)
+    const total = Session.countAll()
+    if (!rows || rows.length === 0) {
+        return {
+            contents: [],
+            page: {
+                size: pageSize,
+                number: pageNumber,
+                totalElements: total,
+                totalPages: Math.ceil(total / pageSize)
+            }
+        }
+    }
+    const contents = rows.map(r => ({
+        sessionId: r.session_id,
+        patient: {
+            id: r.patient_id,
+            name: r.patient_name,
+            gender: r.patient_gender
+        },
+        measurementType: r.measurement_type,
+        startTime: r.start_time,
+        endTime: r.end_time,
+        inputFileName: r.input_file_name,
+        updatedAt: new Date(r.updated_at).toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' })
+    }))
+    return {
+        contents,
+        page: {
+            size: pageSize,
+            number: pageNumber,
+            totalElements: total,
+            totalPages: Math.ceil(total / pageSize)
+        }
+    }
+}
+
+export function getSessionsByPatientId(patientId) {
+    const rows =  Session.findByPatientId(patientId)
+    return rows.map(s => ({
+        sessionId: s.sessionId,
+        patientId: s.patientId,
+        measurementType: s.measurementType,
+        startTime: s.startTime,
+        endTime: s.endTime,
+        inputFileName: s.inputFileName,
+        updatedAt: s.updatedAt
+    }))
 }

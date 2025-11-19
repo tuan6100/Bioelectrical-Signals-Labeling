@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     fetchChannelSamples,
     fetchExportLabel
@@ -12,9 +13,9 @@ export default function LeftPanel ({
     channels,
     channelId,
     defaultSignal,
-    onChannelSelected,
-    onBack
+    onChannelSelected
 }) {
+    const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [samples, setSamples] = useState([]);
     const [samplingRate, setSamplingRate] = useState(null);
@@ -55,7 +56,6 @@ export default function LeftPanel ({
         resetViewport();
     }, [defaultSignal, resetViewport]);
 
-    // Keep chart's labels in sync with table edits or other sources
     useEffect(() => {
         const handler = (e) => {
             const detail = e?.detail;
@@ -130,7 +130,7 @@ export default function LeftPanel ({
     return (
         <div className="left-panel">
             <div className="left-panel-toolbar">
-                <button className="back-btn" onClick={onBack}>Back</button>
+                <button className="back-btn" onClick={() => navigate('/')}>Back</button>
                 <div className="toolbar-group">
                     {channels.length > 0 && (
                         <div className="channel-selector">

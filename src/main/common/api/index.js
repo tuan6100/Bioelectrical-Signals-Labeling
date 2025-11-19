@@ -9,7 +9,7 @@ import {
     showErrorDialogAppApi,
     getChannelSamplesAppApi,
     getSessionInfoAppApi,
-    isDesktopEnv
+    isDesktopEnv, getAllSessionsAppApi, getSessionsByPatientIdAppApi
 } from "../../app/api/provider";
 
 /**
@@ -221,3 +221,43 @@ export async function fetchShowErrorDialog(title, message) {
     }
 }
 
+/**
+ * Fetches a paginated list of sessions.
+ * Each item contains session metadata and nested patient info.
+ * @async
+ * @function fetchAllSessions
+ * @param {number} [page=1] - 1-based page index.
+ * @param {number} [size=10] - Items per page.
+ * @returns {Promise<{contents: Array<{sessionId: number, patient: {id: number, name: string, gender: string}, measurementType: string, startTime: string, endTime: string, inputFileName: string, updatedAt: string}>, page: {size: number, number: number, totalElements: number, totalPages: number}}>} Paginated sessions payload.
+ */
+export async function fetchAllSessions(page = 1, size = 10) {
+    if (isDesktopEnv()) {
+        return await getAllSessionsAppApi(page, size);
+    } else {
+        // TODO: Implement web version
+    }
+}
+
+/**
+ * Fetches all sessions that belong to a given patient.
+ *
+ * @async
+ * @function fetchSessionsByPatientId
+ * @param {number} patientId - The unique patient identifier.
+ * @returns {Promise<Array<{
+ *   sessionId: number,
+ *   patientId: number,
+ *   measurementType: string,
+ *   startTime: string,
+ *   endTime: string,
+ *   inputFileName: string,
+ *   updatedAt: string
+ * }>>} A promise that resolves to an array of the patient's sessions (possibly empty).
+ */
+export async function fetchSessionsByPatientId(patientId) {
+    if (isDesktopEnv()) {
+        return await getSessionsByPatientIdAppApi(patientId);
+    } else {
+        // TODO: Implement web version
+    }
+}

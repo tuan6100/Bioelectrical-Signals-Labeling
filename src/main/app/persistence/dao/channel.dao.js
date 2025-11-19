@@ -259,5 +259,10 @@ export default class Channel {
         const info = stmt.run(sessionId)
         return info.changes
     }
-}
 
+    static findSessionIdByChannelId(channelId) {
+        const stmt = db.prepare(`SELECT session_id FROM channels WHERE channel_id = ?`)
+        const row = stmt.get(channelId)
+        return row ? row.session_id : null
+    }
+}

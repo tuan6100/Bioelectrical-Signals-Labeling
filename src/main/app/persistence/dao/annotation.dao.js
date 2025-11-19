@@ -15,7 +15,7 @@ export default class Annotation {
         this.startTimeMs = startTimeMs
         this.endTimeMs = endTimeMs
         this.note = note
-        this.labeledAt = new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' })
+        this.labeledAt = new Date().toISOString()
         this.updatedAt = null
     }
 
@@ -149,7 +149,7 @@ export default class Annotation {
         const validFields = fields.filter(f => fieldMap[f]);
         if (validFields.length === 0) return null;
         const assignments = validFields.map(f => `${fieldMap[f]} = ?`).join(', ');
-        const updatedAt = new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' });
+        const updatedAt = new Date().toISOString();
         const finalSetClause = assignments ? `${assignments}, updated_at = ?` : 'updated_at = ?';
         const values = validFields.map(f => updateFields[f]);
         values.push(updatedAt);

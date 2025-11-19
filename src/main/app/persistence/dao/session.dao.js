@@ -8,7 +8,8 @@ export default class Session {
         startTime,
         endTime,
         inputFileName,
-        contentHash
+        contentHash,
+        updatedAt
     ) {
         this.sessionId = sessionId
         this.patientId = patientId
@@ -17,14 +18,16 @@ export default class Session {
         this.endTime = endTime
         this.inputFileName = inputFileName
         this.contentHash = contentHash
+        this.updatedAt = updatedAt
     }
 
     insert() {
+        const now = this.updatedAt?? new Date().toISOString()
         const stmt = db.prepare(`
             INSERT INTO sessions (
-                session_id, patient_id, measurement_type, start_time, end_time, input_file_name, content_hash
+                session_id, patient_id, measurement_type, start_time, end_time, input_file_name, content_hash, updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `);
         const resultingChanges = stmt.run(
             this.sessionId,
@@ -33,18 +36,30 @@ export default class Session {
             this.startTime,
             this.endTime,
             this.inputFileName,
-            this.contentHash
+            this.contentHash,
+            now
         );
         if (!this.sessionId) {
-            this.sessionId = resultingChanges.lastInsertRowid;
+            this.sessionId = resultingChanges.lastInsertRowid
         }
+        this.updatedAt = now
         return this;
+    }
+
+    static touch(sessionId) {
+        const now = new Date().toISOString()
+        db.prepare(`UPDATE sessions SET updated_at = ? WHERE session_id = ?`).run(now, sessionId)
+    }
+
+    static countAll() {
+        const row = db.prepare(`SELECT COUNT(*) AS total FROM sessions`).get()
+        return row ? row.total : 0
     }
 
     static findOneById(sessionId) {
         const stmt = db.prepare(`
             SELECT 
-                session_id, patient_id, measurement_type, start_time, end_time, input_file_name, content_hash
+                session_id, patient_id, measurement_type, start_time, end_time, input_file_name, content_hash, updated_at
             FROM sessions 
             WHERE session_id = ?
         `)
@@ -56,98 +71,56 @@ export default class Session {
             row.measurement_type,
             row.start_time,
             row.end_time,
-            row.subsampled,
-            row.sampling_frequency,
             row.input_file_name,
-            row.content_hash
+            row.content_hash,
+            row.updated_at
         )
     }
 
     static findAll() {
         const stmt = db.prepare(`
             SELECT 
-                session_id, patient_id, measurement_type, start_time, end_time, content_hash
-            FROM sessions 
-            ORDER BY start_time DESC
+                session_id, patient_id, measurement_type, start_time, end_time, input_file_name, content_hash, updated_at
+            FROM sessions
+            ORDER BY datetime(updated_at) DESC
         `)
         const rows = stmt.all()
         return rows.map(row => new Session(
             row.session_id,
             row.patient_id,
-            row.type,
+            row.measurement_type,
             row.start_time,
             row.end_time,
-            row.subsampled_khz,
-            row.sampling_frequency_khz,
             row.input_file_name,
-            row.content_hash
+            row.content_hash,
+            row.updated_at
         ))
     }
 
-    static findAllWithPagination(limit, offset) {
+    static findAllWithPagination(page, size) {
+        const limit = size
+        const offset = (page - 1) * size
         const stmt = db.prepare(`
-            SELECT s.session_id, s.measurement_type, s.start_time, s.end_time,
-                   a.patient_id, a.first_name AS patient_name
+            SELECT s.session_id, s.patient_id, s.measurement_type, s.start_time, s.end_time, s.input_file_name, s.updated_at,
+                   a.first_name AS patient_name, a.gender AS patient_gender
             FROM sessions s
             INNER JOIN patients a ON s.patient_id = a.patient_id
-            ORDER BY start_time DESC
+            ORDER BY datetime(s.updated_at) DESC
             LIMIT ? OFFSET ?
         `)
-        const rows = stmt.all(limit, offset)
-        return rows.map(row => new Session(
-            row.session_id,
-            row.patient_id,
-            row.patient_name,
-            row.measurement_type,
-            row.start_time,
-            row.end_time
-        ))
+        return stmt.all(limit, offset)
     }
 
     static findByPatientId(patientId) {
         const stmt = db.prepare(`
             SELECT 
-                session_id, patient_id, measurement_type, start_time, end_time, content_hash
+                session_id, patient_id, measurement_type, start_time, end_time, input_file_name, updated_at
             FROM sessions 
             WHERE patient_id = ?
             ORDER BY start_time DESC
         `)
-        const rows = stmt.all(patientId)
-        return rows.map(row => new Session(
-            row.session_id,
-            row.patient_id,
-            row.type,
-            row.start_time,
-            row.end_time,
-            row.subsampled,
-            row.sampling_frequency,
-            row.input_file_name,
-            row.content_hash
-        ))
+        return  stmt.all(patientId)
     }
-
-    static findByType(type) {
-        const stmt = db.prepare(`
-            SELECT 
-                session_id, patient_id, measurement_type, start_time, end_time, content_hash
-            FROM sessions 
-            WHERE measurement_type = ?
-            ORDER BY start_time DESC
-        `)
-        const rows = stmt.all(type)
-        return rows.map(row => new Session(
-            row.session_id,
-            row.patient_id,
-            row.type,
-            row.start_time,
-            row.end_time,
-            row.subsampled,
-            row.sampling_frequency,
-            row.input_file_name,
-            row.content_hash
-        ))
-    }
-
     static findSessionIdByContentHash(contentHash) {
         const stmt = db.prepare(`
             SELECT session_id
@@ -163,24 +136,22 @@ export default class Session {
         if (fields.length === 0) return null
         const fieldMap = {
             patientId: 'patient_id',
-            type: 'type',
+            measurementType: 'measurement_type',
             startTime: 'start_time',
-            endTime: 'end_time',
-            channelCount: 'subsampled',
-            samplingFrequency: 'sampling_frequency',
-            sourceFilePath: 'content_hash'
+            endTime: 'end_time'
         }
         const setClause = fields.map(field => {
             const dbField = fieldMap[field] || field
             return `${dbField} = ?`
         }).join(', ')
         const values = fields.map(field => updateFields[field])
+        const now = new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' })
         const stmt = db.prepare(`
             UPDATE sessions
-            SET ${setClause}
+            SET ${setClause}, updated_at = ?
             WHERE session_id = ?
         `)
-        const info = stmt.run(...values, sessionId)
+        const info = stmt.run(...values, now, sessionId)
         return info.changes > 0 ? this.findOneById(sessionId) : null
     }
 
@@ -207,6 +178,7 @@ export default class Session {
         SELECT
             p.patient_id, p.first_name AS patient_first_name, p.gender AS patient_gender,
             s.start_time AS session_start_time, s.end_time AS session_end_time,
+            s.updated_at AS session_updated_at,
             c.channel_id, c.channel_number, c.data_kind AS channel_data_kind, c.sweep_index AS channel_sweep_index
         FROM sessions AS s
         INNER JOIN patients AS p ON s.patient_id = p.patient_id
@@ -223,6 +195,7 @@ export default class Session {
             patientGender: rows[0].patient_gender,
             sessionStartTime: rows[0].session_start_time,
             sessionEndTime: rows[0].session_end_time,
+            sessionUpdatedAt: new Date(rows[0].session_updated_at).toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }),
             channels: []
         }
         for (const row of rows) {
@@ -274,6 +247,4 @@ export default class Session {
             } : null
         }));
     }
-
 }
-
