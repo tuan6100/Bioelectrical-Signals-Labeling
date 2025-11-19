@@ -10,15 +10,15 @@ import './SignalChart.css';
 import LabelContextMenu from './LabelContextMenu.jsx';
 
 export default function SignalChart({
-                                        samples,
-                                        samplingRateHz,
-                                        durationMs,
-                                        viewport,
-                                        onViewportChange,
-                                        channelId,
-                                        existingLabels,
-                                        minLabelDurationMs
-                                    }) {
+    samples,
+    samplingRateHz,
+    durationMs,
+    viewport,
+    onViewportChange,
+    channelId,
+    existingLabels,
+    minLabelDurationMs
+}) {
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
     const overlapDialogShownRef = useRef(false);
@@ -100,12 +100,20 @@ export default function SignalChart({
     }, [durationMs, samples]);
 
     const dataRange = useMemo(() => {
-        if (!samples || samples.length === 0) return { min: -1, max: 1 };
+        if (!samples || samples.length === 0) {
+            return { min: -200, max: 200, step: 100 };
+        }
         const values = samples.map(s => s.value).filter(v => typeof v === 'number');
-        const min = Math.min(...values);
-        const max = Math.max(...values);
-        const padding = (max - min) * 0.1 || 1;
-        return { min: min - padding, max: max + padding };
+        if (values.length === 0) {
+            return { min: -200, max: 200, step: 100 };
+        }
+        const maxAbsValue = Math.max(...values.map(v => Math.abs(v)));
+        const yAxisStep = maxAbsValue > 500 ? 200 : 100;
+        let newMax = Math.ceil(maxAbsValue / yAxisStep) * yAxisStep;
+        if (newMax === 0) {
+            newMax = yAxisStep;
+        }
+        return { min: -newMax, max: newMax, step: yAxisStep };
     }, [samples]);
 
     useEffect(() => {
@@ -142,6 +150,7 @@ export default function SignalChart({
 
     const valueToY = useCallback((value) => {
         const range = dataRange.max - dataRange.min;
+        if (range === 0) return MARGIN.top + chartHeight / 2;
         return MARGIN.top + chartHeight - ((value - dataRange.min) / range) * chartHeight;
     }, [dataRange, chartHeight]);
 
@@ -227,7 +236,6 @@ export default function SignalChart({
         canvas.style.height = `${dimensions.height}px`;
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.scale(dpr, dpr);
-
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, dimensions.width, dimensions.height);
 
@@ -247,7 +255,6 @@ export default function SignalChart({
             ctx.strokeStyle = scheme.stroke;
             ctx.lineWidth = isHovered ? 3 : 2;
             ctx.strokeRect(x1, MARGIN.top, x2 - x1, chartHeight);
-
             if (isPending || isHovered) {
                 ctx.fillStyle = scheme.stroke;
                 ctx.font = isHovered ? 'bold 13px sans-serif' : 'bold 11px sans-serif';
@@ -266,9 +273,8 @@ export default function SignalChart({
             ctx.lineTo(x, MARGIN.top + chartHeight);
             ctx.stroke();
         }
-        const valueStep = (dataRange.max - dataRange.min) / 10;
-        for (let i = 0; i <= 10; i++) {
-            const v = dataRange.min + i * valueStep;
+
+        for (let v = dataRange.min; v <= dataRange.max; v += dataRange.step) {
             const y = valueToY(v);
             ctx.beginPath();
             ctx.moveTo(MARGIN.left, y);
@@ -333,10 +339,9 @@ export default function SignalChart({
         );
         ctx.textAlign = 'right';
         ctx.font = '11px sans-serif';
-        for (let i = 0; i <= 10; i++) {
-            const v = dataRange.min + i * valueStep;
+        for (let v = dataRange.min; v <= dataRange.max; v += dataRange.step) {
             const y = valueToY(v);
-            ctx.fillText(v.toFixed(2), MARGIN.left - 10, y + 4);
+            ctx.fillText(v.toFixed(0), MARGIN.left - 10, y + 4);
         }
         ctx.save();
         ctx.translate(15, MARGIN.top + chartHeight / 2);
@@ -363,6 +368,7 @@ export default function SignalChart({
             ctx.stroke();
             pathStarted = false;
         };
+
         for (let i = 0; i < samples.length; i++) {
             const s = samples[i];
             if (s.time < clampedViewport.startMs || s.time > clampedViewport.endMs) continue;
@@ -398,7 +404,6 @@ export default function SignalChart({
                     ctx.lineTo(x, y);
                 }
             }
-
             prevX = x;
             prevY = y;
         }
@@ -579,7 +584,7 @@ export default function SignalChart({
                                 startTimeMs: newStart,
                                 endTimeMs: newEnd
                             });
-                            // Notify others
+
                             dispatchAnnotationsUpdated(labels.map(l =>
                                 l.annotationId === resizedLabel.annotationId
                                     ? { ...l, startTimeMs: newStart, endTimeMs: newEnd }
@@ -662,10 +667,10 @@ export default function SignalChart({
         }
     };
 
-    const handleMouseLeave = () => {
+    const handleMouseLeave = async () => {
         setHoveredLabelId(null);
         setHoverSample(null);
-        handleMouseUp();
+        await handleMouseUp();
     };
 
     const handleWheel = (e) => {
@@ -695,9 +700,9 @@ export default function SignalChart({
         onViewportChange({ startMs: Math.max(0, newStart), endMs: Math.min(effectiveDurationMs, newEnd) });
     };
 
-    const handleContextMenu = (e) => {
+    const handleContextMenu = async (e) => {
         e.preventDefault();
-        refreshLabelCatalog();
+        await refreshLabelCatalog();
         const rect = canvasRef.current.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const time = xToTime(x);
@@ -757,7 +762,6 @@ export default function SignalChart({
                         ? { ...l, name: newName, labelName: savedLabel?.labelName || newName, ...savedLabel, state: 'persisted' }
                         : l
                 );
-                // Notify others with new persisted list
                 dispatchAnnotationsUpdated(next);
                 return next;
             });
@@ -803,7 +807,7 @@ export default function SignalChart({
         if (!name) return;
         setIsCreatingNewLabelPersisted(false);
         await handlePersistedEditChoose({ value: name, label: name });
-        refreshLabelCatalog();
+        await refreshLabelCatalog();
     };
 
     const handlePersistedDelete = async () => {
@@ -1031,5 +1035,3 @@ export default function SignalChart({
         </div>
     );
 }
-
-
