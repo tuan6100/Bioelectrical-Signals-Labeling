@@ -38,21 +38,6 @@
     gap: 6px;
 }
 
-.icon-button {
-    appearance: none;
-    border: 1px solid #e5e7eb;
-    background: #fff;
-    border-radius: 6px;
-    padding: 4px 8px;
-    cursor: pointer;
-    font: inherit;
-}
-
-.icon-button:disabled {
-    opacity: .5;
-    cursor: not-allowed;
-}
-
 .start-page-search-wrap {
     padding: 8px 10px;
     border-bottom: 1px solid #e5e7eb;
@@ -70,6 +55,7 @@
 
 .start-page-list {
     flex: 1;
+    min-height: 0;    /* FIX 2 */
     overflow: auto;
     padding: 8px;
     display: flex;
@@ -124,7 +110,9 @@
 }
 
 .start-page-main {
-    flex: 1;
+    flex: 1 1 auto;
+    min-height: 0;    /* FIX 3 */
+    overflow: auto;   /* FIX 3 */
     display: flex;
     align-items: center;
     justify-content: center;

@@ -449,9 +449,6 @@ const LabelTable = ({ data, channelId }) => {
                                     const labelName = row.labelName || row.label?.name || 'Unknown'
                                     const note = row.note || ''
                                     const isSelected = id === selectedId
-                                    const isUnknown = (labelName || '').toLowerCase() === 'unknown'
-                                    // Key includes flashTrigger when selected to force remount and restart animation
-                                    const rowKey = isSelected ? `${id}-${flashTrigger}` : id
                                     return (
                                         <tr
                                             key={id}
