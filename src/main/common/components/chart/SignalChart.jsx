@@ -10,15 +10,15 @@ import './SignalChart.css';
 import LabelContextMenu from './LabelContextMenu.jsx';
 
 export default function SignalChart({
-    samples,
-    samplingRateHz,
-    durationMs,
-    viewport,
-    onViewportChange,
-    channelId,
-    existingLabels,
-    minLabelDurationMs
-}) {
+                                        samples,
+                                        samplingRateHz,
+                                        durationMs,
+                                        viewport,
+                                        onViewportChange,
+                                        channelId,
+                                        existingLabels,
+                                        minLabelDurationMs
+                                    }) {
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
     const overlapDialogShownRef = useRef(false);
@@ -257,11 +257,9 @@ export default function SignalChart({
 
         ctx.strokeStyle = '#ddd';
         ctx.lineWidth = 1;
-        const TICK_STEP_MS = 200;
-        const upperBoundMs = Math.ceil(effectiveDurationMs / TICK_STEP_MS) * TICK_STEP_MS;
-        const firstVisibleTick = Math.max(0, Math.ceil(clampedViewport.startMs / TICK_STEP_MS) * TICK_STEP_MS);
-        const lastVisibleTick = Math.min(upperBoundMs, Math.floor(clampedViewport.endMs / TICK_STEP_MS) * TICK_STEP_MS);
-        for (let t = firstVisibleTick; t <= lastVisibleTick; t += TICK_STEP_MS) {
+        const timeStep = (clampedViewport.endMs - clampedViewport.startMs) / 10;
+        for (let i = 0; i <= 10; i++) {
+            const t = clampedViewport.startMs + i * timeStep;
             const x = timeToX(t);
             ctx.beginPath();
             ctx.moveTo(x, MARGIN.top);
@@ -322,10 +320,10 @@ export default function SignalChart({
         ctx.fillStyle = '#000';
         ctx.font = '11px sans-serif';
         ctx.textAlign = 'center';
-
-        for (let t = firstVisibleTick; t <= lastVisibleTick; t += TICK_STEP_MS) {
+        for (let i = 0; i <= 10; i++) {
+            const t = clampedViewport.startMs + i * timeStep;
             const x = timeToX(t);
-            ctx.fillText(String(Math.round(t)), x, MARGIN.top + chartHeight + 20);
+            ctx.fillText(t.toFixed(0), x, MARGIN.top + chartHeight + 20);
         }
         ctx.font = '12px sans-serif';
         ctx.fillText(
@@ -581,6 +579,7 @@ export default function SignalChart({
                                 startTimeMs: newStart,
                                 endTimeMs: newEnd
                             });
+                            // Notify others
                             dispatchAnnotationsUpdated(labels.map(l =>
                                 l.annotationId === resizedLabel.annotationId
                                     ? { ...l, startTimeMs: newStart, endTimeMs: newEnd }
@@ -696,9 +695,9 @@ export default function SignalChart({
         onViewportChange({ startMs: Math.max(0, newStart), endMs: Math.min(effectiveDurationMs, newEnd) });
     };
 
-    const handleContextMenu = async (e) => {
+    const handleContextMenu = (e) => {
         e.preventDefault();
-        await refreshLabelCatalog();
+        refreshLabelCatalog();
         const rect = canvasRef.current.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const time = xToTime(x);
@@ -758,6 +757,7 @@ export default function SignalChart({
                         ? { ...l, name: newName, labelName: savedLabel?.labelName || newName, ...savedLabel, state: 'persisted' }
                         : l
                 );
+                // Notify others with new persisted list
                 dispatchAnnotationsUpdated(next);
                 return next;
             });
@@ -997,7 +997,7 @@ export default function SignalChart({
                     }}
                 >
                     <div>t: {hoverSample.timeMs.toFixed(2)} ms</div>
-                    <div>v: {typeof hoverSample.value === 'number' ? hoverSample.value : hoverSample.value} μV</div>
+                    <div>v: {typeof hoverSample.value === 'number' ? hoverSample.value.toFixed(3) : hoverSample.value}</div>
                 </div>
             )}
 
@@ -1031,4 +1031,5 @@ export default function SignalChart({
         </div>
     );
 }
+
 

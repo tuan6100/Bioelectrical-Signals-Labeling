@@ -1,8 +1,9 @@
-import {ipcMain, dialog} from "electron";
-import {exportLabels, persistLabel, updateLabel, deleteLabel, updateAnnotation, deleteAnnotation} from "../../../domain/services/data/command/label.command.js";
-import {getAllLabels} from "../../../domain/services/data/query/label.query.js";
-import {saveLabelsToCSV} from "../../../domain/services/file/writer/csv.writer.js";
+import {ipcMain, dialog} from "electron"
+import {exportLabels, persistLabel, updateLabel, deleteLabel, updateAnnotation, deleteAnnotation} from "../../../domain/services/data/command/label.command.js"
+import {getAllLabels} from "../../../domain/services/data/query/label.query.js"
+import {saveLabelsToCSV} from "../../../domain/services/file/writer/csv.writer.js"
 
+ipcMain.removeHandler('label:create')
 ipcMain.handle('label:create', (event, labelDto) => {
     try {
         return persistLabel(
@@ -18,40 +19,47 @@ ipcMain.handle('label:create', (event, labelDto) => {
     }
 })
 
+ipcMain.removeHandler('label:getAll')
 ipcMain.handle('label:getAll', (event) => {
-    return getAllLabels();
+    return getAllLabels()
 })
 
+ipcMain.removeHandler('label:update')
 ipcMain.handle('label:update', (event, labelId, updateFields) => {
-    return updateLabel(labelId, updateFields);
+    return updateLabel(labelId, updateFields)
 })
 
+ipcMain.removeHandler('label:delete')
 ipcMain.handle('label:delete', (event, labelId) => {
-    return deleteLabel(labelId);
+    return deleteLabel(labelId)
 })
 
+ipcMain.removeHandler('annotation:update')
 ipcMain.handle('annotation:update', (event, annotationId, updateFields) => {
     try {
-        return updateAnnotation(annotationId, updateFields);
+        return updateAnnotation(annotationId, updateFields)
     } catch (error) {
         dialog.showErrorBox('Annotation Update Error', error.message || String(error))
         throw error
     }
 })
 
+ipcMain.removeHandler('annotation:delete')
 ipcMain.handle('annotation:delete', (event, annotationId) => {
     try {
-        return deleteAnnotation(annotationId);
+        return deleteAnnotation(annotationId)
     } catch (error) {
         dialog.showErrorBox('Annotation Delete Error', error.message || String(error))
         throw error
     }
 })
 
+ipcMain.removeHandler('dialog:showError')
 ipcMain.handle('dialog:showError', (event, title, message) => {
-    dialog.showErrorBox(title, message);
+    dialog.showErrorBox(title, message)
 })
 
+ipcMain.removeAllListeners('label:export')
 ipcMain.on('label:export', async (event, sessionId) => {
     const data = exportLabels(sessionId)
     const result = await dialog.showSaveDialog({

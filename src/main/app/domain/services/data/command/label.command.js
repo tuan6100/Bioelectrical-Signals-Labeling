@@ -22,6 +22,9 @@ export function persistLabel(channelId, startTime, endTime, labelName, labelNote
         if (startTime < 0 || endTime < 0) {
             throw new Error('Annotation time cannot be negative.')
         }
+        if (endTime <= startTime) {
+            throw new Error('Annotation end time must be greater than start time.')
+        }
         let channelDuration = Channel. findOneDurationById(channelId)
         channelDuration = channelDuration.sweepDurationMs?? channelDuration.traceDurationMs
         if (endTime > channelDuration) {
@@ -97,6 +100,9 @@ export function updateAnnotation(annotationId, updates) {
             const newEnd = updates.endTimeMs ?? annotation.endTimeMs
             if (newStart < 0 || newEnd< 0) {
                 throw new Error('Annotation time cannot be negative.')
+            }
+            if (newEnd <= newStart) {
+                throw new Error('Annotation end time must be greater than start time.')
             }
             let channelDuration = Channel. findOneDurationById(channelId)
             channelDuration = channelDuration.sweepDurationMs?? channelDuration.traceDurationMs
