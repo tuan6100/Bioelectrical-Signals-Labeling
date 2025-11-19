@@ -3,6 +3,8 @@ import {useNavigate} from 'react-router-dom'
 import {fetchAllSessions} from "../api/index.js";
 import SessionItem from "../components/table/SessionTable.jsx";
 import "./StartPage.css";
+import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
+import {faArrowRotateRight} from "@fortawesome/free-solid-svg-icons";
 
 export default function StartPage() {
     const navigate = useNavigate()
@@ -11,6 +13,7 @@ export default function StartPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [query, setQuery] = useState("");
+    const [hasLoaded, setHasLoaded] = useState(false);
     const mountedRef = useRef(true);
 
     useEffect(() => {
@@ -28,12 +31,19 @@ export default function StartPage() {
             const incoming = Array.isArray(res?.contents) ? res.contents : [];
             if (!mountedRef.current) return;
             setSessions(prev => nextPage === 1 ? incoming : [...prev, ...incoming]);
-            if (res?.page) setPage(res.page);
+            if (res?.page) {
+                setPage(res.page);
+            } else {
+                setPage(p => ({ number: nextPage, size: p.size, totalPages: 0, totalElements: 0 }));
+            }
         } catch (e) {
             console.error(e);
             if (mountedRef.current) setError("Failed to load sessions.");
         } finally {
-            if (mountedRef.current) setLoading(false);
+            if (mountedRef.current) {
+                setLoading(false);
+                setHasLoaded(true);
+            }
         }
     }, [page.size, loading]);
 
@@ -70,14 +80,18 @@ export default function StartPage() {
                 <div className="start-page-sidebar-header">
                     <div className="start-page-sidebar-title">Sessions</div>
                     <div className="start-page-sidebar-actions">
-                        <button
-                            className="icon-button"
-                            title="Refresh"
-                            onClick={() => loadPage(1)}
-                            disabled={loading}
-                        >
-                            ⟳
-                        </button>
+                        <>
+                            <FontAwesomeIcon
+                                icon={faArrowRotateRight}
+                                title="Refresh"
+                                style={{ cursor: 'pointer' }}
+                                onClick={(e) => {
+                                    e.preventDefault()
+                                    loadPage(1)
+                                }}
+                                disabled={loading}
+                            />
+                        </>
                     </div>
                 </div>
 
@@ -93,14 +107,15 @@ export default function StartPage() {
 
                 <div className="start-page-list">
                     {error && <div className="start-page-error">{error}</div>}
+
                     {loading && sessions.length === 0 && (
                         <div className="start-page-placeholder">Loading sessions…</div>
                     )}
-                    {!loading && sessions.length === 0 && (
-                        <div className="start-page-placeholder">
-                            No sessions found.
-                        </div>
+
+                    {!loading && hasLoaded && sessions.length === 0 && (
+                        <div className="start-page-placeholder">No sessions found.</div>
                     )}
+
                     {filtered.map(s => (
                         <SessionItem
                             key={s.sessionId}

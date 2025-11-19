@@ -1,5 +1,5 @@
 import {useEffect} from 'react'
-import { BrowserRouter, useNavigate } from 'react-router-dom'
+import {HashRouter, useNavigate} from 'react-router-dom'
 import {isDesktopEnv} from "../app/api/provider/index.js";
 import AppRoutes from './routes/index.jsx'
 
@@ -18,11 +18,11 @@ function SessionListener() {
 
 function App() {
     return (
-        <BrowserRouter>
+        <HashRouter>
             <h1>Biosignal Labeling Preview</h1>
             <SessionListener />
             <AppRoutes />
-        </BrowserRouter>
+        </HashRouter>
     )
 }
 
