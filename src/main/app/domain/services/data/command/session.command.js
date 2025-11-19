@@ -23,6 +23,7 @@ export function processAndPersistData(inputFileName, data, contentHash) {
 
         const channels  = extractChannelsFromJson(data, sessionId)
         Channel.insertBatch(channels)
+        Session.touch(sessionId)
         return sessionId
     })(data, contentHash)
 }

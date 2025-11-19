@@ -17,7 +17,7 @@ export function persistLabel(channelId, startTime, endTime, labelName, labelNote
             label.labelId,
             startTime,
             endTime,
-            labelNote
+            labelNote,
         )
         if (startTime < 0 || endTime < 0) {
             throw new Error('Annotation time cannot be negative.')
@@ -34,6 +34,8 @@ export function persistLabel(channelId, startTime, endTime, labelName, labelNote
             throw new Error('Annotation time range is overlapping with an existing annotation.')
         }
         annotation = annotation.insert()
+        const sessionId = Channel.findSessionIdByChannelId(channelId)
+        if (sessionId) Session.touch(sessionId)
         return {
             annotationId: annotation.annotationId,
             channelId: annotation.channelId,
@@ -42,7 +44,7 @@ export function persistLabel(channelId, startTime, endTime, labelName, labelNote
             startTimeMs: annotation.startTimeMs,
             endTimeMs: annotation.endTimeMs,
             note: annotation.note,
-            timeline: new Date(annotation.labeledAt)
+            timeline: new Date(annotation.labeledAt).toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' })
         }
     })(channelId, startTime, endTime, labelName)
 }
@@ -69,7 +71,11 @@ export function exportLabels(sessionId) {
 
 export function updateLabel(labelId, updateFields) {
     return asTransaction(function (labelId, updateFields) {
-        return Label.update(labelId, updateFields)
+        const updated = Label.update(labelId, updateFields)
+        if (updated) {
+            //TODO: touching all sessions that have annotations with this label would be expensive; skipped
+        }
+        return updated
     })(labelId, updateFields)
 }
 
@@ -117,6 +123,8 @@ export function updateAnnotation(annotationId, updates) {
         if (!updated) {
             throw new Error('Failed to update annotation')
         }
+        const sessionId = Channel.findSessionIdByChannelId(updated.channelId)
+        if (sessionId) Session.touch(sessionId)
         const label = Label.findOneById(updated.labelId)
         return {
             annotationId: updated.annotationId,
@@ -133,6 +141,12 @@ export function updateAnnotation(annotationId, updates) {
 
 export function deleteAnnotation(annotationId) {
     return asTransaction(function (annotationId) {
-        return Annotation.delete(annotationId)
+        const ann = Annotation.findOneById(annotationId)
+        const deleted = Annotation.delete(annotationId)
+        if (deleted && ann) {
+            const sessionId = Channel.findSessionIdByChannelId(ann.channelId)
+            if (sessionId) Session.touch(sessionId)
+        }
+        return deleted
     })(annotationId)
 }
