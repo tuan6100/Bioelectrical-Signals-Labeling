@@ -94,10 +94,6 @@ export default function Dashboard({ sessionId }) {
         }
     }, [onMouseMove, endResize])
 
-    const handleBack = () => console.log('Quay trở lại')
-    const handleSetup = () => console.log('Setup từ vị trí:', startPosition)
-    const handleUpload = () => console.log('Upload CSV')
-    const handleDownload = () => console.log('Download data')
     const handleDeleteRow = (id) => setTableData(prev => prev.filter(row => row.id !== id))
     const handleAddLabel = () => {
         const newLabel = { id: Date.now(), startSecond: '', endSecond: '', label1: '', label2: '', label3: '', label4: '', label5: '' }
@@ -177,7 +173,6 @@ export default function Dashboard({ sessionId }) {
                             channelId={channelId}
                             defaultSignal={defaultSignal}
                             onChannelSelected={setChannelId}
-                            onBack={handleBack}
                         />
                     </div>
                 )}
@@ -194,9 +189,6 @@ export default function Dashboard({ sessionId }) {
                             channelId={channelId}
                             startPosition={startPosition}
                             onStartPositionChange={setStartPosition}
-                            onSetup={handleSetup}
-                            onUpload={handleUpload}
-                            onDownload={handleDownload}
                             tableData={tableData}
                             onDeleteRow={handleDeleteRow}
                             onAddLabel={handleAddLabel}
