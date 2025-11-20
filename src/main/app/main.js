@@ -3,11 +3,11 @@ import { app, BrowserWindow, Menu, dialog, globalShortcut } from 'electron'
 import path from 'node:path'
 import started from 'electron-squirrel-startup'
 import { fileURLToPath } from 'node:url'
-import {db} from "./persistence/connection/sqlite.connection.js"
-import { readFile } from "./domain/services/file/reader/txt.reader.js"
+import {db} from "@biosignal/app/persistence/connection/sqlite.connection.js"
+import { readFile } from "@biosignal/app/domain/services/file/reader/txt.reader.js"
 import fs from "fs"
-import {processAndPersistData} from "./domain/services/data/command/session.command.js"
-import * as handlers from './api/handlers'
+import {processAndPersistData} from "@biosignal/app/domain/services/data/command/session.command.js"
+import * as handlers from '@biosignal/app/api/handlers'
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -72,7 +72,7 @@ const createWindow = () => {
                             console.error('Failed to read or process file:', err)
                             dialog.showErrorBox('Error occurred when reading the file', err.message || String(err))
                         }).finally(() => {
-                            if (process.env.BUILD_TYPE !== 'dev') {
+                            if (process.env.NODE_ENV !== 'dev') {
                                 fs.writeFile(outputPath, '', () => {})
                             }
                             lastOpenedDir = path.dirname(inputPath)
@@ -119,7 +119,7 @@ app.whenReady().then(() => {
         win.setFullScreen(!win.isFullScreen())
     })
     // Open the DevTools.
-    if (process.env.BUILD_TYPE === 'dev') {
+    if (process.env.NODE_ENV === 'dev') {
         globalShortcut.register('Ctrl+F12',  () => {
             win.webContents.toggleDevTools()
         })

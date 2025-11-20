@@ -1,7 +1,14 @@
 import {ipcMain, dialog} from "electron"
-import {exportLabels, persistLabel, updateLabel, deleteLabel, updateAnnotation, deleteAnnotation} from "../../../domain/services/data/command/label.command.js"
-import {getAllLabels} from "../../../domain/services/data/query/label.query.js"
-import {saveLabelsToCSV} from "../../../domain/services/file/writer/csv.writer.js"
+import {
+    deleteAnnotation,
+    deleteLabel, exportLabels,
+    persistLabel,
+    updateAnnotation,
+    updateLabel
+} from "@biosignal/app/domain/services/data/command/label.command.js";
+import {getAllLabels} from "@biosignal/app/domain/services/data/query/label.query.js";
+import {saveLabelsToCSV} from "@biosignal/app/domain/services/file/writer/csv.writer.js";
+
 
 ipcMain.removeHandler('label:create')
 ipcMain.handle('label:create', (event, labelDto) => {

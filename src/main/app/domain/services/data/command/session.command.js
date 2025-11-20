@@ -1,10 +1,10 @@
-import { findKeyValue } from "../../../utils/json.util.js"
-import Patient from "../../../../persistence/dao/patient.dao.js"
-import Session from "../../../../persistence/dao/session.dao.js"
-import { extractChannelsFromJson} from "../../../utils/channel.util.js"
-import Channel from "../../../../persistence/dao/channel.dao.js"
-import {parseVietnameseDateTime} from "../../../utils/parse-time.util.js";
-import asTransaction from "../../../../persistence/transaction";
+import { findKeyValue } from "@biosignal/app/domain/utils/json.util.js"
+import Patient from "@biosignal/app/persistence/dao/patient.dao.js"
+import Session from "@biosignal/app/persistence/dao/session.dao.js"
+import { extractChannelsFromJson} from "@biosignal/app/domain/utils/channel.util.js"
+import Channel from "@biosignal/app/persistence/dao/channel.dao.js"
+import {parseVietnameseDateTime} from "@biosignal/app/domain/utils/parse-time.util.js";
+import asTransaction from "@biosignal/app/persistence/transaction";
 
 export function processAndPersistData(inputFileName, data, contentHash) {
     return asTransaction(function (data, contentHash) {

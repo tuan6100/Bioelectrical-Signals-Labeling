@@ -1,11 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react'
-import {
-    fetchUpdateAnnotation,
-    fetchDeleteAnnotation,
-    fetchCreateLabel,
-    fetchShowErrorDialog,
-    fetchGetAllLabels
-} from '../../api/index.js'
+
 import './LabelTable.css'
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import {
@@ -17,6 +11,13 @@ import {
     faSort,
     faArrowRotateRight
 } from "@fortawesome/free-solid-svg-icons"
+import {
+    fetchCreateLabel,
+    fetchDeleteAnnotation,
+    fetchGetAllLabels,
+    fetchShowErrorDialog,
+    fetchUpdateAnnotation
+} from "@biosignal/common/api/index.js";
 
 const LabelTable = ({ data, channelId }) => {
     const [selectedId, setSelectedId] = useState(null)

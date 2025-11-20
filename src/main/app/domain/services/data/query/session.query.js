@@ -1,5 +1,5 @@
-import Session from "../../../../persistence/dao/session.dao.js";
-import Channel from "../../../../persistence/dao/channel.dao.js";
+import Session from "@biosignal/app/persistence/dao/session.dao.js";
+import Channel from "@biosignal/app/persistence/dao/channel.dao.js";
 
 export function getSessionInfo(sessionId) {
     const sessionInfo =  Session.findAllRelatedById(sessionId)

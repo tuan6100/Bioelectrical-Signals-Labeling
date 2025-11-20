@@ -1,4 +1,10 @@
-import {db} from "../connection/sqlite.connection.js";
+import {db as sqliteDb} from "@biosignal/app/persistence/connection/sqlite.connection.js";
+
+let db = sqliteDb;
+
+export function useDb(dbInstance) {
+    db = dbInstance;
+}
 
 const begin = db.prepare('BEGIN');
 const commit = db.prepare('COMMIT');
