@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { fetchSessionDashboard } from '../api';
+import {fetchSessionDashboard} from "@biosignal/common/api/index.js";
+
 
 export function useFetchSession(sessionId) {
     const [loading, setLoading] = useState(false);

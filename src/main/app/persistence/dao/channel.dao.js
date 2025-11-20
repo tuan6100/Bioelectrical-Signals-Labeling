@@ -1,4 +1,4 @@
-import {db as sqliteDb} from "../connection/sqlite.connection.js";
+import {db as sqliteDb} from "@biosignal/app/persistence/connection/sqlite.connection.js";
 
 export default class Channel {
     constructor(
@@ -169,6 +169,7 @@ export default class Channel {
         const rows = stmt.all(sessionId)
         return rows.map(row => {
             const channel = new Channel(
+                row.channel_id,
                 row.session_id,
                 row.channel_number,
                 row.data_kind,

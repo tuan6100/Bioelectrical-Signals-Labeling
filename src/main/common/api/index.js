@@ -10,7 +10,7 @@ import {
     getChannelSamplesAppApi,
     getSessionInfoAppApi,
     isDesktopEnv, getAllSessionsAppApi, getSessionsByPatientIdAppApi
-} from "../../app/api/provider";
+} from "@biosignal/app/api/provider";
 
 /**
  * Fetches session information including patient details, channels, and default channel samples for display on the dashboard.

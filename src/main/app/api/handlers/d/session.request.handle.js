@@ -3,9 +3,8 @@ import {
     getSessionsByPage,
     getSessionInfo,
     getSessionsByPatientId
-} from "../../../domain/services/data/query/session.query.js";
+} from "@biosignal/app/domain/services/data/query/session.query.js";
 
-// Guard against duplicate registration in dev/HMR
 ipcMain.removeHandler('session:getInfo')
 ipcMain.handle('session:getInfo', (event, sessionId) => {
     try {

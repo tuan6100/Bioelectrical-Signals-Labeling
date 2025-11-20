@@ -2,8 +2,6 @@ import React from 'react';
 import './BottomControl.css'
 
 const BottomControl = ({
-  onAddLabel,
-  onSave,
   isLabeled,
   isDoubleChecked,
   onToggleLabeled,
@@ -11,10 +9,6 @@ const BottomControl = ({
 }) => {
   return (
     <div className="bottom-controls">
-      {/*<div>
-        <button onClick={onAddLabel}>Gán thêm nhãn mới</button>
-        <button onClick={onSave}>Lưu kết quả</button>
-      </div>*/}
       <div className="toggle">
         <label>Đánh dấu đã gán nhãn xong</label>
         <input

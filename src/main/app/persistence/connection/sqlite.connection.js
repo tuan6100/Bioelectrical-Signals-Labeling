@@ -1,6 +1,18 @@
 import Database from "better-sqlite3";
 
-const dbName = process.env.BUILD_TYPE === 'dev'? 'biosignal-dev.db': 'biosignal.db'
+const env = process.env.NODE_ENV;
+let dbName;
+switch (env) {
+    case 'test':
+        dbName = 'biosignal-test.db';
+        break;
+    case 'dev':
+        dbName = 'biosignal-dev.db';
+        break;
+    default:
+        dbName = 'biosignal.db';
+}
+
 export const db = new Database(dbName, {
     verbose: console.log
 })
@@ -75,3 +87,4 @@ db.initSchema = function() {
     stmt.run('Unknown');
     stmt.run('Pending');
 };
+
