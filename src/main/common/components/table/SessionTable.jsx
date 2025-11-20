@@ -1,6 +1,6 @@
 import './SessionTable.css'
 
-export default function SessionItem({ session, onClick }) {
+export default function SessionTable({ session, onClick }) {
     const {
         sessionId,
         measurementType,

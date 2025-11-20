@@ -1,78 +1,137 @@
-import {useMemo, useState, useEffect, useCallback, useRef} from "react";
+import {useMemo, useState, useEffect, useCallback, useRef} from "react"
 import {useNavigate} from 'react-router-dom'
-import {fetchAllSessions} from "../api/index.js";
-import SessionItem from "../components/table/SessionTable.jsx";
-import "./StartPage.css";
-import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
-import {faArrowRotateRight} from "@fortawesome/free-solid-svg-icons";
+import {fetchAllSessions} from "../api/index.js"
+import SessionTable from "../components/table/SessionTable.jsx"
+import "./StartPage.css"
+import {FontAwesomeIcon} from "@fortawesome/react-fontawesome"
+import {faArrowRotateRight} from "@fortawesome/free-solid-svg-icons"
 
 export default function StartPage() {
     const navigate = useNavigate()
-    const [sessions, setSessions] = useState([]);
-    const [page, setPage] = useState({ number: 1, size: 10, totalPages: 1, totalElements: 0 });
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState("");
-    const [query, setQuery] = useState("");
-    const [hasLoaded, setHasLoaded] = useState(false);
-    const mountedRef = useRef(true);
+    const [sessions, setSessions] = useState([])
+    const [page, setPage] = useState({ number: 1, size: 10, totalPages: 1, totalElements: 0 })
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState("")
+    const [query, setQuery] = useState("")
+    const [hasLoaded, setHasLoaded] = useState(false)
+    const mountedRef = useRef(true)
 
     useEffect(() => {
         return () => {
-            mountedRef.current = false;
-        };
-    }, []);
+            mountedRef.current = false
+        }
+    }, [])
 
     const loadPage = useCallback(async (nextPage) => {
-        if (loading) return;
+        if (loading) return
         try {
-            setLoading(true);
-            setError("");
-            const res = await fetchAllSessions(nextPage, page.size);
-            const incoming = Array.isArray(res?.contents) ? res.contents : [];
-            if (!mountedRef.current) return;
-            setSessions(prev => nextPage === 1 ? incoming : [...prev, ...incoming]);
+            setLoading(true)
+            setError("")
+            const res = await fetchAllSessions(nextPage, page.size)
+            const incoming = Array.isArray(res?.contents) ? res.contents : []
+            if (!mountedRef.current) return
+            setSessions(prev => nextPage === 1 ? incoming : [...prev, ...incoming])
             if (res?.page) {
-                setPage(res.page);
+                setPage(res.page)
             } else {
-                setPage(p => ({ number: nextPage, size: p.size, totalPages: 0, totalElements: 0 }));
+                setPage(p => ({ number: nextPage, size: p.size, totalPages: 0, totalElements: 0 }))
             }
         } catch (e) {
-            console.error(e);
-            if (mountedRef.current) setError("Failed to load sessions.");
+            console.error(e)
+            if (mountedRef.current) setError("Failed to load sessions.")
         } finally {
             if (mountedRef.current) {
-                setLoading(false);
-                setHasLoaded(true);
+                setLoading(false)
+                setHasLoaded(true)
             }
         }
-    }, [page.size, loading]);
+    }, [page.size, loading])
 
     useEffect(() => {
-        loadPage(1);
+        loadPage(1)
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [])
 
-    const canLoadMore = page.number < page.totalPages;
+    const canLoadMore = page.number < page.totalPages
 
     const filtered = useMemo(() => {
-        if (!query.trim()) return sessions;
-        const q = query.toLowerCase();
+        const raw = query.trim()
+        if (!raw) return sessions
+        const parts = raw.match(/("[^"]*"|'[^']*'|\S+)/g) || []
+        const tokens = []
+        for (let i = 0; i < parts.length; i++) {
+            const part = parts[i]
+            const m = part.match(/^(\w+)([=-])(.*)$/)
+            if (m) {
+                let key = m[1].toLowerCase()
+                const op = m[2]
+                let value = m[3] || ''
+                if (op === '=') {
+                    while (i + 1 < parts.length && !parts[i + 1].match(/^(\w+)([=-])/)) {
+                        if (parts[i + 1] === ',') break
+                        value += (value ? ' ' : '') + parts[++i]
+                    }
+                }
+                value = value.replace(/^("|')(.*)\1$/, '$2')
+                value = value.replace(/[\s,]+$/, '')
+                tokens.push({ key, op, value })
+            }
+        }
+
+        const fieldExtractors = {
+            sessionid: s => (s.sessionId != null ? String(s.sessionId) : ''),
+            patientid: s => (
+                s.patient?.id != null ? String(s.patient.id) :
+                    s.patientId != null ? String(s.patientId) :
+                        s.patient_id != null ? String(s.patient_id) : ''
+            ),
+            patientname: s => {
+                const direct = s.patient?.name || s.patientName || s.patient_name || ''
+                const fn = s.patient?.firstName || s.patientFirstName || s.patient_first_name || ''
+                const ln = s.patient?.lastName || s.patientLastName || s.patient_last_name || ''
+                const combined = [fn, ln].filter(Boolean).join(' ').trim()
+                return (direct || combined).trim()
+            },
+            measurementtype: s => (s.measurementType || s.sessionMeasurementType || s.measurement_type || ''),
+            filename: s => (s.inputFileName || s.sourceFileName || s.fileName || s.source_file_name || ''),
+        }
+        const useStructured = tokens.length > 0 && tokens.every(t => fieldExtractors[t.key])
+        if (useStructured) {
+            return sessions.filter(s => {
+                for (const t of tokens) {
+                    const rawFieldVal = fieldExtractors[t.key](s)
+                    const normField = rawFieldVal.replace(/\s+/g, ' ').trim().toLowerCase()
+                    const normValue = t.value.replace(/\s+/g, ' ').trim().toLowerCase()
+                    if (t.op === '=') {
+                        if (t.key === 'patientname') {
+                            if (!normField.includes(normValue)) return false
+                        } else {
+                            if (normField !== normValue) return false
+                        }
+                    } else {
+                        if (!normField.includes(normValue)) return false
+                    }
+                }
+                return true
+            })
+        }
+        const q = raw.toLowerCase()
         return sessions.filter(s => {
-            const patientId = s.patient?.id;
-            const patientName = s.patient?.name || "";
+            const patientId = s.patient?.id
+            const patientName = s.patient?.name || ''
             return (
                 String(s.sessionId).includes(q) ||
                 (patientId != null && String(patientId).includes(q)) ||
                 patientName.toLowerCase().includes(q) ||
-                (s.measurementType || "").toLowerCase().includes(q) ||
-                (s.inputFileName || "").toLowerCase().includes(q)
-            );
-        });
-    }, [sessions, query]);
+                (s.measurementType || '').toLowerCase().includes(q) ||
+                (s.inputFileName || '').toLowerCase().includes(q)
+            )
+        })
+    }, [sessions, query])
 
     const handleOpenSession = (sessionId) => {
         navigate(`/sessions/${sessionId}`)
-    };
+    }
 
     return (
         <div className="start-page-root">
@@ -99,7 +158,7 @@ export default function StartPage() {
                     <input
                         className="start-page-search-input"
                         type="text"
-                        placeholder="Search by session / patient / file..."
+                        placeholder="Search (e.g. patientname=Nguyen Van A, sessionid=7, ..."
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                     />
@@ -117,7 +176,7 @@ export default function StartPage() {
                     )}
 
                     {filtered.map(s => (
-                        <SessionItem
+                        <SessionTable
                             key={s.sessionId}
                             session={s}
                             onClick={() => handleOpenSession(s.sessionId)}
@@ -153,5 +212,5 @@ export default function StartPage() {
                 </div>
             </main>
         </div>
-    );
+    )
 }
