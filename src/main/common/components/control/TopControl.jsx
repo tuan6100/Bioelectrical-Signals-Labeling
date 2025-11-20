@@ -12,6 +12,7 @@ export default function TopControl ({
         <div className="right-panel-toolbar">
             <div className="toolbar-title">Label Tools</div>
             <div className="toolbar-actions" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                {/*
                 <div className="layout-toggle">
                     <button
                         className={`toggle-btn ${layoutMode === 'left' ? 'active' : ''}`}
@@ -35,6 +36,7 @@ export default function TopControl ({
                         Right
                     </button>
                 </div>
+                */}
             </div>
         </div>
 

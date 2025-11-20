@@ -348,6 +348,7 @@ const LabelTable = ({ data, channelId }) => {
                 <input
                     type="text"
                     value={filterText}
+                    className="filter-input"
                     onChange={(e) => setFilterText(e.target.value)}
                     placeholder="Filter by label or note..."
                     style={{ flex: 1, minWidth: 120 }}
@@ -439,7 +440,7 @@ const LabelTable = ({ data, channelId }) => {
                             <tbody>
                             {!Array.isArray(data) || data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} style={{height: '30px', color: '#aaa'}}>
+                                    <td colSpan={5} style={{height: '15px', color: '#aaa'}}>
                                         (No data)
                                     </td>
                                 </tr>
@@ -620,6 +621,7 @@ const LabelTable = ({ data, channelId }) => {
                                     <input
                                         type="number"
                                         placeholder="Start (ms)"
+                                        className="input-label-detail"
                                         value={newRow.startTimeMs}
                                         onChange={(e) => setNewRow(r => ({ ...r, startTimeMs: e.target.value }))}
                                         style={{ width: '100%' }}
@@ -630,6 +632,7 @@ const LabelTable = ({ data, channelId }) => {
                                     <input
                                         type="number"
                                         placeholder="End (ms)"
+                                        className="input-label-detail"
                                         value={newRow.endTimeMs}
                                         onChange={(e) => setNewRow(r => ({ ...r, endTimeMs: e.target.value }))}
                                         style={{ width: '100%' }}
@@ -640,6 +643,7 @@ const LabelTable = ({ data, channelId }) => {
                                     <input
                                         type="text"
                                         list="label-options"
+                                        className="input-label-detail"
                                         placeholder={labelsLoading ? 'Loading labels...' : 'Label name'}
                                         value={newRow.labelName}
                                         onChange={(e) => setNewRow(r => ({ ...r, labelName: e.target.value }))}
@@ -656,6 +660,7 @@ const LabelTable = ({ data, channelId }) => {
                                     <input
                                         type="text"
                                         placeholder="Note"
+                                        className="input-label-detail"
                                         value={newRow.note}
                                         onChange={(e) => setNewRow(r => ({ ...r, note: e.target.value }))}
                                         style={{ width: '100%' }}
