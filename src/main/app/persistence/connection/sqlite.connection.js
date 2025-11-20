@@ -1,7 +1,7 @@
 import Database from "better-sqlite3";
 
 const dbName = process.env.BUILD_TYPE === 'dev'? 'biosignal-dev.db': 'biosignal.db'
-const db = new Database(dbName, {
+export const db = new Database(dbName, {
     verbose: console.log
 })
 db.pragma('journal_mode = WAL');
@@ -75,5 +75,3 @@ db.initSchema = function() {
     stmt.run('Unknown');
     stmt.run('Pending');
 };
-
-export default db;

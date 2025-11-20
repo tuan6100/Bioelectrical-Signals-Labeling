@@ -1,4 +1,4 @@
-import db from "../connection/sqlite.connection.js";
+import {db as sqliteDb} from "../connection/sqlite.connection.js";
 
 export default class Session {
     constructor(
@@ -21,9 +21,17 @@ export default class Session {
         this.updatedAt = updatedAt
     }
 
+    static db = sqliteDb
+
+    static useDb(dbInstance) {
+        Session.db = dbInstance
+    }
+
+
+
     insert() {
         const now = this.updatedAt?? new Date().toISOString()
-        const stmt = db.prepare(`
+        const stmt = Session.db.prepare(`
             INSERT INTO sessions (
                 session_id, patient_id, measurement_type, start_time, end_time, input_file_name, content_hash, updated_at
             )
@@ -48,16 +56,16 @@ export default class Session {
 
     static touch(sessionId) {
         const now = new Date().toISOString()
-        db.prepare(`UPDATE sessions SET updated_at = ? WHERE session_id = ?`).run(now, sessionId)
+        Session.db.prepare(`UPDATE sessions SET updated_at = ? WHERE session_id = ?`).run(now, sessionId)
     }
 
     static countAll() {
-        const row = db.prepare(`SELECT COUNT(*) AS total FROM sessions`).get()
+        const row = Session.db.prepare(`SELECT COUNT(*) AS total FROM sessions`).get()
         return row ? row.total : 0
     }
 
     static findOneById(sessionId) {
-        const stmt = db.prepare(`
+        const stmt = Session.db.prepare(`
             SELECT 
                 session_id, patient_id, measurement_type, start_time, end_time, input_file_name, content_hash, updated_at
             FROM sessions 
@@ -78,7 +86,7 @@ export default class Session {
     }
 
     static findAll() {
-        const stmt = db.prepare(`
+        const stmt = Session.db.prepare(`
             SELECT 
                 session_id, patient_id, measurement_type, start_time, end_time, input_file_name, content_hash, updated_at
             FROM sessions
@@ -100,7 +108,7 @@ export default class Session {
     static findAllWithPagination(page, size) {
         const limit = size
         const offset = (page - 1) * size
-        const stmt = db.prepare(`
+        const stmt = Session.db.prepare(`
             SELECT s.session_id, s.patient_id, s.measurement_type, s.start_time, s.end_time, s.input_file_name, s.updated_at,
                    a.first_name AS patient_name, a.gender AS patient_gender
             FROM sessions s
@@ -112,7 +120,7 @@ export default class Session {
     }
 
     static findByPatientId(patientId) {
-        const stmt = db.prepare(`
+        const stmt = Session.db.prepare(`
             SELECT 
                 session_id, patient_id, measurement_type, start_time, end_time, input_file_name, updated_at
             FROM sessions 
@@ -122,7 +130,7 @@ export default class Session {
         return  stmt.all(patientId)
     }
     static findSessionIdByContentHash(contentHash) {
-        const stmt = db.prepare(`
+        const stmt = Session.db.prepare(`
             SELECT session_id
             FROM sessions
             WHERE content_hash = ?
@@ -146,7 +154,7 @@ export default class Session {
         }).join(', ')
         const values = fields.map(field => updateFields[field])
         const now = new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' })
-        const stmt = db.prepare(`
+        const stmt = Session.db.prepare(`
             UPDATE sessions
             SET ${setClause}, updated_at = ?
             WHERE session_id = ?
@@ -156,7 +164,7 @@ export default class Session {
     }
 
     static delete(sessionId) {
-        const stmt = db.prepare(`
+        const stmt = Session.db.prepare(`
             DELETE FROM sessions
             WHERE session_id = ?
         `)
@@ -165,7 +173,7 @@ export default class Session {
     }
 
     static deleteByPatientId(patientId) {
-        const stmt = db.prepare(`
+        const stmt = Session.db.prepare(`
             DELETE FROM sessions
             WHERE patient_id = ?
         `)
@@ -174,7 +182,7 @@ export default class Session {
     }
 
     static findAllRelatedById(sessionId) {
-        const stmt = db.prepare(`
+        const stmt = Session.db.prepare(`
         SELECT
             p.patient_id, p.first_name AS patient_first_name, p.gender AS patient_gender,
             s.start_time AS session_start_time, s.end_time AS session_end_time,
@@ -210,7 +218,7 @@ export default class Session {
     }
 
     static getAllLabelsBySessionId(sessionId) {
-        const stmt = db.prepare(`
+        const stmt = Session.db.prepare(`
             SELECT
                 c.channel_id,
                 c.channel_number,
@@ -225,7 +233,7 @@ export default class Session {
                 l.name                     AS label_name
             FROM sessions s
             INNER JOIN channels c ON s.session_id = c.session_id
-            LEFT JOIN annotations a ON a.channel_id = c.channel_id 
+            LEFT JOIN annotations a ON a.channel_id = c.channel_id
             LEFT JOIN labels l ON l.label_id = a.label_id
             WHERE s.session_id = ? AND l.label_id IS NOT NULL
             ORDER BY c.channel_id, a.start_time_ms;
@@ -248,3 +256,4 @@ export default class Session {
         }));
     }
 }
+

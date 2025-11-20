@@ -3,7 +3,7 @@ import { app, BrowserWindow, Menu, dialog, globalShortcut } from 'electron'
 import path from 'node:path'
 import started from 'electron-squirrel-startup'
 import { fileURLToPath } from 'node:url'
-import db from "./persistence/connection/sqlite.connection.js"
+import {db} from "./persistence/connection/sqlite.connection.js"
 import { readFile } from "./domain/services/file/reader/txt.reader.js"
 import fs from "fs"
 import {processAndPersistData} from "./domain/services/data/command/session.command.js"

@@ -1,4 +1,4 @@
-import db from "../connection/sqlite.connection.js";
+import {db as sqliteDb} from "../connection/sqlite.connection.js";
 
 export default class Annotation {
     constructor(
@@ -19,8 +19,14 @@ export default class Annotation {
         this.updatedAt = null
     }
 
+    static db = sqliteDb
+
+    static useDb(dbInstance) {
+        Annotation.db = dbInstance
+    }
+
     insert() {
-    const stmt = db.prepare(`
+    const stmt = Annotation.db.prepare(`
         INSERT INTO annotations (
             annotation_id, channel_id, label_id, start_time_ms, end_time_ms, note, labeled_at, updated_at
         ) 
@@ -41,7 +47,7 @@ export default class Annotation {
 }
 
     static findOneById(annotationId) {
-        const stmt = db.prepare(`
+        const stmt = Annotation.db.prepare(`
         SELECT 
             annotation_id, channel_id, label_id, start_time_ms, end_time_ms, note
         FROM annotations 
@@ -60,7 +66,7 @@ export default class Annotation {
 }
 
     static findAll() {
-        const stmt = db.prepare(`
+        const stmt = Annotation.db.prepare(`
         SELECT 
             annotation_id, channel_id, label_id, start_time_ms, end_time_ms, note
         FROM annotations 
@@ -78,7 +84,7 @@ export default class Annotation {
 }
 
     findBySessionId(channelId) {
-        const stmt = db.prepare(`
+        const stmt = Annotation.db.prepare(`
         SELECT 
             annotation_id, channel_id, label_id, start_time_ms, end_time_ms, note
         FROM annotations 
@@ -97,7 +103,7 @@ export default class Annotation {
 }
 
     static findByLabelId(labelId) {
-        const stmt = db.prepare(`
+        const stmt = Annotation.db.prepare(`
         SELECT 
             annotation_id, channel_id, label_id, start_time_ms, end_time_ms, note
         FROM annotations 
@@ -116,7 +122,7 @@ export default class Annotation {
     }
 
     static findByTimeRange(channelId, startMs, endMs) {
-        const stmt = db.prepare(`
+        const stmt = Annotation.db.prepare(`
         SELECT 
             annotation_id, channel_id, label_id, start_time_ms, end_time_ms, note
         FROM annotations 
@@ -153,7 +159,7 @@ export default class Annotation {
         const finalSetClause = assignments ? `${assignments}, updated_at = ?` : 'updated_at = ?';
         const values = validFields.map(f => updateFields[f]);
         values.push(updatedAt);
-        const stmt = db.prepare(`
+        const stmt = Annotation.db.prepare(`
             UPDATE annotations
             SET ${finalSetClause}
             WHERE annotation_id = ?
@@ -162,7 +168,7 @@ export default class Annotation {
         return info.changes > 0 ? this.findOneById(annotationId) : null;
     }
     static delete(annotationId) {
-        const stmt = db.prepare(`
+        const stmt = Annotation.db.prepare(`
         DELETE FROM annotations 
         WHERE annotation_id = ?
     `)
@@ -171,7 +177,7 @@ export default class Annotation {
     }
 
     static deleteBySessionId(channelId) {
-        const stmt = db.prepare(`
+        const stmt = Annotation.db.prepare(`
         DELETE FROM annotations 
         WHERE channel_id = ?
     `)
@@ -180,7 +186,7 @@ export default class Annotation {
     }
 
     static deleteByLabelId(labelId) {
-        const stmt = db.prepare(`
+        const stmt = Annotation.db.prepare(`
             DELETE FROM annotations 
             WHERE label_id = ?
         `)
@@ -189,9 +195,9 @@ export default class Annotation {
     }
 
     isOverlapping() {
-        const stmt = db.prepare(`
+        const stmt = Annotation.db.prepare(`
             SELECT annotation_id, start_time_ms, end_time_ms
-            FROM annotations 
+            FROM annotations
             WHERE channel_id = ?
             AND end_time_ms > ?
             AND start_time_ms < ?
@@ -201,9 +207,9 @@ export default class Annotation {
     }
 
     static canResize(annotationId, channelId, newStartMs, newEndMs) {
-        const stmt = db.prepare(`
+        const stmt = Annotation.db.prepare(`
             SELECT annotation_id, start_time_ms, end_time_ms
-            FROM annotations 
+            FROM annotations
             WHERE channel_id = ?
             AND annotation_id != ?
             AND end_time_ms > ?
