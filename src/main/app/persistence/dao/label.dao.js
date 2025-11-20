@@ -1,4 +1,4 @@
-import db from "../connection/sqlite.connection.js";
+import {db as sqliteDb} from "../connection/sqlite.connection.js";
 
 export default class Label {
     constructor(
@@ -10,9 +10,15 @@ export default class Label {
         this.createdAt = new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' })
     }
 
+    static db = sqliteDb
+
+    static useDb(dbInstance) {
+        Label.db = dbInstance
+    }
+
     insert() {
-        const stmt = db.prepare(`
-        INSERT INTO labels(label_id, name) 
+        const stmt = Label.db.prepare(`
+        INSERT INTO labels(label_id, name)
         VALUES (?, ?)
     `)
         const info = stmt.run(this.labelId, this.name)
@@ -21,7 +27,7 @@ export default class Label {
 }
 
     static findOneById(labelId) {
-        const stmt = db.prepare(`
+        const stmt = Label.db.prepare(`
         SELECT 
             label_id, name, created_at
         FROM labels 
@@ -37,7 +43,7 @@ export default class Label {
 }
 
     static findOneByName(name) {
-        const stmt = db.prepare(`
+        const stmt = Label.db.prepare(`
         SELECT 
             label_id, name, created_at
         FROM labels 
@@ -53,7 +59,7 @@ export default class Label {
 }
 
     static findAll() {
-        const stmt = db.prepare(`
+        const stmt = Label.db.prepare(`
             SELECT label_id,
                    name,
                    created_at
@@ -80,8 +86,8 @@ export default class Label {
             return `${dbField} = ?`
         }).join(', ')
         const values = fields.map(field => updateFields[field])
-        const stmt = db.prepare(`
-            UPDATE labels 
+        const stmt = Label.db.prepare(`
+            UPDATE labels
             SET ${setClause}
             WHERE label_id = ?
         `)
@@ -90,8 +96,8 @@ export default class Label {
     }
 
     static delete(labelId) {
-        const stmt = db.prepare(`
-            DELETE FROM labels 
+        const stmt = Label.db.prepare(`
+            DELETE FROM labels
             WHERE label_id = ?
         `)
         const info = stmt.run(labelId)

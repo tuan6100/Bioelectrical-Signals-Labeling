@@ -1,4 +1,4 @@
-import db from "../connection/sqlite.connection.js";
+import {db} from "../connection/sqlite.connection.js";
 
 const begin = db.prepare('BEGIN');
 const commit = db.prepare('COMMIT');

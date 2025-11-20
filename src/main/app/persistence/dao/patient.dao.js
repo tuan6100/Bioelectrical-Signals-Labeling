@@ -1,4 +1,4 @@
-import db from "../connection/sqlite.connection.js";
+import {db as sqliteDb} from "../connection/sqlite.connection.js";
 
 export default class Patient {
     constructor(patientId, firstName, gender) {
@@ -7,8 +7,14 @@ export default class Patient {
         this.gender = gender
     }
 
+    static db = sqliteDb
+
+    static useDb(dbInstance) {
+        Patient.db = dbInstance
+    }
+
     insert() {
-        const stmt = db.prepare(`
+        const stmt = Patient.db.prepare(`
             INSERT OR IGNORE INTO patients (patient_id, first_name, gender) 
             VALUES (?, ?, ?)
         `)
@@ -23,7 +29,7 @@ export default class Patient {
             return `${dbField} = ?`
         }).join(', ')
         const values = fields.map(field => updateFields[field])
-        const stmt = db.prepare(`
+        const stmt = Patient.db.prepare(`
             UPDATE patients 
             SET ${setClause}
             WHERE patient_id = ?
@@ -33,7 +39,7 @@ export default class Patient {
     }
 
     static findOneById(patientId) {
-        const stmt = db.prepare(`
+        const stmt = Patient.db.prepare(`
             SELECT patient_id, first_name, gender 
             FROM patients 
             WHERE patient_id = ?
@@ -44,7 +50,7 @@ export default class Patient {
     }
 
     static findAll() {
-        const stmt = db.prepare(`
+        const stmt = Patient.db.prepare(`
             SELECT patient_id, first_name, gender 
             FROM patients 
             ORDER BY patient_id
@@ -54,7 +60,7 @@ export default class Patient {
     }
 
     static delete(patientId) {
-        const stmt = db.prepare(`
+        const stmt = Patient.db.prepare(`
             DELETE FROM patients 
             WHERE patient_id = ?
         `)

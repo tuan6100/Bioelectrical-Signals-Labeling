@@ -1,4 +1,4 @@
-import db from "../connection/sqlite.connection.js";
+import {db as sqliteDb} from "../connection/sqlite.connection.js";
 
 export default class Channel {
     constructor(
@@ -27,8 +27,14 @@ export default class Channel {
         this.algorithm = algorithm
     }
 
+    static db = sqliteDb
+
+    static useDb(dbInstance) {
+        Channel.db = dbInstance
+    }
+
     insert() {
-        const stmt = db.prepare(`
+        const stmt = Channel.db.prepare(`
             INSERT INTO channels ( channel_id,
                 session_id, channel_number, data_kind, sweep_index, raw_samples_uv,
                 sampling_frequency_khz, subsampled_khz, sweep_duration_ms,
@@ -54,8 +60,8 @@ export default class Channel {
     }
 
     static insertBatch(channels) {
-        const insertMany = db.transaction((channelList) => {
-            const stmt = db.prepare(`
+        const insertMany = Channel.db.transaction((channelList) => {
+            const stmt = Channel.db.prepare(`
                 INSERT INTO channels (
                     channel_id, session_id, channel_number, data_kind, sweep_index, raw_samples_uv,
                     sampling_frequency_khz, subsampled_khz, sweep_duration_ms,
@@ -85,7 +91,7 @@ export default class Channel {
 
 
     static findOneById(channelId) {
-        const stmt = db.prepare(`
+        const stmt = Channel.db.prepare(`
             SELECT 
                 channel_id, session_id, channel_number, data_kind, sweep_index,
                 sampling_frequency_khz, subsampled_khz, sweep_duration_ms,
@@ -109,10 +115,10 @@ export default class Channel {
     }
 
     static findOneDurationById(channelId) {
-        const stmt = db.prepare(`
-            SELECT 
+        const stmt = Channel.db.prepare(`
+            SELECT
                 sweep_duration_ms, trace_duration_ms
-            FROM channels 
+            FROM channels
             WHERE channel_id = ?
         `)
         const row = stmt.get(channelId)
@@ -124,7 +130,7 @@ export default class Channel {
     }
 
     static findAll() {
-        const stmt  = db.prepare(`
+        const stmt  = Channel.db.prepare(`
             SELECT 
                 channel_id, session_id, channel_number, data_kind, sweep_index,
                 sampling_frequency_khz, subsampled_khz, sweep_duration_ms,
@@ -151,7 +157,7 @@ export default class Channel {
     }
 
     static findBySessionId(sessionId) {
-        const stmt  = db.prepare(`
+        const stmt  = Channel.db.prepare(`
             SELECT 
                 channel_id, session_id, channel_number, data_kind, sweep_index,
                 sampling_frequency_khz, subsampled_khz, sweep_duration_ms,
@@ -190,17 +196,17 @@ export default class Channel {
              WHERE session_id = ? AND LOWER(data_kind) LIKE ? AND sweep_index = ?
              ORDER BY channel_number, sweep_index
              `
-        const stmt  = db.prepare(query)
+        const stmt  = Channel.db.prepare(query)
         const result = stmt.get(sessionId, `%${dataKind.toLowerCase()}%`)
         return result ? result.channel_id : null
     }
 
     static findSamplesById(channelId) {
-        const stmt = db.prepare(`
-            SELECT 
-                c.raw_samples_uv, 
-                c.sampling_frequency_khz, 
-                c.subsampled_khz, 
+        const stmt = Channel.db.prepare(`
+            SELECT
+                c.raw_samples_uv,
+                c.sampling_frequency_khz,
+                c.subsampled_khz,
                 c.sweep_duration_ms,
                 c.trace_duration_ms,
                 a.annotation_id, a.start_time_ms, a.end_time_ms, a.note, a.labeled_at, a.updated_at,
@@ -233,7 +239,7 @@ export default class Channel {
             return `${dbField} = ?`
         }).join(', ')
         const values = fields.map(field => updateFields[field])
-        const stmt = db.prepare(`
+        const stmt = Channel.db.prepare(`
             UPDATE channels 
             SET ${setClause}
             WHERE channel_id = ?
@@ -243,7 +249,7 @@ export default class Channel {
     }
 
     static delete(channelId) {
-        const stmt = db.prepare(`
+        const stmt = Channel.db.prepare(`
             DELETE FROM channels 
             WHERE channel_id = ?
         `)
@@ -252,7 +258,7 @@ export default class Channel {
     }
 
     static deleteBySessionId(sessionId) {
-        const stmt = db.prepare(`
+        const stmt = Channel.db.prepare(`
             DELETE FROM channels 
             WHERE session_id = ?
         `)
@@ -261,7 +267,7 @@ export default class Channel {
     }
 
     static findSessionIdByChannelId(channelId) {
-        const stmt = db.prepare(`SELECT session_id FROM channels WHERE channel_id = ?`)
+        const stmt = Channel.db.prepare(`SELECT session_id FROM channels WHERE channel_id = ?`)
         const row = stmt.get(channelId)
         return row ? row.session_id : null
     }

@@ -5,8 +5,16 @@ export default defineConfig({
         lib: {
             entry: 'src/main/app/preload.js',
             name: 'preload',
-            formats: ['es'],
+            formats: ['cjs'],
             fileName: () => 'preload.js',
+        },
+        target: 'node18',
+        sourcemap: false,
+        minify: false,
+        rollupOptions: {
+            output: {
+                entryFileNames: 'preload.js'
+            }
         }
     },
 });
