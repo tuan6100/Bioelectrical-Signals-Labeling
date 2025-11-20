@@ -97,7 +97,7 @@ out/
 .github/
 
 # Sqlite
-biosignal-*.*
+biosignal*
 
 # package lock
 package-lock.json

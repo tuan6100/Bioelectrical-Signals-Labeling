@@ -9,8 +9,6 @@ const RightPanel = ({
    annotations,
    channelId,
    tableData,
-   onAddLabel,
-   onSave,
    isLabeled,
    isDoubleChecked,
    onToggleLabeled,
@@ -24,10 +22,10 @@ const RightPanel = ({
             <div className="panel-box">
                 {session ? (
                     <div className="patient-grid">
-                        <div><strong>Tên bệnh nhân:</strong> {session.patientFirstName}</div>
-                        <div><strong>Giới tính:</strong> {session.patientGender  === 'M' ? 'Nam': 'Nữ'}</div>
-                        <div><strong>Bắt đầu:</strong> {session.sessionStartTime}</div>
-                        <div><strong>Kết thúc:</strong> {session.sessionEndTime}</div>
+                        <div><strong>Patient name:</strong> {session.patientFirstName}</div>
+                        <div><strong>Gender:</strong> {session.patientGender  === 'M' ? 'Male': 'Female'}</div>
+                        <div><strong>Start time:</strong> {session.sessionStartTime}</div>
+                        <div><strong>End time:</strong> {session.sessionEndTime}</div>
                     </div>
                 ) : <span className="muted">No session</span>}
             </div>
@@ -41,8 +39,6 @@ const RightPanel = ({
                 </div>
 
                 <BottomControl
-                    onAddLabel={onAddLabel}
-                    onSave={onSave}
                     isLabeled={isLabeled}
                     isDoubleChecked={isDoubleChecked}
                     onToggleLabeled={onToggleLabeled}
