@@ -1,4 +1,5 @@
 import React from 'react';
+import './TopControl.css';
 
 export default function TopControl ({
   layoutMode,

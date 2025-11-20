@@ -58,6 +58,7 @@ th, td {
     border: 1px solid #e0e0e0;
     padding: 8px;
     text-align: center;
+    vertical-align: middle;
 }
 
 th {
@@ -81,4 +82,64 @@ tr.highlight-unknown {
 .back-btn {
     align-self: flex-start;
     /* margin-bottom: 10px; */
+}
+
+td.action-links {
+    border: none !important;
+    background: transparent !important;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    vertical-align: middle;
+}
+
+.editing {
+    padding-top: 14px;
+    opacity: 0;
+    transform: translateY(-4px) scale(0.95);
+    animation: actionFadeIn 0.15s forwards ease-out;
+}
+
+@keyframes actionFadeIn {
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.action-links svg {
+    background: none !important;
+    padding: 0 !important;
+    border: none !important;
+    display: flex;
+    vertical-align: middle;
+    justify-content: center;
+}
+
+.edit-input {
+    width: 100%;
+    padding: 4px 8px;
+    font-size: 12px;
+    background: #f3f3f3;
+    border: 1px solid #dcdcdc;
+    border-radius: 4px;
+    box-sizing: border-box;
+    transition: 0.2s ease;
+    opacity: 0;
+    transform: scale(0.95);
+    animation: fadeIn 0.15s forwards ease-out;
+}
+
+@keyframes fadeIn {
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.edit-input:focus {
+    border-color: #1a8cff;
+    background: white;
+    outline: none;
 }

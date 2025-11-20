@@ -467,6 +467,7 @@ const LabelTable = ({ data, channelId }) => {
                                                 {id === editId ? (
                                                     <input
                                                         type="number"
+                                                        className="edit-input"
                                                         value={editFields.startTimeMs}
                                                         onChange={(e) => setEditFields(f => ({ ...f, startTimeMs: e.target.value }))}
                                                         onClick={(e) => e.stopPropagation()}
@@ -480,6 +481,7 @@ const LabelTable = ({ data, channelId }) => {
                                                 {id === editId ? (
                                                     <input
                                                         type="number"
+                                                        className="edit-input"
                                                         value={editFields.endTimeMs}
                                                         onChange={(e) => setEditFields(f => ({ ...f, endTimeMs: e.target.value }))}
                                                         onClick={(e) => e.stopPropagation()}
@@ -493,6 +495,7 @@ const LabelTable = ({ data, channelId }) => {
                                                 {id === editId ? (
                                                     <input
                                                         type="text"
+                                                        className="edit-input"
                                                         list="label-options"
                                                         value={editFields.labelName}
                                                         onChange={(e) => setEditFields(f => ({ ...f, labelName: e.target.value }))}
@@ -507,6 +510,7 @@ const LabelTable = ({ data, channelId }) => {
                                                 {id === editId ? (
                                                     <input
                                                         type="text"
+                                                        className="edit-input"
                                                         value={editFields.note}
                                                         onChange={(e) => setEditFields(f => ({ ...f, note: e.target.value }))}
                                                         onClick={(e) => e.stopPropagation()}
@@ -516,7 +520,7 @@ const LabelTable = ({ data, channelId }) => {
                                                     note
                                                 )}
                                             </td>
-                                            <td className="action-links" style={{ display: 'flex', gap: 8 }}>
+                                            <td className={`action-links ${id === editId ? "editing" : ""}`}>
                                                 {id === editId ? (
                                                     <>
                                                         <FontAwesomeIcon
@@ -561,6 +565,7 @@ const LabelTable = ({ data, channelId }) => {
                                                             icon={faPencil}
                                                             title="Edit"
                                                             aria-label="Edit"
+                                                            className="editing"
                                                             role="button"
                                                             tabIndex={0}
                                                             style={{ cursor: 'pointer' }}
@@ -595,6 +600,7 @@ const LabelTable = ({ data, channelId }) => {
                                                             icon={faTrash}
                                                             title="Delete"
                                                             aria-label="Delete"
+                                                            className="editing"
                                                             tabIndex={0}
                                                             style={{ cursor: 'pointer' }}
                                                             onClick={(e) => {
