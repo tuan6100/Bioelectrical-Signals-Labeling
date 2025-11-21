@@ -44,8 +44,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-#      - name: Configure pnpm for Electron Forge
-#        run: pnpm config set node-linker hoisted
+      - name: Configure pnpm for Electron Forge
+        run: pnpm config set node-linker hoisted
 
       - name: Install dependencies
         run: pnpm install
@@ -62,7 +62,7 @@ jobs:
           CI: true
 
 #      - name: Build renderer (web)
-#        run: pnpm build:web
+#        run: pnpm run build:web
 
       - name: Build and publish desktop application
         run: pnpm run publish
