@@ -65,7 +65,7 @@ jobs:
 #        run: pnpm build:web
 
       - name: Build and publish desktop application
-        run: pnpm publish
+        run: pnpm run publish
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
