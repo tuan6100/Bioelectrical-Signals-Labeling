@@ -1,7 +1,4 @@
-# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
-
-name: Biosignal Labeling App CI / Release
+name: Biosignal Labeling App CI / Release (Improved)
 
 on:
   push:
@@ -44,7 +41,7 @@ jobs:
         run: npm i -g pnpm
 
       - name: Configure pnpm for Electron Forge
-        run:  pnpm config set node-linker hoisted
+        run: pnpm config set node-linker hoisted
 
       - name: Install dependencies
         run: pnpm install
@@ -60,45 +57,49 @@ jobs:
         env:
           CI: true
 
-      - name: Build application
+      - name: Build renderer (web)
+        run: pnpm build:web
+
+      - name: Package application (electron-forge)
         run: pnpm build:app
 
-      - name: Upload build artifact
-        if: runner.os == 'Windows' # choose one OS to provide artifact (adjust as needed)
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: app-build
+          name: app-build-${{ matrix.os }}
           path: |
+            out/**
             dist/**
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 7
 
   release:
     name: Create GitHub Release
     if: startsWith(github.ref, 'refs/tags/v')
     needs: build
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Download build artifact
+      - name: Download Windows artifact
         uses: actions/download-artifact@v4
         with:
-          name: app-build
-          path: release-assets
+          name: app-build-windows-latest
+          path: release-assets/windows
+
+      - name: Download macOS artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: app-build-macos-latest
+          path: release-assets/macos
 
       - name: Generate Release Notes
         id: notes
         uses: actions/generate-release-notes@v1
         with:
           tag_name: ${{ github.ref_name }}
-
-      - name: Prepare asset list
-        id: asset_list
-        run: |
-          echo "ASSET_FILES=$(ls -1 release-assets | tr '\n' ' ')" >> $GITHUB_OUTPUT
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
@@ -109,8 +110,8 @@ jobs:
           draft: false
           prerelease: ${{ contains(github.ref_name, '-') }}
           files: |
-            release-assets/**
+            release-assets/windows/**
+            release-assets/macos/**
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
 
