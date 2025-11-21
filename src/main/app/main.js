@@ -8,6 +8,7 @@ import { readFile } from "@biosignal/app/domain/services/file/reader/txt.reader.
 import fs from "fs"
 import {processAndPersistData} from "@biosignal/app/domain/services/data/command/session.command.js"
 import * as handlers from '@biosignal/app/api/handlers'
+import {updateElectronApp} from "update-electron-app";
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -134,3 +135,6 @@ app.on('window-all-closed', () => {
         app.quit()
     }
 })
+
+updateElectronApp()
+
