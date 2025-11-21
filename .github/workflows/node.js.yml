@@ -41,9 +41,6 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
-      - name: Install dependencies
-        run: pnpm install
-
       - name: Configure pnpm for Electron Forge
         run: pnpm config set node-linker hoisted
 
@@ -66,6 +63,8 @@ jobs:
 
       - name: Build and publish desktop application
         run: pnpm run publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
