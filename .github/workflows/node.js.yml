@@ -41,9 +41,6 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
-      - name: Install dependencies
-        run: pnpm install
-
       - name: Configure pnpm for Electron Forge
         run: pnpm config set node-linker hoisted
 
