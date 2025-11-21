@@ -14,7 +14,7 @@ export default defineConfig({
     build: {
         target: 'node18',
         lib: {
-            entry: 'src/main/app/main.js',
+            entry: 'src/main/app/main.entry.js',
             name: 'main',
             formats: ['es'],
             fileName: () => 'main.js',
