@@ -88,7 +88,19 @@ const config = {
             name: '@electron-forge/plugin-auto-unpack-natives',
             config: {}
         }
-    ]
+    ],
+    publishers: [
+        {
+            name: '@electron-forge/publisher-github',
+            config: {
+                repository: {
+                    owner: 'tuan6100',
+                    name: 'Bioelectrical-Signals-Labeling'
+                },
+                prerelease: true
+            }
+        }
+    ],
 };
 
 export default config
