@@ -24,12 +24,9 @@ concurrency:
 jobs:
   build:
     name: Build & Test (Node ${{ matrix.node-version }} on ${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-latest]
-        node-version: [22.x]
+    runs-on: windows-latest
+    permissions:
+      contents: write
 
     steps:
       - uses: actions/checkout@v4
@@ -64,8 +61,8 @@ jobs:
         env:
           CI: true
 
-      - name: Build renderer (web)
-        run: pnpm build:web
+#      - name: Build renderer (web)
+#        run: pnpm build:web
 
       - name: Build and publish desktop application
         run: pnpm publish
