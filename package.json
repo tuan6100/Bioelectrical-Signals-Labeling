@@ -16,8 +16,8 @@
     "start:web": "vite --host",
     "build:app": "electron-forge package",
     "build:web": "vite build",
-    "make": "electron-forge make",
-    "publish": "electron-forge publish",
+    "make:app": "electron-forge make",
+    "publish:app": "electron-forge publish",
     "lint": "echo \"No linting configured\""
   },
   "keywords": [
