@@ -1,19 +1,39 @@
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
+import packageJson from './package.json' with { type: 'json' };
+
+const iconPath = './public/favicon/biosignal.ico'
+const { version } = packageJson;
 
 const config = {
     packagerConfig: {
         asar: true,
-        icon: './public/favicon/biosignal.ico'
+        executableName: 'Biosignal-Labeling',
+        name: 'Biosignal Labeling',
+        appBundleId: 'vn.edu.hust.biosignal-labeling',
+        appCategoryType: 'public.app-category.productivity',
+        icon: iconPath,
+        ignore: [
+            /node_modules\/(?!(better-sqlite3|bindings|file-uri-to-path)\/)/,
+        ],
     },
     rebuildConfig: {
+        onlyModules: ['better-sqlite3'],
         force: true,
         which_module: true
     },
     makers: [
         {
             name: '@electron-forge/maker-squirrel',
-            config: {},
+            platforms: ['win32'],
+            config: (arch) => ({
+                name: 'Biosignal-Labeling',
+                exe: 'Biosignal-Labeling.exe',
+                iconUrl: 'https://raw.githubusercontent.com/tuan6100/Bioelectrical-Signals-Labeling/refs/heads/main/public/favicon/biosignal.ico',
+                noMsi: true,
+                setupExe: `biosignal-labeling-${version}-win32-${arch}-setup.exe`,
+                setupIcon: iconPath,
+            }),
         },
         {
             name: '@electron-forge/maker-zip',
@@ -80,7 +100,7 @@ const config = {
                 prerelease: true
             }
         }
-    ]
+    ],
 };
 
 export default config

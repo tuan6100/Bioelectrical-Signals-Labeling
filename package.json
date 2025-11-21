@@ -3,6 +3,7 @@
   "productName": "Biosignal Labeling",
   "homepage": "",
   "version": "1.0.0",
+  "author": "iBME lab, HUST",
   "description": "My Electron application description",
   "main": ".vite/build/main.js",
   "type": "module",
@@ -17,7 +18,6 @@
     "build:web": "vite build",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
-    "rebuild": "electron-rebuild -f -w better-sqlite3",
     "lint": "echo \"No linting configured\""
   },
   "keywords": [
@@ -63,11 +63,9 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
-      "electron"
-    ],
-    "overrides": {
-      "esbuild@<=0.24.2": ">=0.25.0",
-      "tmp@<=0.2.3": ">=0.2.4"
-    }
+      "electron",
+      "electron-winstaller",
+      "better-sqlite3"
+    ]
   }
 }

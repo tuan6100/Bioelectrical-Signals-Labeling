@@ -1,22 +1,24 @@
-import Database from "better-sqlite3";
+import Database from "better-sqlite3"
+import path from "path"
+import {app} from "electron";
 
-const env = process.env.NODE_ENV;
-let dbName;
+const env = process.env.NODE_ENV
+let dbName
 switch (env) {
     case 'test':
-        dbName = 'biosignal-test.db';
-        break;
+        dbName = 'biosignal-test.db'
+        break
     case 'dev':
-        dbName = 'biosignal-dev.db';
-        break;
+        dbName = 'biosignal-dev.db'
+        break
     default:
-        dbName = 'biosignal.db';
+        dbName = 'biosignal.db'
 }
 
 export const db = new Database(dbName, {
     verbose: console.log
 })
-db.pragma('journal_mode = WAL');
+db.pragma('journal_mode = WAL')
 db.pragma('foreign_keys = ON')
 
 const ddl = `
@@ -79,12 +81,12 @@ const ddl = `
         FOREIGN KEY (label_id) REFERENCES labels(label_id)
     );
 
-`;
+`
 
 db.initSchema = function() {
-    db.exec(ddl);
-    const stmt = db.prepare('INSERT OR IGNORE INTO labels (name) VALUES (?)');
-    stmt.run('Unknown');
-    stmt.run('Pending');
-};
+    db.exec(ddl)
+    const stmt = db.prepare('INSERT OR IGNORE INTO labels (name) VALUES (?)')
+    stmt.run('Unknown')
+    stmt.run('Pending')
+}
 

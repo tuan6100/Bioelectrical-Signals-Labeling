@@ -28,24 +28,28 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, macos-latest]
+        os: [windows-latest]
         node-version: [22.x]
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
 
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'pnpm'
+          cache: "pnpm"
 
-      - name: Install pnpm
-        run: npm i -g pnpm
+      - name: Install dependencies
+        run: pnpm install
 
-      - name: Configure pnpm for Electron Forge
-        run: pnpm config set node-linker hoisted
+#      - name: Configure pnpm for Electron Forge
+#        run: pnpm config set node-linker hoisted
 
       - name: Install dependencies
         run: pnpm install
@@ -64,8 +68,8 @@ jobs:
       - name: Build renderer (web)
         run: pnpm build:web
 
-      - name: Package application (electron-forge)
-        run: pnpm build:app
+      - name: Build and publish desktop application
+        run: pnpm publish
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4

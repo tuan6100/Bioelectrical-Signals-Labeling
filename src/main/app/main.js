@@ -1,19 +1,16 @@
 // src/main/main.js
 import { app, BrowserWindow, Menu, dialog, globalShortcut } from 'electron'
 import path from 'node:path'
-import started from 'electron-squirrel-startup'
 import { fileURLToPath } from 'node:url'
-import {db} from "@biosignal/app/persistence/connection/sqlite.connection.js"
 import { readFile } from "@biosignal/app/domain/services/file/reader/txt.reader.js"
 import fs from "fs"
 import {processAndPersistData} from "@biosignal/app/domain/services/data/command/session.command.js"
 import * as handlers from '@biosignal/app/api/handlers'
 import {updateElectronApp} from "update-electron-app";
+import {db} from "@biosignal/app/persistence/connection/sqlite.connection.js";
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
-if (started) {
-    app.quit()
-}
+// Fix for top-level return in `src/main/app/main.js`
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -106,14 +103,12 @@ const createWindow = () => {
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
     const win = createWindow()
     try {
         db.initSchema()
-        win.webContents.send('db-status', { ok: true })
     } catch (e) {
         console.error(e)
-        win.webContents.send('db-status', { ok: false, message: e.message })
     }
     // Toggle full screen
     globalShortcut.register('F11', () => {
@@ -125,11 +120,12 @@ app.whenReady().then(() => {
             win.webContents.toggleDevTools()
         })
     }
-
+    win.webContents.session.setSpellCheckerLanguages(['en-US', 'vi'])
+    app.setAppLogsPath(app.getPath("userData"))
 })
 
 // Quit when all windows are closed, except on macOS.
-app.on('window-all-closed', () => {
+app.on('window-all-closed', async () => {
     db.close()
     if (process.platform !== 'darwin') {
         app.quit()
