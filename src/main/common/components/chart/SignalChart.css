@@ -1,0 +1,77 @@
+.signal-chart-container {
+    background: #fafafa;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.chart-help {
+    position: absolute;
+    bottom: 4px;
+    left: 8px;
+    font-size: 11px;
+    color: #555;
+    background: rgba(255,255,255,0.7);
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+
+.label-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3000;
+}
+
+.label-modal {
+    background: #fff;
+    padding: 18px;
+    width: 320px;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.label-modal input,
+.label-modal textarea {
+    width: 100%;
+    padding: 6px;
+    font-size: 14px;
+    border: 1px solid #bbb;
+    border-radius: 4px;
+}
+
+.label-modal textarea {
+    resize: vertical;
+    min-height: 70px;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.label-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.label-table th, .label-table td {
+    border: 1px solid #ddd;
+    padding: 4px 6px;
+    text-align: left;
+}
+
+.label-table th {
+    background: #f3f3f3;
+}
+
+/* Context menu styles moved to LabelContextMenu.css */
