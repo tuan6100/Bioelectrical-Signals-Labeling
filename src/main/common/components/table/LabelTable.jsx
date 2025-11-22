@@ -17,7 +17,7 @@ import {
     fetchGetAllLabels,
     fetchShowErrorDialog,
     fetchUpdateAnnotation
-} from "@biosignal/common/api/index.js";
+} from "../../api/index.js";
 
 const LabelTable = ({ data, channelId }) => {
     const [selectedId, setSelectedId] = useState(null)

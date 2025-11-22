@@ -1,4 +1,4 @@
-import {db as sqliteDb} from "@biosignal/app/persistence/connection/sqlite.connection.js";
+import {db as sqliteDb} from "../connection/sqlite.connection.js";
 
 let db = sqliteDb;
 

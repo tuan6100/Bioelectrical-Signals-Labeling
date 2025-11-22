@@ -40,6 +40,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
+          cache: "pnpm"
 
       - name: Configure pnpm for Electron Forge
         run: pnpm config set node-linker hoisted

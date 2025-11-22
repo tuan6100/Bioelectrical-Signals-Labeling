@@ -1,8 +1,9 @@
-import Label from "@biosignal/app/persistence/dao/label.dao.js"
-import Annotation from "@biosignal/app/persistence/dao/annotation.dao.js"
-import Session from "@biosignal/app/persistence/dao/session.dao.js"
-import asTransaction from "@biosignal/app/persistence/transaction/index.js"
-import Channel from "@biosignal/app/persistence/dao/channel.dao.js"
+import asTransaction from "../../../../persistence/transaction/index.js";
+import Label from "../../../../persistence/dao/label.dao.js";
+import Annotation from "../../../../persistence/dao/annotation.dao.js";
+import Channel from "../../../../persistence/dao/channel.dao.js";
+import Session from "../../../../persistence/dao/session.dao.js";
+
 
 export function persistLabel(channelId, startTime, endTime, labelName, labelNote = null) {
     return asTransaction(function (channelId, startTime, endTime, labelName) {

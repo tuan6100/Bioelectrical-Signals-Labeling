@@ -5,9 +5,10 @@ import {
     persistLabel,
     updateAnnotation,
     updateLabel
-} from "@biosignal/app/domain/services/data/command/label.command.js";
-import {getAllLabels} from "@biosignal/app/domain/services/data/query/label.query.js";
-import {saveLabelsToCSV} from "@biosignal/app/domain/services/file/writer/csv.writer.js";
+} from "../../../domain/services/data/command/label.command.js";
+
+import {getAllLabels} from "../../../domain/services/data/query/label.query.js";
+import {saveLabelsToCSV} from "../../../domain/services/file/writer/csv.writer.js";
 
 
 ipcMain.removeHandler('label:create')

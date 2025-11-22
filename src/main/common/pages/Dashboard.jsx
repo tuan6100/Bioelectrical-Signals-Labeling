@@ -1,8 +1,8 @@
 import React, { useRef, useState, useMemo, useEffect, useCallback } from 'react'
 import './Dashboard.css'
-import {useFetchSession} from "@biosignal/common/hooks/useFetchSession.js";
-import LeftPanel from "@biosignal/common/components/panel/LeftPanel.jsx";
-import RightPanel from "@biosignal/common/components/panel/RightPanel.jsx";
+import {useFetchSession} from "../hooks/useFetchSession.js";
+import LeftPanel from "../components/panel/LeftPanel.jsx";
+import RightPanel from "../components/panel/RightPanel.jsx";
 
 
 const COLLAPSE_BREAKPOINT = 1100

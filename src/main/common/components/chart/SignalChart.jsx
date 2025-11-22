@@ -5,7 +5,7 @@ import {
     fetchUpdateAnnotation,
     fetchDeleteAnnotation,
     fetchShowErrorDialog
-} from '@biosignal/common/api';
+} from '../../api';
 import './SignalChart.css';
 import LabelContextMenu from './LabelContextMenu.jsx';
 

@@ -1,5 +1,6 @@
 import Database from "better-sqlite3"
-import path from "path"
+import { execSync } from 'node:child_process';
+import path from "path";
 import {app} from "electron";
 
 const env = process.env.NODE_ENV
@@ -12,12 +13,13 @@ switch (env) {
         dbName = 'biosignal-dev.db'
         break
     default:
-        dbName = 'biosignal.db'
+        dbName = path.join(app.getPath("userData"), "biosignal.db");
 }
 
 export const db = new Database(dbName, {
     verbose: console.log
 })
+
 db.pragma('journal_mode = WAL')
 db.pragma('foreign_keys = ON')
 
