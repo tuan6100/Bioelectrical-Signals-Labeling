@@ -24,23 +24,14 @@ importers:
         specifier: ^3.1.0
         version: 3.1.0(@fortawesome/fontawesome-svg-core@7.1.0)(react@19.2.0)
       better-sqlite3:
-        specifier: ^12.4.1
-        version: 12.4.5
-      chai:
-        specifier: ^6.2.1
-        version: 6.2.1
+        specifier: ^12.4.6
+        version: 12.4.6
       crc-32:
         specifier: ^1.2.2
         version: 1.2.2
-      cross-env:
-        specifier: ^7.0.3
-        version: 7.0.3
       electron-updater:
         specifier: ^6.6.2
         version: 6.6.2
-      mocha:
-        specifier: ^11.7.5
-        version: 11.7.5
       react:
         specifier: ^19.2.0
         version: 19.2.0
@@ -51,7 +42,7 @@ importers:
         specifier: ^19.2.0
         version: 19.2.0(react@19.2.0)
       react-router-dom:
-        specifier: ^7.9.5
+        specifier: ^7.9.6
         version: 7.9.6(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       react-select:
         specifier: ^5.10.2
@@ -59,30 +50,39 @@ importers:
       scheduler:
         specifier: ^0.27.0
         version: 0.27.0
-      sinon:
-        specifier: ^21.0.0
-        version: 21.0.0
     devDependencies:
       '@electron/fuses':
         specifier: ^1.8.0
         version: 1.8.0
       '@vitejs/plugin-react':
-        specifier: ^5.1.0
+        specifier: ^5.1.1
         version: 5.1.1(vite@5.4.21(@types/node@24.10.1)(terser@5.44.1))
+      chai:
+        specifier: ^6.2.1
+        version: 6.2.1
       concurrently:
         specifier: ^9.2.1
         version: 9.2.1
+      cross-env:
+        specifier: ^7.0.3
+        version: 7.0.3
       electron:
         specifier: ^39.2.3
         version: 39.2.3
       electron-builder:
         specifier: ^26.0.12
         version: 26.0.12(electron-builder-squirrel-windows@26.0.12)
+      mocha:
+        specifier: ^11.7.5
+        version: 11.7.5
+      sinon:
+        specifier: ^21.0.0
+        version: 21.0.0
       vite:
         specifier: ^5.4.21
         version: 5.4.21(@types/node@24.10.1)(terser@5.44.1)
       wait-on:
-        specifier: ^7.0.1
+        specifier: ^7.2.0
         version: 7.2.0
 
 packages:
@@ -822,8 +822,8 @@ packages:
     resolution: {integrity: sha512-aTUKW4ptQhS64+v2d6IkPzymEzzhw+G0bA1g3uBRV3+ntkH+svttKseW5IOR4Ed6NUVKqnY7qT3dKvzQ7io4AA==}
     hasBin: true
 
-  better-sqlite3@12.4.5:
-    resolution: {integrity: sha512-4NejwX2llfdKYK7Tzwwre/qKzTXiqcbycIagtqMH9oE7Es3LCUGGGXvhw8rWbZ2alx1C/Nh0MeJyYEZKUFs4sw==}
+  better-sqlite3@12.4.6:
+    resolution: {integrity: sha512-gaYt9yqTbQ1iOxLpJA8FPR5PiaHP+jlg8I5EX0Rs2KFwNzhBsF40KzMZS5FwelY7RG0wzaucWdqSAJM3uNCPCg==}
     engines: {node: 20.x || 22.x || 23.x || 24.x || 25.x}
 
   bindings@1.5.0:
@@ -2209,8 +2209,8 @@ packages:
     resolution: {integrity: sha512-34R7HTnG0XIJcBSn5XhDd7nNFPRcXYRZrBB2O2jdKqYODldSzBAqzsWoZYYvduky73toYS/ESqxPvkDf/F0XMg==}
     engines: {node: '>=10'}
 
-  typescript@5.4.5:
-    resolution: {integrity: sha512-vcI4UpRgg81oIRUFwR0WSIHKt11nJ7SAVlYNIu+QpqeyXP+gpQJy/Z4+F0aGxSE4MqwjyXvW/TzgkLAx2AGHwQ==}
+  typescript@5.9.3:
+    resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
     engines: {node: '>=14.17'}
     hasBin: true
 
@@ -2571,7 +2571,7 @@ snapshots:
 
   '@electron/universal@2.0.1':
     dependencies:
-      '@electron/asar': 3.4.1
+      '@electron/asar': 3.2.18
       '@malept/cross-spawn-promise': 2.0.0
       debug: 4.4.3(supports-color@8.1.1)
       dir-compare: 4.2.0
@@ -2957,7 +2957,7 @@ snapshots:
     dependencies:
       '@types/http-cache-semantics': 4.0.4
       '@types/keyv': 3.1.4
-      '@types/node': 24.10.1
+      '@types/node': 22.19.1
       '@types/responselike': 1.0.3
 
   '@types/debug@4.1.12':
@@ -2974,7 +2974,7 @@ snapshots:
 
   '@types/keyv@3.1.4':
     dependencies:
-      '@types/node': 24.10.1
+      '@types/node': 22.19.1
 
   '@types/ms@2.1.0': {}
 
@@ -3004,14 +3004,14 @@ snapshots:
 
   '@types/responselike@1.0.3':
     dependencies:
-      '@types/node': 24.10.1
+      '@types/node': 22.19.1
 
   '@types/verror@1.10.11':
     optional: true
 
   '@types/yauzl@2.10.3':
     dependencies:
-      '@types/node': 24.10.1
+      '@types/node': 22.19.1
     optional: true
 
   '@vitejs/plugin-react@5.1.1(vite@5.4.21(@types/node@24.10.1)(terser@5.44.1))':
@@ -3150,7 +3150,7 @@ snapshots:
 
   baseline-browser-mapping@2.8.30: {}
 
-  better-sqlite3@12.4.5:
+  better-sqlite3@12.4.6:
     dependencies:
       bindings: 1.5.0
       prebuild-install: 7.1.3
@@ -3354,7 +3354,7 @@ snapshots:
   config-file-ts@0.2.8-rc1:
     dependencies:
       glob: 10.5.0
-      typescript: 5.4.5
+      typescript: 5.9.3
 
   convert-source-map@1.9.0: {}
 
@@ -4718,7 +4718,7 @@ snapshots:
   type-fest@0.13.1:
     optional: true
 
-  typescript@5.4.5: {}
+  typescript@5.9.3: {}
 
   undici-types@6.21.0: {}
 
