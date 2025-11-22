@@ -18,7 +18,7 @@
     "build:mac": "pnpm run build:web && electron-builder --mac",
     "build:linux": "pnpm run build:web && electron-builder --linux",
     "build:web": "vite build",
-    "publish:app": "pnpm run build:web && electron-builder --publish onTag",
+    "publish:app": "pnpm run build:web && electron-builder --publish always",
     "postinstall": "electron-builder install-app-deps",
     "lint": "echo \"No linting configured\""
   },
