@@ -2,7 +2,7 @@
   "name": "biosignal-tool",
   "productName": "Biosignal Labeling",
   "homepage": "",
-  "version": "1.0.0",
+  "version": "1.0.0-alpha",
   "author": "iBME lab, HUST",
   "description": "My Electron application description",
   "main": ".vite/build/main.js",

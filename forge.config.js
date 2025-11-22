@@ -97,7 +97,8 @@ const config = {
                     owner: 'tuan6100',
                     name: 'Bioelectrical-Signals-Labeling'
                 },
-                prerelease: true
+                prerelease: process.env.GITHUB_REF?.includes('-') || false,
+                draft: false
             }
         }
     ],
