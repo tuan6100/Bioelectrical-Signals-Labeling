@@ -135,7 +135,7 @@
     "publish": [
       {
         "provider": "github",
-        "owner": "tuan",
+        "owner": "tuan6100",
         "repo": "Bioelectrical-Signals-Labeling"
       }
     ]
