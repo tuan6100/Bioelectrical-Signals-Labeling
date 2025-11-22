@@ -76,45 +76,4 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
-  release:
-    name: Create GitHub Release
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: build
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Download Windows artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: app-build-windows-latest
-          path: release-assets/windows
-
-      - name: Download macOS artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: app-build-macos-latest
-          path: release-assets/macos
-
-      - name: Generate Release Notes
-        id: notes
-        uses: actions/generate-release-notes@v1
-        with:
-          tag_name: ${{ github.ref_name }}
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ github.ref_name }}
-          name: Release ${{ github.ref_name }}
-          body: ${{ steps.notes.outputs.body }}
-          draft: false
-          prerelease: ${{ contains(github.ref_name, '-') }}
-          files: |
-            release-assets/windows/**
-            release-assets/macos/**
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
