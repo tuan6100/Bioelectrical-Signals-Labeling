@@ -4,8 +4,8 @@ import {useNavigate} from 'react-router-dom'
 import "./StartPage.css"
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome"
 import {faArrowRotateRight} from "@fortawesome/free-solid-svg-icons"
-import {fetchAllSessions} from "@biosignal/common/api/index.js";
-import SessionTable from "@biosignal/common/components/table/SessionTable.jsx";
+import {fetchAllSessions} from "../api/index.js";
+import SessionTable from "../components/table/SessionTable.jsx";
 
 export default function StartPage() {
     const navigate = useNavigate()

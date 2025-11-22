@@ -1,7 +1,7 @@
 import {useEffect} from 'react'
 import {HashRouter, useNavigate} from 'react-router-dom'
-import {isDesktopEnv} from "@biosignal/app/api/provider/index.js";
-import AppRoutes from "@biosignal/common/routes/index.jsx";
+import {isDesktopEnv} from "../app/api/provider/index.js";
+import AppRoutes from "./routes/index.jsx";
 
 
 function SessionListener() {

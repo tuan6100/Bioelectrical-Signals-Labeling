@@ -1,14 +1,25 @@
-import {defineConfig} from "vite";
-import react from "@vitejs/plugin-react";
-import path from "path";
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import path from 'path';
+
 export default defineConfig({
     plugins: [react()],
+    base: './',
     resolve: {
         alias: {
-            '@biosignal/app': path.resolve(process.cwd(), 'src/main/app'),
-            '@biosignal/common': path.resolve(process.cwd(), 'src/main/common'),
-            '@biosignal/web': path.resolve(process.cwd(), 'src/main/web')
+            '@': path.resolve(__dirname, './src')
         }
     },
-    publicDir: 'public',
+    build: {
+        outDir: 'dist',
+        emptyOutDir: true,
+        assetsDir: 'assets',
+        rollupOptions: {
+            output: {
+                entryFileNames: 'assets/[name]-[hash].js',
+                chunkFileNames: 'assets/[name]-[hash].js',
+                assetFileNames: 'assets/[name]-[hash].[ext]'
+            }
+        }
+    }
 });

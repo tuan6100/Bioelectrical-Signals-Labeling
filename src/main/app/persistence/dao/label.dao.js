@@ -1,4 +1,4 @@
-import {db as sqliteDb} from "@biosignal/app/persistence/connection/sqlite.connection.js";
+import {db as sqliteDb} from "../connection/sqlite.connection.js";
 
 export default class Label {
     constructor(

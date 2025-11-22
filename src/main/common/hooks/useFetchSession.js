@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import {fetchSessionDashboard} from "@biosignal/common/api/index.js";
+import {fetchSessionDashboard} from "../api/index.js";
 
 
 export function useFetchSession(sessionId) {
