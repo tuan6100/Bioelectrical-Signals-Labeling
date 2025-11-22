@@ -1,4 +1,4 @@
-import Channel from "@biosignal/app/persistence/dao/channel.dao.js";
+import Channel from "../../persistence/dao/channel.dao.js";
 
 function toNumber(v) {
     if (v === null || v === undefined) return null;

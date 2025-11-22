@@ -1,9 +1,10 @@
 import {ipcMain, dialog} from "electron";
 import {
-    getSessionsByPage,
     getSessionInfo,
+    getSessionsByPage,
     getSessionsByPatientId
-} from "@biosignal/app/domain/services/data/query/session.query.js";
+} from "../../../domain/services/data/query/session.query.js";
+
 
 ipcMain.removeHandler('session:getInfo')
 ipcMain.handle('session:getInfo', (event, sessionId) => {

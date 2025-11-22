@@ -1,5 +1,6 @@
 import { ipcMain, dialog } from 'electron'
-import {getChannelSignal} from "@biosignal/app/domain/services/data/query/session.query.js";
+import {getChannelSignal} from "../../../domain/services/data/query/session.query.js";
+
 
 
 ipcMain.removeHandler('channel:getSamples')

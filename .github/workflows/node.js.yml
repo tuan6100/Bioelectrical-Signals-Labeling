@@ -24,12 +24,9 @@ concurrency:
 jobs:
   build:
     name: Build & Test (Node ${{ matrix.node-version }} on ${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-latest]
-        node-version: [22.x]
+    runs-on: windows-latest
+    permissions:
+      contents: write
 
     steps:
       - uses: actions/checkout@v4
@@ -43,12 +40,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
+          cache: "pnpm"
 
-      - name: Install dependencies
-        run: pnpm install
-
-#      - name: Configure pnpm for Electron Forge
-#        run: pnpm config set node-linker hoisted
+      - name: Configure pnpm for Electron Forge
+        run: pnpm config set node-linker hoisted
 
       - name: Install dependencies
         run: pnpm install
@@ -64,11 +59,13 @@ jobs:
         env:
           CI: true
 
-      - name: Build renderer (web)
-        run: pnpm build:web
+#      - name: Build renderer (web)
+#        run: pnpm run build:web
 
       - name: Build and publish desktop application
-        run: pnpm publish
+        run: pnpm run publish:app --arch x64
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -80,45 +77,4 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
-  release:
-    name: Create GitHub Release
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: build
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Download Windows artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: app-build-windows-latest
-          path: release-assets/windows
-
-      - name: Download macOS artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: app-build-macos-latest
-          path: release-assets/macos
-
-      - name: Generate Release Notes
-        id: notes
-        uses: actions/generate-release-notes@v1
-        with:
-          tag_name: ${{ github.ref_name }}
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ github.ref_name }}
-          name: Release ${{ github.ref_name }}
-          body: ${{ steps.notes.outputs.body }}
-          draft: false
-          prerelease: ${{ contains(github.ref_name, '-') }}
-          files: |
-            release-assets/windows/**
-            release-assets/macos/**
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

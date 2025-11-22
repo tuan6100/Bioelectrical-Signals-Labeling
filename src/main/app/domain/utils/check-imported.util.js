@@ -1,5 +1,6 @@
 import CRC32 from 'crc-32';
-import Session from "@biosignal/app/persistence/dao/session.dao.js";
+import Session from "../../persistence/dao/session.dao.js";
+
 
 export function checkFileImported(content) {
     const hash = calculateCRC32(content);

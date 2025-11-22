@@ -2,18 +2,27 @@
 import { app, BrowserWindow, Menu, dialog, globalShortcut } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { readFile } from "@biosignal/app/domain/services/file/reader/txt.reader.js"
-import fs from "fs"
-import {processAndPersistData} from "@biosignal/app/domain/services/data/command/session.command.js"
-import * as handlers from '@biosignal/app/api/handlers'
-import {updateElectronApp} from "update-electron-app";
-import {db} from "@biosignal/app/persistence/connection/sqlite.connection.js";
 
-// Handle creating/removing shortcuts on Windows when installing/uninstalling.
-// Fix for top-level return in `src/main/app/main.js`
+import { readFile } from "./domain/services/file/reader/txt.reader.js"
+import fs from "node:fs"
+import {processAndPersistData} from "./domain/services/data/command/session.command.js"
+import './api/handlers/index.js'
+import {db} from "./persistence/connection/sqlite.connection.js";
+import autoUpdater from "electron-updater";
+
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
+const MAIN_WINDOW_VITE_DEV_SERVER_URL = process.env.NODE_ENV === 'dev'? 'http://localhost:5173': null
+
+if (process.argv.includes('--delete-app-data')) {
+    try {
+        fs.rmSync(app.getPath('appData'), { recursive: true, force: true })
+        process.exit(1)
+    } catch (err) {
+        console.error("Failed to clear user data:", err)
+    }
+}
 
 const createWindow = () => {
     // Create the browser window.
@@ -21,7 +30,7 @@ const createWindow = () => {
         width: 800,
         height: 600,
         webPreferences: {
-            preload: path.join(__dirname, 'preload.js')
+            preload: path.join(__dirname, 'preload.cjs')
         },
         icon: `./public/favicon/biosignal.ico`,
         ...(process.platform !== 'darwin' ? { titleBarOverlay: true } : {}),
@@ -95,7 +104,7 @@ const createWindow = () => {
     if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
         mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL)
     } else {
-        mainWindow.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`))
+        mainWindow.loadFile(path.join(__dirname, '..', '..', '..', 'dist', 'index.html'))
     }
 
     return mainWindow
@@ -103,34 +112,41 @@ const createWindow = () => {
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
-app.whenReady().then(async () => {
+app.whenReady().then(() => {
     const win = createWindow()
     try {
         db.initSchema()
+        win.webContents.send('db-status', {ok: true})
     } catch (e) {
         console.error(e)
+        win.webContents.send('db-status', {ok: false, message: e.message})
     }
     // Toggle full screen
     globalShortcut.register('F11', () => {
         win.setFullScreen(!win.isFullScreen())
     })
     // Open the DevTools.
-    if (process.env.NODE_ENV === 'dev') {
-        globalShortcut.register('Ctrl+F12',  () => {
-            win.webContents.toggleDevTools()
-        })
-    }
-    win.webContents.session.setSpellCheckerLanguages(['en-US', 'vi'])
-    app.setAppLogsPath(app.getPath("userData"))
+    // if (process.env.NODE_ENV === 'dev') {
+    //     globalShortcut.register('Ctrl+F12', () => {
+    //         win.webContents.toggleDevTools()
+    //     })
+    // }
+    globalShortcut.register('Ctrl+F12', () => {
+        win.webContents.toggleDevTools()
+    })
+
 })
 
 // Quit when all windows are closed, except on macOS.
-app.on('window-all-closed', async () => {
+app.on('window-all-closed', () => {
     db.close()
     if (process.platform !== 'darwin') {
         app.quit()
     }
 })
 
-updateElectronApp()
+app.on('ready', async function()  {
+    await autoUpdater.checkForUpdatesAndNotify();
+})
+
 
