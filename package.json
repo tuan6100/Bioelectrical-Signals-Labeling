@@ -18,7 +18,8 @@
     "build:mac": "pnpm run build:web && electron-builder --mac",
     "build:linux": "pnpm run build:web && electron-builder --linux",
     "build:web": "vite build",
-    "publish": "pnpm run build:web && electron-builder --publish onTag",
+    "publish:app": "pnpm run build:web && electron-builder --publish always",
+    "postinstall": "electron-builder install-app-deps",
     "lint": "echo \"No linting configured\""
   },
   "keywords": [
@@ -46,15 +47,16 @@
   "devDependencies": {
     "@electron/fuses": "^1.8.0",
     "@vitejs/plugin-react": "^5.1.0",
+    "chai": "^6.2.1",
     "concurrently": "^9.2.1",
+    "cross-env": "^7.0.3",
     "electron": "^39.2.3",
     "electron-builder": "^26.0.12",
-    "vite": "^5.4.21",
-    "wait-on": "^7.0.1",
-    "cross-env": "^7.0.3",
+    "electron-rebuild": "^3.2.9",
     "mocha": "^11.7.5",
-    "chai": "^6.2.1",
-    "sinon": "^21.0.0"
+    "sinon": "^21.0.0",
+    "vite": "^5.4.21",
+    "wait-on": "^7.0.1"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -119,9 +121,11 @@
       "installerIcon": "public/favicon/biosignal.ico",
       "uninstallerIcon": "public/favicon/biosignal.ico",
       "artifactName": "biosignal-labeling-setup-${version}-win-${arch}-setup.exe",
-      "deleteAppDataOnUninstall": true,
+      "deleteAppDataOnUninstall": false,
       "perMachine": false,
-      "runAfterFinish": true
+      "runAfterFinish": true,
+      "include":  "installer.nsh",
+      "warningsAsErrors": false
     },
     "mac": {
       "category": "public.app-category.productivity",
@@ -133,7 +137,7 @@
     "publish": [
       {
         "provider": "github",
-        "owner": "tuan",
+        "owner": "tuan6100",
         "repo": "Bioelectrical-Signals-Labeling"
       }
     ]
