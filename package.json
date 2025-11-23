@@ -121,9 +121,11 @@
       "installerIcon": "public/favicon/biosignal.ico",
       "uninstallerIcon": "public/favicon/biosignal.ico",
       "artifactName": "biosignal-labeling-setup-${version}-win-${arch}-setup.exe",
-      "deleteAppDataOnUninstall": true,
+      "deleteAppDataOnUninstall": false,
       "perMachine": false,
-      "runAfterFinish": true
+      "runAfterFinish": true,
+      "include":  "installer.nsh",
+      "warningsAsErrors": false
     },
     "mac": {
       "category": "public.app-category.productivity",
