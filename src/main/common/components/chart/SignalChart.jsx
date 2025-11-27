@@ -44,7 +44,7 @@ export default function SignalChart({
     const [isEditingPersisted, setIsEditingPersisted] = useState(false);
     const [isCreatingNewLabelPersisted, setIsCreatingNewLabelPersisted] = useState(false);
 
-    const MARGIN = { top: 20, right: 20, bottom: 50, left: 60 };
+    const MARGIN = { top: 20, right: 20, bottom: 80, left: 60 };
 
     const dispatchAnnotationsUpdated = useCallback((next) => {
         try {
