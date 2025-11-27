@@ -25,13 +25,12 @@ const LabelTable = ({ data, channelId }) => {
     const prevLengthRef = useRef(null)
     const prevRowsMapRef = useRef(new Map())
     const [filterText, setFilterText] = useState('')
-    const [sort, setSort] = useState({ key: '', dir: '' })
+    const [sort, setSort] = useState({ key: 'startTimeMs', dir: 'asc' })
     const [newRow, setNewRow] = useState({ startTimeMs: '', endTimeMs: '', labelName: '', note: '' })
     const [editId, setEditId] = useState(null)
     const [editFields, setEditFields] = useState({ labelName: '', note: '', startTimeMs: '', endTimeMs: '' })
     const [allLabels, setAllLabels] = useState([])
     const [labelsLoading, setLabelsLoading] = useState(false)
-    const [flashTrigger, setFlashTrigger] = useState(0)
 
     useEffect(() => {
         selectedIdRef.current = selectedId
@@ -107,7 +106,6 @@ const LabelTable = ({ data, channelId }) => {
                 if (!exists) return
             }
             setSelectedId(id)
-            setFlashTrigger(t => t + 1)
         }
         window.addEventListener('annotation-select', handleAnnotationSelect)
         console.log('Added annotation-select listener')
@@ -133,13 +131,6 @@ const LabelTable = ({ data, channelId }) => {
             detail: { channelId, annotations: nextAnnotations, updatedId }
         })
         window.dispatchEvent(evt)
-    }
-
-    function flashSelect(id) {
-        if (selectedIdRef.current !== id) {
-            setSelectedId(id)
-        }
-        setFlashTrigger(t => t + 1)
     }
 
     const handleCellUpdate = async (id, fields) => {
@@ -214,7 +205,7 @@ const LabelTable = ({ data, channelId }) => {
     }
 
     const handleReload = async () => {
-        setSort({ key: '', dir: '' })
+        setSort({ key: 'startTimeMs', dir: 'asc' })
         setFilterText('')
         try {
             setLabelsLoading(true)

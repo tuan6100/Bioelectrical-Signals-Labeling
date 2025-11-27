@@ -8,21 +8,13 @@ import fs from "node:fs"
 import {processAndPersistData} from "./domain/services/data/command/session.command.js"
 import './api/handlers/index.js'
 import {db} from "./persistence/connection/sqlite.connection.js";
-import autoUpdater from "electron-updater";
+import pkg from 'electron-updater';
+const { autoUpdater } = pkg;
 
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const MAIN_WINDOW_VITE_DEV_SERVER_URL = process.env.NODE_ENV === 'dev'? 'http://localhost:5173': null
-
-if (process.argv.includes('--delete-app-data')) {
-    try {
-        fs.rmSync(app.getPath('appData'), { recursive: true, force: true })
-        process.exit(1)
-    } catch (err) {
-        console.error("Failed to clear user data:", err)
-    }
-}
 
 const createWindow = () => {
     // Create the browser window.
@@ -33,7 +25,6 @@ const createWindow = () => {
             preload: path.join(__dirname, 'preload.cjs')
         },
         icon: `./public/favicon/biosignal.ico`,
-        ...(process.platform !== 'darwin' ? { titleBarOverlay: true } : {}),
         titleBarOverlay: {
             color: '#2f3241',
             symbolColor: '#74b1be',
