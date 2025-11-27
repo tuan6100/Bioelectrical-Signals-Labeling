@@ -8,6 +8,19 @@ importers:
 
   .:
     dependencies:
+      better-sqlite3:
+        specifier: ^12.4.1
+        version: 12.4.6
+      crc-32:
+        specifier: ^1.2.2
+        version: 1.2.2
+      electron-updater:
+        specifier: ^6.6.2
+        version: 6.6.2
+    devDependencies:
+      '@electron/fuses':
+        specifier: ^1.8.0
+        version: 1.8.0
       '@fortawesome/fontawesome-svg-core':
         specifier: ^7.1.0
         version: 7.1.0
@@ -23,37 +36,6 @@ importers:
       '@fortawesome/react-fontawesome':
         specifier: ^3.1.0
         version: 3.1.0(@fortawesome/fontawesome-svg-core@7.1.0)(react@19.2.0)
-      better-sqlite3:
-        specifier: ^12.4.1
-        version: 12.4.6
-      crc-32:
-        specifier: ^1.2.2
-        version: 1.2.2
-      electron-updater:
-        specifier: ^6.6.2
-        version: 6.6.2
-      react:
-        specifier: ^19.2.0
-        version: 19.2.0
-      react-chartjs-2:
-        specifier: ^5.3.1
-        version: 5.3.1(chart.js@4.5.1)(react@19.2.0)
-      react-dom:
-        specifier: ^19.2.0
-        version: 19.2.0(react@19.2.0)
-      react-router-dom:
-        specifier: ^7.9.5
-        version: 7.9.6(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      react-select:
-        specifier: ^5.10.2
-        version: 5.10.2(@types/react@19.2.6)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      scheduler:
-        specifier: ^0.27.0
-        version: 0.27.0
-    devDependencies:
-      '@electron/fuses':
-        specifier: ^1.8.0
-        version: 1.8.0
       '@vitejs/plugin-react':
         specifier: ^5.1.0
         version: 5.1.1(vite@5.4.21(@types/node@24.10.1))
@@ -78,6 +60,24 @@ importers:
       mocha:
         specifier: ^11.7.5
         version: 11.7.5
+      react:
+        specifier: ^19.2.0
+        version: 19.2.0
+      react-chartjs-2:
+        specifier: ^5.3.1
+        version: 5.3.1(chart.js@4.5.1)(react@19.2.0)
+      react-dom:
+        specifier: ^19.2.0
+        version: 19.2.0(react@19.2.0)
+      react-router-dom:
+        specifier: ^7.9.5
+        version: 7.9.6(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      react-select:
+        specifier: ^5.10.2
+        version: 5.10.2(@types/react@19.2.6)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      scheduler:
+        specifier: ^0.27.0
+        version: 0.27.0
       sinon:
         specifier: ^21.0.0
         version: 21.0.0
