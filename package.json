@@ -29,22 +29,22 @@
   ],
   "license": "Apache-2.0",
   "dependencies": {
-    "@fortawesome/fontawesome-svg-core": "^7.1.0",
-    "@fortawesome/free-brands-svg-icons": "^7.1.0",
-    "@fortawesome/free-regular-svg-icons": "^7.1.0",
-    "@fortawesome/free-solid-svg-icons": "^7.1.0",
-    "@fortawesome/react-fontawesome": "^3.1.0",
     "better-sqlite3": "^12.4.1",
     "crc-32": "^1.2.2",
-    "electron-updater": "^6.6.2",
+    "electron-updater": "^6.6.2"
+  },
+  "devDependencies": {
     "react": "^19.2.0",
     "react-chartjs-2": "^5.3.1",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.9.5",
     "react-select": "^5.10.2",
-    "scheduler": "^0.27.0"
-  },
-  "devDependencies": {
+    "scheduler": "^0.27.0",
+    "@fortawesome/fontawesome-svg-core": "^7.1.0",
+    "@fortawesome/free-brands-svg-icons": "^7.1.0",
+    "@fortawesome/free-regular-svg-icons": "^7.1.0",
+    "@fortawesome/free-solid-svg-icons": "^7.1.0",
+    "@fortawesome/react-fontawesome": "^3.1.0",
     "@electron/fuses": "^1.8.0",
     "@vitejs/plugin-react": "^5.1.0",
     "chai": "^6.2.1",
