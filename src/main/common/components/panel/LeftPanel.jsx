@@ -7,6 +7,7 @@ import {
 import { useSignalViewport } from '../../hooks/useSignalViewport.js';
 import './LeftPanel.css';
 import SignalChart from "../chart/SignalChart.jsx";
+import ChartToolbar from '../chart/ChartToolbar.jsx';
 
 export default function LeftPanel ({
     sessionId,
@@ -165,6 +166,7 @@ export default function LeftPanel ({
                     onViewportChange={updateViewport}
                     channelId={channelId}
                 />
+                <ChartToolbar />
             </div>
         </div>
     );

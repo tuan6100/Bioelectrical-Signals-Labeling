@@ -137,3 +137,41 @@
     border-color: #40a9ff;
     box-shadow: 0 0 0 2px rgba(64, 169, 255, 0.2);
 }
+
+.chart-bottom-toolbar {
+    position: absolute;
+    bottom: 4px;
+    left: 4px;
+    display: flex;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.85);
+    padding: 4px 6px;
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+    backdrop-filter: blur(4px);
+}
+
+.chart-bottom-toolbar button {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.chart-bottom-toolbar button:hover {
+    background: #e6f0ff;
+    border-color: #40a9ff;
+}
+
+.chart-bottom-toolbar button svg {
+    width: 14px;
+    height: 14px;
+    color: #333;
+}
