@@ -20,17 +20,7 @@ export function persistLabel(channelId, startTime, endTime, labelName, labelNote
             endTime,
             labelNote,
         )
-        if (startTime < 0 || endTime < 0) {
-            throw new Error('Annotation time cannot be negative.')
-        }
-        if (endTime <= startTime) {
-            throw new Error('Annotation end time must be greater than start time.')
-        }
-        let channelDuration = Channel. findOneDurationById(channelId)
-        channelDuration = channelDuration.sweepDurationMs?? channelDuration.traceDurationMs
-        if (endTime > channelDuration) {
-            throw new Error('Annotation end time exceeds channel duration.')
-        }
+        checkTimeValidity(startTime, endTime, channelId)
         if (annotation.isOverlapping()) {
             throw new Error('Annotation time range is overlapping with an existing annotation.')
         }
@@ -105,17 +95,7 @@ export function updateAnnotation(annotationId, updates) {
             const channelId = updates.channelId ?? annotation.channelId
             const newStart = updates.startTimeMs ?? annotation.startTimeMs
             const newEnd = updates.endTimeMs ?? annotation.endTimeMs
-            if (newStart < 0 || newEnd< 0) {
-                throw new Error('Annotation time cannot be negative.')
-            }
-            if (newEnd <= newStart) {
-                throw new Error('Annotation end time must be greater than start time.')
-            }
-            let channelDuration = Channel. findOneDurationById(channelId)
-            channelDuration = channelDuration.sweepDurationMs?? channelDuration.traceDurationMs
-            if (newEnd > channelDuration) {
-                throw new Error('Annotation end time exceeds channel duration.')
-            }
+            checkTimeValidity(newStart, newEnd, channelId)
             if (!Annotation.canResize(annotationId, channelId, newStart, newEnd)) {
                 throw new Error('Annotation time range is overlapping with an existing annotation.')
             }
@@ -150,4 +130,18 @@ export function deleteAnnotation(annotationId) {
         }
         return deleted
     })(annotationId)
+}
+
+function checkTimeValidity(startTime, endTime, channelId) {
+    if (startTime < 0 || endTime < 0) {
+        throw new Error('Annotation time cannot be negative.')
+    }
+    if (endTime <= startTime) {
+        throw new Error('Annotation end time must be greater than start time.')
+    }
+    const channelDuration = Channel.findOneDurationById(channelId)
+    if (endTime > channelDuration) {
+        throw new Error('Annotation end time exceeds channel duration.')
+    }
+    return true
 }

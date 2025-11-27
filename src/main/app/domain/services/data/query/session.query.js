@@ -3,7 +3,7 @@ import Session from "../../../../persistence/dao/session.dao.js";
 
 export function getSessionInfo(sessionId) {
     const sessionInfo =  Session.findAllRelatedById(sessionId)
-    const defaultChannelId = Channel.findByDataKindAndSweepIndex(sessionId, 'average', null)
+    const defaultChannelId = Channel.findByDataKind(sessionId, 'trace')
     const defaultChannelSignal = defaultChannelId ? getChannelSignal(defaultChannelId) : null
     return {
         session: sessionInfo,
@@ -41,7 +41,7 @@ export function getChannelSignal(channelId) {
 
     const freqKHz = first.subsampled_khz ?? first.sampling_frequency_khz
     let freqHz = (freqKHz ?? 0) * 1000
-    let durationMs = first.sweep_duration_ms ?? first.trace_duration_ms
+    let durationMs = first.duration_ms
     if ((!freqHz || freqHz <= 0) && durationMs && samplesArr.length > 1) {
         const dt = durationMs / samplesArr.length
         freqHz = 1000 / dt
@@ -70,10 +70,10 @@ export function getChannelSignal(channelId) {
         })
         return acc
     }, [])
-    annotations.sort((a, b) => b.timeline - a.timeline)
+    console.log("Duration is: " + durationMs)
     return {
         samplingRateHz: freqHz || null,
-        durationMs: durationMs || (timeSeries.length ? timeSeries[timeSeries.length - 1].time : null),
+        durationMs: durationMs,
         samples: timeSeries,
         annotations
     }

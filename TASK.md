@@ -8,4 +8,5 @@
 [] Create summary report of findings
 [] Insert default labels list
 [] Add toolbars for the chart 
+[] Fix overlapping behavior
 [x] Sort labels table order by start time by default

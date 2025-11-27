@@ -7,6 +7,7 @@ export default class Session {
         measurementType,
         startTime,
         endTime,
+        status,
         inputFileName,
         contentHash,
         updatedAt
@@ -16,6 +17,7 @@ export default class Session {
         this.measurementType = measurementType
         this.startTime = startTime
         this.endTime = endTime
+        this.status = status
         this.inputFileName = inputFileName
         this.contentHash = contentHash
         this.updatedAt = updatedAt
@@ -33,9 +35,9 @@ export default class Session {
         const now = this.updatedAt?? new Date().toISOString()
         const stmt = Session.db.prepare(`
             INSERT INTO sessions (
-                session_id, patient_id, measurement_type, start_time, end_time, input_file_name, content_hash, updated_at
+                session_id, patient_id, measurement_type, start_time, end_time, status, input_file_name, content_hash, updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
         const resultingChanges = stmt.run(
             this.sessionId,
@@ -43,6 +45,7 @@ export default class Session {
             this.measurementType,
             this.startTime,
             this.endTime,
+            this.status,
             this.inputFileName,
             this.contentHash,
             now
@@ -67,7 +70,7 @@ export default class Session {
     static findOneById(sessionId) {
         const stmt = Session.db.prepare(`
             SELECT 
-                session_id, patient_id, measurement_type, start_time, end_time, input_file_name, content_hash, updated_at
+                session_id, patient_id, measurement_type, start_time, end_time, status, input_file_name, content_hash, updated_at
             FROM sessions 
             WHERE session_id = ?
         `)
@@ -79,6 +82,7 @@ export default class Session {
             row.measurement_type,
             row.start_time,
             row.end_time,
+            row.status,
             row.input_file_name,
             row.content_hash,
             row.updated_at
@@ -88,7 +92,7 @@ export default class Session {
     static findAll() {
         const stmt = Session.db.prepare(`
             SELECT 
-                session_id, patient_id, measurement_type, start_time, end_time, input_file_name, content_hash, updated_at
+                session_id, patient_id, measurement_type, start_time, end_time, status, input_file_name, content_hash, updated_at
             FROM sessions
             ORDER BY datetime(updated_at) DESC
         `)
@@ -109,7 +113,7 @@ export default class Session {
         const limit = size
         const offset = (page - 1) * size
         const stmt = Session.db.prepare(`
-            SELECT s.session_id, s.patient_id, s.measurement_type, s.start_time, s.end_time, s.input_file_name, s.updated_at,
+            SELECT s.session_id, s.patient_id, s.measurement_type, s.start_time, s.end_time, s.status, s.input_file_name, s.updated_at,
                    a.first_name AS patient_name, a.gender AS patient_gender
             FROM sessions s
             INNER JOIN patients a ON s.patient_id = a.patient_id
@@ -122,7 +126,7 @@ export default class Session {
     static findByPatientId(patientId) {
         const stmt = Session.db.prepare(`
             SELECT 
-                session_id, patient_id, measurement_type, start_time, end_time, input_file_name, updated_at
+                session_id, patient_id, measurement_type, start_time, end_time, status, input_file_name, updated_at
             FROM sessions 
             WHERE patient_id = ?
             ORDER BY start_time DESC
@@ -144,9 +148,9 @@ export default class Session {
         if (fields.length === 0) return null
         const fieldMap = {
             patientId: 'patient_id',
-            measurementType: 'measurement_type',
             startTime: 'start_time',
-            endTime: 'end_time'
+            endTime: 'end_time',
+            status: 'status',
         }
         const setClause = fields.map(field => {
             const dbField = fieldMap[field] || field
@@ -186,8 +190,8 @@ export default class Session {
         SELECT
             p.patient_id, p.first_name AS patient_first_name, p.gender AS patient_gender,
             s.start_time AS session_start_time, s.end_time AS session_end_time,
-            s.updated_at AS session_updated_at,
-            c.channel_id, c.channel_number, c.data_kind AS channel_data_kind, c.sweep_index AS channel_sweep_index
+            s.status, s.updated_at AS session_updated_at,
+            c.channel_id, c.channel_number, c.data_kind AS channel_data_kind
         FROM sessions AS s
         INNER JOIN patients AS p ON s.patient_id = p.patient_id
         INNER JOIN channels AS c ON s.session_id = c.session_id
@@ -203,6 +207,7 @@ export default class Session {
             patientGender: rows[0].patient_gender,
             sessionStartTime: rows[0].session_start_time,
             sessionEndTime: rows[0].session_end_time,
+            sessionStatus: rows[0].status,
             sessionUpdatedAt: new Date(rows[0].session_updated_at).toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }),
             channels: []
         }
@@ -210,8 +215,7 @@ export default class Session {
             result.channels.push({
                 channelId: row.channel_id,
                 channelNumber: row.channel_number,
-                dataKind: row.channel_data_kind,
-                sweepIndex: row.channel_sweep_index
+                dataKind: row.channel_data_kind
             })
         }
         return result

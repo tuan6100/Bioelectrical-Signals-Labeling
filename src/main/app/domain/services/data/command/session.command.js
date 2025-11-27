@@ -59,6 +59,7 @@ function insertSession(patientId, measurementType, startTime, endTime, inputFile
             measurementType,
             parsedStartTime,
             parsedEndTime,
+            'NEW',
             inputFileName,
             contentHash
         )
