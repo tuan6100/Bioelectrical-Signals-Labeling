@@ -2,7 +2,7 @@
   "name": "biosignal-tool",
   "productName": "Biosignal Labeling",
   "homepage": "",
-  "version": "1.1.0-alpha.0",
+  "version": "1.1.1-0",
   "author": "iBME lab, HUST",
   "description": "Bioelectric signal labeling app",
   "main": "src/main/app/main.js",
@@ -123,7 +123,7 @@
       "deleteAppDataOnUninstall": false,
       "perMachine": false,
       "runAfterFinish": true,
-      "include":  "installer.nsh",
+      "include": "installer.nsh",
       "warningsAsErrors": false
     },
     "mac": {
