@@ -1,10 +1,10 @@
-import React, { useRef, useState, useMemo, useEffect, useCallback } from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
     fetchCreateLabel,
-    fetchGetAllLabels,
-    fetchUpdateAnnotation,
     fetchDeleteAnnotation,
-    fetchShowErrorDialog
+    fetchGetAllLabels,
+    fetchShowErrorDialog,
+    fetchUpdateAnnotation
 } from '../../api';
 import './SignalChart.css';
 import LabelContextMenu from './LabelContextMenu.jsx';
@@ -103,18 +103,23 @@ export default function SignalChart({
         if (!samples || samples.length === 0) {
             return { min: -200, max: 200, step: 100 };
         }
-        const values = samples.map(s => s.value).filter(v => typeof v === 'number');
-        if (values.length === 0) {
-            return { min: -200, max: 200, step: 100 };
+
+        let maxAbsValue = 0;
+        for (let i = 0; i < samples.length; i++) {
+            const v = samples[i].value;
+            if (typeof v === 'number') {
+                const abs = Math.abs(v);
+                if (abs > maxAbsValue) maxAbsValue = abs;
+            }
         }
-        const maxAbsValue = Math.max(...values.map(v => Math.abs(v)));
+
         const yAxisStep = maxAbsValue > 500 ? 200 : 100;
         let newMax = Math.ceil(maxAbsValue / yAxisStep) * yAxisStep;
-        if (newMax === 0) {
-            newMax = yAxisStep;
-        }
+        if (newMax === 0) newMax = yAxisStep;
+
         return { min: -newMax, max: newMax, step: yAxisStep };
     }, [samples]);
+
 
     useEffect(() => {
         const container = containerRef.current;
@@ -133,10 +138,19 @@ export default function SignalChart({
     const chartWidth = dimensions.width - MARGIN.left - MARGIN.right;
     const chartHeight = dimensions.height - MARGIN.top - MARGIN.bottom;
 
-    const clampedViewport = useMemo(() => ({
-        startMs: viewport.startMs,
-        endMs: Math.min(viewport.endMs, effectiveDurationMs)
-    }), [viewport, effectiveDurationMs]);
+    const clampedViewport = useMemo(() => {
+        if (!effectiveDurationMs) return viewport;
+
+        return {
+            startMs: Math.max(0, viewport.startMs),
+            endMs: Math.min(
+                effectiveDurationMs,
+                Math.max(viewport.endMs, viewport.startMs + 1)
+            )
+        };
+    }, [viewport, effectiveDurationMs]);
+
+
 
     const timeToX = useCallback((time) => {
         const range = clampedViewport.endMs - clampedViewport.startMs;
@@ -924,20 +938,19 @@ export default function SignalChart({
     const autoFitDoneRef = useRef(false);
 
     useEffect(() => {
-        if (!labels || labels.length === 0) return;
+        if (!effectiveDurationMs) return;
         if (autoFitDoneRef.current) return;
-        const minStart = Math.min(...labels.map(l => Number(l.startTimeMs) || 0));
-        const maxEnd = Math.max(...labels.map(l => Number(l.endTimeMs) || 0));
-        if (!isFinite(minStart) || !isFinite(maxEnd) || maxEnd <= minStart) return;
-        const pad = Math.max(10, (maxEnd - minStart) * 0.02);
-        const fitStart = Math.max(0, minStart - pad);
-        const fitEnd = Math.min(effectiveDurationMs, maxEnd + pad);
-        const includesAll = viewport.startMs <= fitStart && viewport.endMs >= fitEnd;
-        if (!includesAll) {
-            onViewportChange({ startMs: fitStart, endMs: fitEnd });
-        }
+
+        onViewportChange({
+            startMs: 0,
+            endMs: effectiveDurationMs
+        });
+
         autoFitDoneRef.current = true;
-    }, [labels, effectiveDurationMs, viewport, onViewportChange]);
+    }, [effectiveDurationMs, onViewportChange]);
+
+
+
 
     const sampleDtMs = useMemo(() => {
         if (!samples || samples.length < 2) return 0;
