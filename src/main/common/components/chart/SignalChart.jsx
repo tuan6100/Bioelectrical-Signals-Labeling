@@ -347,7 +347,7 @@ export default function SignalChart({
         }
         ctx.font = '12px sans-serif';
         ctx.fillText(
-            `Time (ms)${samplingRateHz ? ` @ ${samplingRateHz} Hz` : ''}`,
+            `Total ${durationMs} ms`,
             MARGIN.left + chartWidth / 2,
             dimensions.height - 10
         );
@@ -970,6 +970,62 @@ export default function SignalChart({
         return Math.max(base / 2, dt);
     }, [effectiveMinResizeMs, sampleDtMs]);
 
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.target && ['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+            if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+                return;
+            }
+            e.preventDefault();
+            e.stopPropagation();
+            const range = viewport.endMs - viewport.startMs;
+            if (range <= 0) return;
+            const step = range * 0.1;
+            let newStart = viewport.startMs;
+            let newEnd = viewport.endMs;
+            if (e.key === 'ArrowLeft') {
+                newStart -= step;
+                newEnd -= step;
+            }
+            if (e.key === 'ArrowRight') {
+                newStart += step;
+                newEnd += step;
+            }
+            if (newStart < 0) {
+                newEnd -= newStart;
+                newStart = 0;
+            }
+            if (newEnd > effectiveDurationMs) {
+                newStart -= (newEnd - effectiveDurationMs);
+                newEnd = effectiveDurationMs;
+            }
+            newStart = Math.max(0, newStart);
+            newEnd = Math.min(effectiveDurationMs, newEnd);
+            onViewportChange({
+                startMs: newStart,
+                endMs: newEnd
+            });
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+
+    }, [viewport, effectiveDurationMs, onViewportChange]);
+
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const wheelHandler = (e) => {
+            e.preventDefault();
+            handleWheel(e);
+        };
+        canvas.addEventListener('wheel', wheelHandler, { passive: false });
+        return () => {
+            canvas.removeEventListener('wheel', wheelHandler);
+        };
+    }, [handleWheel]);
+
+
+
     return (
         <div
             ref={containerRef}
@@ -990,7 +1046,6 @@ export default function SignalChart({
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
                 onMouseLeave={handleMouseLeave}
-                onWheel={handleWheel}
                 onContextMenu={handleContextMenu}
                 style={{ display: 'block' }}
             />
@@ -1013,8 +1068,8 @@ export default function SignalChart({
                         maxWidth: 150
                     }}
                 >
-                    <div>t: {hoverSample.timeMs.toFixed(2)} ms</div>
-                    <div>v: {typeof hoverSample.value === 'number' ? hoverSample.value.toFixed(3) : hoverSample.value}</div>
+                    <div>time: {hoverSample.timeMs.toFixed(2)} ms</div>
+                    <div>volt: {typeof hoverSample.value === 'number' ? hoverSample.value.toFixed(1) : hoverSample.value} µV</div>
                 </div>
             )}
 

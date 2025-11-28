@@ -137,6 +137,7 @@ export default function StartPage() {
     return (
         <div className="start-page-root">
             <aside className="start-page-sidebar">
+                <h1>Biosignal Labeling Preview</h1>
                 <div className="start-page-sidebar-header">
                     <div className="start-page-sidebar-title">Sessions</div>
                     <div className="start-page-sidebar-actions">

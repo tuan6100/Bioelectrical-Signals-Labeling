@@ -34,7 +34,6 @@ const LabelTable = ({ data, channelId }) => {
 
     useEffect(() => {
         selectedIdRef.current = selectedId
-        console.log('Selected ID changed:', selectedId)
     }, [selectedId])
 
     const isAnnotationRow = (row) =>

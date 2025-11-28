@@ -25,7 +25,7 @@ import {
  *     patientGender: string,
  *     sessionStartTime: string,
  *     sessionEndTime: string,
- *     channels: Array<{channelId: number, channelNumber: number, dataKind: string, sweepIndex: number|null}>
+ *     channels: Array<{channelId: number, channelNumber: number, dataKind: string>
  *   },
  *   defaultChannel: {
  *     channelId: number|null,
@@ -97,8 +97,6 @@ export async function fetchChannelSamples(channelId) {
  * @param {string} labelDto.timeline - The timeline date for when the label was created.
  * @returns {Promise<{annotationId: number, channelId: number, labelId: number, labelName: string, startTimeMs: number, endTimeMs: number, note: string|null}>}
  */
-
-
 export async function fetchCreateLabel(labelDto) {
     if (isDesktopEnv()) {
         return await createLabelAppApi(labelDto);
