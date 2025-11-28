@@ -3,7 +3,7 @@ import Session from "../../../../persistence/dao/session.dao.js";
 
 export function getSessionInfo(sessionId) {
     const sessionInfo =  Session.findAllRelatedById(sessionId)
-    const defaultChannelId = Channel.findByDataKind(sessionId, 'trace')
+    const defaultChannelId = Channel.findByDataKind(sessionId, 'average')
     const defaultChannelSignal = defaultChannelId ? getChannelSignal(defaultChannelId) : null
     return {
         session: sessionInfo,
@@ -70,7 +70,6 @@ export function getChannelSignal(channelId) {
         })
         return acc
     }, [])
-    console.log("Duration is: " + durationMs)
     return {
         samplingRateHz: freqHz || null,
         durationMs: durationMs,
