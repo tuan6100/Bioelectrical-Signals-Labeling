@@ -1,23 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-    fetchChannelSamples,
-    fetchExportLabel
-} from '../../api/index.js';
+import { fetchExportLabel } from '../../api/index.js';
 import { useSignalViewport } from '../../hooks/useSignalViewport.js';
 import './LeftPanel.css';
 import SignalChart from "../chart/SignalChart.jsx";
 import ChartToolbar from '../chart/ChartToolbar.jsx';
 
-export default function LeftPanel ({
+export default function LeftPanel({
     sessionId,
     channels,
     channelId,
     defaultSignal,
-    onChannelSelected
+    onChannelSelected,
+    loading
 }) {
     const navigate = useNavigate();
-    const [loading, setLoading] = useState(false);
     const [samples, setSamples] = useState([]);
     const [samplingRate, setSamplingRate] = useState(null);
     const [durationMs, setDurationMs] = useState(null);
@@ -36,9 +33,7 @@ export default function LeftPanel ({
         const sig = defaultSignal;
         setSamples(sig.samples || []);
         setSamplingRate(sig.samplingRateHz || null);
-        setDurationMs(
-            sig.durationMs || (sig.samples?.length ? sig.samples[sig.samples.length - 1].time : null)
-        );
+        setDurationMs(sig.durationMs);
         const ann = sig.annotations
             ? Array.isArray(sig.annotations)
                 ? sig.annotations
@@ -57,26 +52,7 @@ export default function LeftPanel ({
         resetViewport();
     }, [defaultSignal, resetViewport]);
 
-    useEffect(() => {
-        const handler = (e) => {
-            const detail = e?.detail;
-            if (!detail) return;
-            if (detail.channelId != null && detail.channelId !== channelId) return;
-            const anns = Array.isArray(detail.annotations) ? detail.annotations : [];
-            setLabels(
-                anns.map(a => ({
-                    annotationId: a.annotationId,
-                    startTimeMs: a.startTimeMs,
-                    endTimeMs: a.endTimeMs,
-                    labelName: a.label?.name || a.labelName || 'Unknown',
-                    note: a.note || null,
-                    label: a.label || null
-                }))
-            );
-        };
-        window.addEventListener('annotations-updated', handler);
-        return () => window.removeEventListener('annotations-updated', handler);
-    }, [channelId]);
+
     const handleExport = async () => {
         if (!sessionId) return;
         try {
@@ -87,45 +63,10 @@ export default function LeftPanel ({
         }
     };
 
-    const handleChannelChange = async (event) => {
+    const handleChannelChange = (event) => {
         const newChannelId = Number(event.target.value);
         if (!newChannelId || newChannelId === channelId) return;
-        setLoading(true);
-        try {
-            const sig = await fetchChannelSamples(newChannelId);
-            onChannelSelected(newChannelId);
-            if (sig) {
-                setSamples(sig.samples || []);
-                setSamplingRate(sig.samplingRateHz || null);
-                setDurationMs(
-                    sig.durationMs || (sig.samples?.length ? sig.samples[sig.samples.length - 1].time : null)
-                );
-                const ann = sig.annotations
-                    ? Array.isArray(sig.annotations)
-                        ? sig.annotations
-                        : [sig.annotations]
-                    : [];
-                setLabels(
-                    ann.map(a => ({
-                        annotationId: a.annotationId,
-                        startTimeMs: a.startTimeMs,
-                        endTimeMs: a.endTimeMs,
-                        labelName: a.label?.name || a.labelName || 'Unknown',
-                        note: a.note || null,
-                        label: a.label || null
-                    }))
-                );
-                resetViewport();
-            } else {
-                setSamples([]);
-                setLabels([]);
-            }
-        } catch (e) {
-            console.error('Failed to load channel:', e);
-            alert('Failed to load channel: ' + (e.message || e));
-        } finally {
-            setLoading(false);
-        }
+        onChannelSelected(newChannelId);
     };
 
     return (
@@ -145,7 +86,6 @@ export default function LeftPanel ({
                                 {channels.map(ch => (
                                     <option key={ch.channelId} value={ch.channelId}>
                                         #{ch.channelNumber} {ch.dataKind}
-                                        {ch.sweepIndex !== null ? ` (Sweep ${ch.sweepIndex})` : ''}
                                     </option>
                                 ))}
                             </select>

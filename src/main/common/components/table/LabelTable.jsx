@@ -34,7 +34,6 @@ const LabelTable = ({ data, channelId }) => {
 
     useEffect(() => {
         selectedIdRef.current = selectedId
-        console.log('Selected ID changed:', selectedId)
     }, [selectedId])
 
     const isAnnotationRow = (row) =>
@@ -84,9 +83,6 @@ const LabelTable = ({ data, channelId }) => {
                             if (changedCount > 1) break
                         }
                     }
-                    if (prevLength === data.length && changedCount === 1 && changedId != null) {
-                        flashSelect(changedId)
-                    }
                 } catch (_) {}
             } else {
                 if (selectedId !== firstId) setSelectedId(firstId)
@@ -108,7 +104,6 @@ const LabelTable = ({ data, channelId }) => {
             setSelectedId(id)
         }
         window.addEventListener('annotation-select', handleAnnotationSelect)
-        console.log('Added annotation-select listener')
         return () => window.removeEventListener('annotation-select', handleAnnotationSelect)
     }, [data])
 
@@ -148,8 +143,6 @@ const LabelTable = ({ data, channelId }) => {
                     }
                     : row
             )
-
-            flashSelect(id)
             if (fields.labelName) {
                 const nm = (fields.labelName || '').trim()
                 if (nm && !allLabels.some(l => (l.name || '').toLowerCase() === nm.toLowerCase())) {
@@ -277,9 +270,8 @@ const LabelTable = ({ data, channelId }) => {
         }
         try {
             const created = await fetchCreateLabel({ channelId, startTime: Math.round(sMs), endTime: Math.round(eMs), name, note })
-            const createdId = created?.annotationId ?? created?.id
+            const createdId = created?.annotationId
             const next = [...(Array.isArray(data) ? data : []), created]
-            flashSelect(createdId)
             dispatchAnnotationsUpdated(next, createdId)
             if (name && !allLabels.some(l => (l.name || '').toLowerCase() === name.toLowerCase())) {
                 setAllLabels(prev => [...prev, { labelId: created?.labelId ?? Date.now(), name, createdAt: new Date().toISOString() }])
@@ -321,15 +313,7 @@ const LabelTable = ({ data, channelId }) => {
             const detail = e?.detail
             if (!detail) return
             if (detail.channelId != null && detail.channelId !== channelId) return
-            const { annotations: nextAnn, updatedId } = detail
-            if (updatedId != null) {
-                const exists = Array.isArray(nextAnn) && nextAnn.some(r => (r.annotationId ?? r.id) === updatedId)
-                if (exists) {
-                    flashSelect(updatedId)
-                }
-            }
         }
-        console.log('Adding annotations-updated listener')
         window.addEventListener('annotations-updated', handleAnnotationsUpdated)
         return () => window.removeEventListener('annotations-updated', handleAnnotationsUpdated)
     }, [channelId])
@@ -564,7 +548,6 @@ const LabelTable = ({ data, channelId }) => {
                                                             onClick={(e) => {
                                                                 e.preventDefault()
                                                                 e.stopPropagation()
-                                                                flashSelect(id)
                                                                 setEditId(id)
                                                                 setEditFields({
                                                                     labelName: labelName || '',
@@ -576,7 +559,6 @@ const LabelTable = ({ data, channelId }) => {
                                                             onKeyDown={(e) => {
                                                                 if (e.key === 'Enter' || e.key === ' ') {
                                                                     e.preventDefault()
-                                                                    flashSelect(id)
                                                                     setEditId(id)
                                                                     setEditFields({
                                                                         labelName: labelName || '',

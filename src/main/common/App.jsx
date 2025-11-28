@@ -20,7 +20,6 @@ function SessionListener() {
 function App() {
     return (
         <HashRouter>
-            <h1>Biosignal Labeling Preview</h1>
             <SessionListener />
             <AppRoutes />
         </HashRouter>

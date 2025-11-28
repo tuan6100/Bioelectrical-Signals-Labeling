@@ -2,9 +2,9 @@
   "name": "biosignal-tool",
   "productName": "Biosignal Labeling",
   "homepage": "",
-  "version": "1.1.0-alpha.0",
+  "version": "1.1.1-0",
   "author": "iBME lab, HUST",
-  "description": "My Electron application description",
+  "description": "Bioelectric signal labeling app",
   "main": "src/main/app/main.js",
   "type": "module",
   "repository": {
@@ -80,6 +80,8 @@
       "!*.map",
       "!package.json",
       "!package-lock.json",
+      "!yarn.lock",
+      "!pnpm-lock.yaml",
       "node_modules/**/*",
       "!node_modules/**react**/**/*",
       "!node_modules/**vite**/**/*",
@@ -101,9 +103,6 @@
       "!**/{appveyor.yml,.travis.yml,circle.yml}",
       "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
     ],
-    "extraMetadata": {
-      "version": "1.1.0-alpha"
-    },
     "win": {
       "icon": "public/favicon/biosignal.ico",
       "target": [
@@ -124,7 +123,7 @@
       "deleteAppDataOnUninstall": false,
       "perMachine": false,
       "runAfterFinish": true,
-      "include":  "installer.nsh",
+      "include": "installer.nsh",
       "warningsAsErrors": false
     },
     "mac": {

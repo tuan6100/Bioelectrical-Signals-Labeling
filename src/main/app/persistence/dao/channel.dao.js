@@ -6,25 +6,20 @@ export default class Channel {
         sessionId,
         channelNumber,
         dataKind,
-        sweepIndex,
         rawSamplesUv,
         samplingFrequencyKhz,
         subsampledKhz ,
-        sweepDurationMs ,
-        traceDurationMs ,
-        algorithm
+        durationMs ,
     ) {
         this.channelId = channelId
         this.sessionId = sessionId
         this.channelNumber = channelNumber
         this.dataKind = dataKind
-        this.sweepIndex = sweepIndex
         this.rawSamplesUv = rawSamplesUv
         this.samplingFrequencyKhz = samplingFrequencyKhz
         this.subsampledKhz = subsampledKhz
-        this.sweepDurationMs = sweepDurationMs
-        this.traceDurationMs = traceDurationMs
-        this.algorithm = algorithm
+        this.durationMs = durationMs
+
     }
 
     static db = sqliteDb
@@ -35,25 +30,21 @@ export default class Channel {
 
     insert() {
         const stmt = Channel.db.prepare(`
-            INSERT INTO channels ( channel_id,
-                session_id, channel_number, data_kind, sweep_index, raw_samples_uv,
-                sampling_frequency_khz, subsampled_khz, sweep_duration_ms,
-                trace_duration_ms, algorithm
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `)
+        INSERT INTO channels ( channel_id,
+            session_id, channel_number, data_kind, raw_samples_uv,
+            sampling_frequency_khz, subsampled_khz, duration_ms
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `)
         const resultingChanges = stmt.run(
             this.channelId,
             this.sessionId,
             this.channelNumber,
             this.dataKind,
-            this.sweepIndex,
             JSON.stringify(this.rawSamplesUv),
             this.samplingFrequencyKhz,
             this.subsampledKhz,
-            this.sweepDurationMs,
-            this.traceDurationMs,
-            this.algorithm
+            this.durationMs
         )
         this.channelId = resultingChanges.lastInsertRowid
         return this
@@ -62,26 +53,22 @@ export default class Channel {
     static insertBatch(channels) {
         const insertMany = Channel.db.transaction((channelList) => {
             const stmt = Channel.db.prepare(`
-                INSERT INTO channels (
-                    channel_id, session_id, channel_number, data_kind, sweep_index, raw_samples_uv,
-                    sampling_frequency_khz, subsampled_khz, sweep_duration_ms,
-                    trace_duration_ms, algorithm
-                )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `)
+            INSERT INTO channels (
+                channel_id, session_id, channel_number, data_kind, raw_samples_uv,
+                sampling_frequency_khz, subsampled_khz, duration_ms
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `)
             for (const channel of channelList) {
                 const resultingChanges = stmt.run(
                     channel.channelId,
                     channel.sessionId,
                     channel.channelNumber,
                     channel.dataKind,
-                    channel.sweepIndex,
                     JSON.stringify(channel.rawSamplesUv),
                     channel.samplingFrequencyKhz,
                     channel.subsampledKhz,
-                    channel.sweepDurationMs,
-                    channel.traceDurationMs,
-                    channel.algorithm
+                    channel.durationMs
                 )
                 channel.channelId = resultingChanges.lastInsertRowid
             }
@@ -89,13 +76,11 @@ export default class Channel {
         insertMany(channels)
     }
 
-
     static findOneById(channelId) {
         const stmt = Channel.db.prepare(`
             SELECT 
-                channel_id, session_id, channel_number, data_kind, sweep_index,
-                sampling_frequency_khz, subsampled_khz, sweep_duration_ms,
-                trace_duration_ms, algorithm
+                channel_id, session_id, channel_number, data_kind,
+                sampling_frequency_khz, subsampled_khz, duration_ms
             FROM channels 
             WHERE channel_id = ?
         `)
@@ -105,38 +90,29 @@ export default class Channel {
             row.session_id,
             row.channel_number,
             row.data_kind,
-            row.sweep_index,
             row.sampling_frequency_khz,
             row.subsampled_khz,
-            row.sweep_duration_ms,
-            row.trace_duration_ms,
-            row.algorithm
+            row.duration_ms
         )
     }
-
     static findOneDurationById(channelId) {
         const stmt = Channel.db.prepare(`
-            SELECT
-                sweep_duration_ms, trace_duration_ms
+            SELECT duration_ms
             FROM channels
             WHERE channel_id = ?
         `)
         const row = stmt.get(channelId)
         if (!row) return null
-        return {
-            sweepDurationMs: row.sweep_duration_ms,
-            traceDurationMs: row.trace_duration_ms
-        }
+        return row.duration_ms
     }
 
     static findAll() {
         const stmt  = Channel.db.prepare(`
             SELECT 
-                channel_id, session_id, channel_number, data_kind, sweep_index,
-                sampling_frequency_khz, subsampled_khz, sweep_duration_ms,
-                trace_duration_ms, algorithm
+                channel_id, session_id, channel_number, data_kind,
+                sampling_frequency_khz, subsampled_khz, duration_ms
             FROM channels 
-            ORDER BY channel_number, sweep_index
+            ORDER BY channel_number
         `)
         const rows = stmt.all()
         return rows.map(row => {
@@ -144,61 +120,24 @@ export default class Channel {
                 row.session_id,
                 row.channel_number,
                 row.data_kind,
-                row.sweep_index,
                 row.sampling_frequency_khz,
                 row.subsampled_khz,
-                row.sweep_duration_ms,
-                row.trace_duration_ms,
-                row.algorithm
+                row.duration_ms,
             )
             channel.channelId = row.channel_id
             return channel
         })
     }
 
-    static findBySessionId(sessionId) {
-        const stmt  = Channel.db.prepare(`
-            SELECT 
-                channel_id, session_id, channel_number, data_kind, sweep_index,
-                sampling_frequency_khz, subsampled_khz, sweep_duration_ms,
-                trace_duration_ms, algorithm
-            FROM channels 
-            WHERE session_id = ?
-            ORDER BY channel_number, sweep_index
-        `)
-        const rows = stmt.all(sessionId)
-        return rows.map(row => {
-            const channel = new Channel(
-                row.channel_id,
-                row.session_id,
-                row.channel_number,
-                row.data_kind,
-                row.sweep_index,
-                row.sampling_frequency_khz,
-                row.subsampled_khz,
-                row.sweep_duration_ms,
-                row.trace_duration_ms,
-                row.algorithm
-            )
-            channel.channelId = row.channel_id
-            return channel
-        })
-    }
-
-    static findByDataKindAndSweepIndex(sessionId, dataKind, sweepIndex) {
-        const query = sweepIndex === null?
+    static findByDataKind(sessionId, dataKind) {
+        const query =
             `SELECT channel_id
              FROM channels
-             WHERE session_id = ? AND LOWER(data_kind) LIKE ?
-             ORDER BY channel_number, sweep_index
-             ` :
-            `SELECT channel_id
-             FROM channels
-             WHERE session_id = ? AND LOWER(data_kind) LIKE ? AND sweep_index = ?
-             ORDER BY channel_number, sweep_index
+             WHERE session_id = ? AND LOWER(data_kind) = ?
+             ORDER BY channel_number
              `
         const stmt  = Channel.db.prepare(query)
-        const result = stmt.get(sessionId, `%${dataKind.toLowerCase()}%`)
+        const result = stmt.get(sessionId, `${dataKind.toLowerCase()}`)
         return result ? result.channel_id : null
     }
 
@@ -208,8 +147,7 @@ export default class Channel {
                 c.raw_samples_uv,
                 c.sampling_frequency_khz,
                 c.subsampled_khz,
-                c.sweep_duration_ms,
-                c.trace_duration_ms,
+                c.duration_ms,
                 a.annotation_id, a.start_time_ms, a.end_time_ms, a.note, a.labeled_at, a.updated_at,
                 l.label_id, l.name AS label_name
             FROM channels c
@@ -228,12 +166,9 @@ export default class Channel {
             sessionId: 'session_id',
             channelNumber: 'channel_number',
             dataKind: 'data_kind',
-            sweepIndex: 'sweep_index',
             samplingFrequencyKhz: 'sampling_frequency_khz',
             subsampledKhz: 'subsampled_khz',
-            sweepDurationMs: 'sweep_duration_ms',
-            traceDurationMs: 'trace_duration_ms',
-            algorithm: 'algorithm'
+            sweepDurationMs: 'duration_ms',
         }
         const setClause = fields.map(field => {
             const dbField = fieldMap[field] || field

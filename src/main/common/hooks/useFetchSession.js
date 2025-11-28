@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react';
-import {fetchSessionDashboard} from "../api/index.js";
-
+import { useState, useEffect, useRef } from 'react';
+import { fetchSessionDashboard, fetchChannelSamples } from "../api/index.js";
 
 export function useFetchSession(sessionId) {
     const [loading, setLoading] = useState(false);
@@ -9,10 +8,24 @@ export function useFetchSession(sessionId) {
     const [channels, setChannels] = useState([]);
     const [channelId, setChannelId] = useState(null);
     const [defaultSignal, setDefaultSignal] = useState(null);
-    const [samples, setSamples] = useState([]);
-    const [samplingRate, setSamplingRate] = useState(null);
-    const [durationMs, setDurationMs] = useState(null);
     const [labels, setLabels] = useState([]);
+    const fetchIdRef = useRef(0);
+
+    const processAnnotations = (signal) => {
+        if (signal?.annotations) {
+            const ann = Array.isArray(signal.annotations) ? signal.annotations : [signal.annotations];
+            return ann.map(a => ({
+                annotationId: a.annotationId,
+                startTimeMs: a.startTimeMs,
+                endTimeMs: a.endTimeMs,
+                labelName: a.label?.name || a.labelName || 'Unknown',
+                note: a.note || null,
+                timeline: a.timeline,
+                label: a.label || null
+            }));
+        }
+        return [];
+    };
 
     useEffect(() => {
         if (!sessionId) return;
@@ -24,38 +37,21 @@ export function useFetchSession(sessionId) {
                 const chs = data.session?.channels || [];
                 setChannels(chs);
                 const sig = data.defaultChannel?.signal || null;
-                setDefaultSignal(sig || null);
                 const cid = data.defaultChannel?.channelId || (chs.length ? chs[0].channelId : null);
-                setChannelId(cid);
-                if (sig) {
-                    setSamples(sig.samples || []);
-                    setSamplingRate(sig.samplingRateHz || null);
-                    setDurationMs(
-                        sig.durationMs ||
-                        (sig.samples?.length ? sig.samples[sig.samples.length - 1].time : null)
-                    );
-                    const ann = sig.annotations
-                        ? Array.isArray(sig.annotations)
-                            ? sig.annotations
-                            : [sig.annotations]
-                        : [];
-                    setLabels(
-                        ann.map(a => ({
-                            annotationId: a.annotationId,
-                            startTimeMs: a.startTimeMs,
-                            endTimeMs: a.endTimeMs,
-                            labelName: a.label?.name || a.labelName || 'Unknown',
-                            note: a.note || null,
-                            timeline: a.timeline,
-                            label: a.label || null
-                        }))
-                    );
-                } else {
-                    setSamples([]);
-                    setLabels([]);
-                    setSamplingRate(null);
-                    setDurationMs(null);
+                if (sig && cid) {
+                    try {
+                        const cacheKey = `signalCache_${sessionId}`;
+                        const cachedSignals = JSON.parse(sessionStorage.getItem(cacheKey) || '{}');
+                        cachedSignals[cid] = sig;
+                        sessionStorage.setItem(cacheKey, JSON.stringify(cachedSignals));
+                    } catch (e) {
+                        console.error("Failed to write initial signal to sessionStorage:", e);
+                    }
                 }
+
+                setDefaultSignal(sig || null);
+                setChannelId(cid);
+                setLabels(processAnnotations(sig));
             })
             .catch(err => {
                 console.error(err);
@@ -64,6 +60,53 @@ export function useFetchSession(sessionId) {
             .finally(() => setLoading(false));
     }, [sessionId]);
 
+    useEffect(() => {
+        if (!channelId || !sessionId) return;
+        const cacheKey = `signalCache_${sessionId}`;
+        try {
+            const cachedSignals = JSON.parse(sessionStorage.getItem(cacheKey) || '{}');
+            if (cachedSignals[channelId]) {
+                const cachedSignal = cachedSignals[channelId];
+                setDefaultSignal(cachedSignal);
+                setLabels(processAnnotations(cachedSignal));
+                return;
+            }
+        } catch (e) {
+            console.error("Failed to read from sessionStorage cache:", e);
+        }
+        const fetchId = ++fetchIdRef.current;
+        setLoading(true);
+
+        fetchChannelSamples(channelId)
+            .then(sig => {
+                if (fetchId === fetchIdRef.current) {
+                    if (sig) {
+                        try {
+                            const cachedSignals = JSON.parse(sessionStorage.getItem(cacheKey) || '{}');
+                            cachedSignals[channelId] = sig;
+                            sessionStorage.setItem(cacheKey, JSON.stringify(cachedSignals));
+                        } catch (e) {
+                            console.error("Failed to write to sessionStorage cache:", e);
+                        }
+                    }
+                    setDefaultSignal(sig || null);
+                    setLabels(processAnnotations(sig));
+                }
+            })
+            .catch(err => {
+                if (fetchId === fetchIdRef.current) {
+                    console.error(err);
+                    setError(err);
+                }
+            })
+            .finally(() => {
+                if (fetchId === fetchIdRef.current) {
+                    setLoading(false);
+                }
+            });
+
+    }, [channelId, sessionId]);
+
     return {
         loading,
         error,
@@ -71,12 +114,8 @@ export function useFetchSession(sessionId) {
         channels,
         channelId,
         defaultSignal,
-        samples,
-        samplingRate,
-        durationMs,
         labels,
         setChannelId,
-        setSamples,
         setLabels
     };
 }

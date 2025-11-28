@@ -1,22 +1,21 @@
 import Database from "better-sqlite3"
-import { execSync } from 'node:child_process';
 import path from "path";
 import {app} from "electron";
 
 const env = process.env.NODE_ENV
-let dbName
+let dbFileName
 switch (env) {
     case 'test':
-        dbName = 'biosignal-test.db'
+        dbFileName = 'biosignal-test.db'
         break
     case 'dev':
-        dbName = 'biosignal-dev.db'
+        dbFileName = 'biosignal-dev.db'
         break
     default:
-        dbName = path.join(app.getPath("userData"), "biosignal.db");
+        dbFileName = path.join(app.getPath("userData"), "biosignal.db");
 }
 
-export const db = new Database(dbName, {
+export const db = new Database(dbFileName, {
     verbose: console.log
 })
 
@@ -37,6 +36,7 @@ const ddl = `
         measurement_type TEXT DEFAULT 'UNKNOWN' CHECK (measurement_type IN ('ECG','EEG','EMG', 'UNKNOWN')),
         start_time TEXT NOT NULL,
         end_time TEXT NOT NULL,
+        status TEXT DEFAULT 'NEW' CHECK (status IN ('NEW','IN_PROGRESS','COMPLETED')),
         input_file_name TEXT,
         content_hash TEXT UNIQUE,
         updated_at TEXT,
@@ -50,18 +50,13 @@ const ddl = `
         session_id INTEGER NOT NULL,
         channel_number INTEGER NOT NULL,
         data_kind TEXT NOT NULL,
-        sweep_index INTEGER,
         raw_samples_uv TEXT NOT NULL,
         sampling_frequency_khz REAL,
         subsampled_khz REAL,
-        sweep_duration_ms REAL,
-        trace_duration_ms REAL,
-        algorithm TEXT,
+        duration_ms REAL,
         FOREIGN KEY (session_id) REFERENCES sessions(session_id) ON DELETE CASCADE
     );
-
-    CREATE INDEX IF NOT EXISTS channel_data_kind_sweep_idx ON channels(session_id, data_kind, sweep_index);
-    CREATE INDEX IF NOT EXISTS channel_session_data_kind_idx ON channels(session_id, data_kind);
+    CREATE INDEX IF NOT EXISTS channel_data_kind_sweep_idx ON channels(session_id, data_kind);
 
     CREATE TABLE IF NOT EXISTS labels (
         label_id INTEGER PRIMARY KEY NOT NULL,

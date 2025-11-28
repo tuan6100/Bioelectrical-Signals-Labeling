@@ -1,10 +1,10 @@
-import React, { useRef, useState, useMemo, useEffect, useCallback } from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
     fetchCreateLabel,
-    fetchGetAllLabels,
-    fetchUpdateAnnotation,
     fetchDeleteAnnotation,
-    fetchShowErrorDialog
+    fetchGetAllLabels,
+    fetchShowErrorDialog,
+    fetchUpdateAnnotation
 } from '../../api';
 import './SignalChart.css';
 import LabelContextMenu from './LabelContextMenu.jsx';
@@ -103,18 +103,23 @@ export default function SignalChart({
         if (!samples || samples.length === 0) {
             return { min: -200, max: 200, step: 100 };
         }
-        const values = samples.map(s => s.value).filter(v => typeof v === 'number');
-        if (values.length === 0) {
-            return { min: -200, max: 200, step: 100 };
+
+        let maxAbsValue = 0;
+        for (let i = 0; i < samples.length; i++) {
+            const v = samples[i].value;
+            if (typeof v === 'number') {
+                const abs = Math.abs(v);
+                if (abs > maxAbsValue) maxAbsValue = abs;
+            }
         }
-        const maxAbsValue = Math.max(...values.map(v => Math.abs(v)));
+
         const yAxisStep = maxAbsValue > 500 ? 200 : 100;
         let newMax = Math.ceil(maxAbsValue / yAxisStep) * yAxisStep;
-        if (newMax === 0) {
-            newMax = yAxisStep;
-        }
+        if (newMax === 0) newMax = yAxisStep;
+
         return { min: -newMax, max: newMax, step: yAxisStep };
     }, [samples]);
+
 
     useEffect(() => {
         const container = containerRef.current;
@@ -133,10 +138,19 @@ export default function SignalChart({
     const chartWidth = dimensions.width - MARGIN.left - MARGIN.right;
     const chartHeight = dimensions.height - MARGIN.top - MARGIN.bottom;
 
-    const clampedViewport = useMemo(() => ({
-        startMs: viewport.startMs,
-        endMs: Math.min(viewport.endMs, effectiveDurationMs)
-    }), [viewport, effectiveDurationMs]);
+    const clampedViewport = useMemo(() => {
+        if (!effectiveDurationMs) return viewport;
+
+        return {
+            startMs: Math.max(0, viewport.startMs),
+            endMs: Math.min(
+                effectiveDurationMs,
+                Math.max(viewport.endMs, viewport.startMs + 1)
+            )
+        };
+    }, [viewport, effectiveDurationMs]);
+
+
 
     const timeToX = useCallback((time) => {
         const range = clampedViewport.endMs - clampedViewport.startMs;
@@ -333,7 +347,7 @@ export default function SignalChart({
         }
         ctx.font = '12px sans-serif';
         ctx.fillText(
-            `Time (ms)${samplingRateHz ? ` @ ${samplingRateHz} Hz` : ''}`,
+            `Total ${durationMs} ms`,
             MARGIN.left + chartWidth / 2,
             dimensions.height - 10
         );
@@ -892,12 +906,43 @@ export default function SignalChart({
             const id = e?.detail?.id;
             if (id == null) return;
             const match = labels.find(l => (l.annotationId ?? l.id) === id);
-            if (match && match.annotationId != null) setHoveredLabelId(match.annotationId);
+            if (!match || match.annotationId == null) return;
+            const annStart = match.startTimeMs;
+            const annEnd = match.endTimeMs;
+            const viewStart = viewport.startMs;
+            const viewEnd = viewport.endMs;
+            const viewWidth = viewEnd - viewStart;
+            const isOutside =
+                annEnd < viewStart || annStart > viewEnd;
+            if (isOutside) {
+                const annCenter = (annStart + annEnd) / 2;
+                let newStart = annCenter - viewWidth / 2;
+                let newEnd = annCenter + viewWidth / 2;
+                if (newStart < 0) {
+                    newEnd -= newStart;
+                    newStart = 0;
+                }
+                if (newEnd > effectiveDurationMs) {
+                    newStart -= (newEnd - effectiveDurationMs);
+                    newEnd = effectiveDurationMs;
+                }
+                newStart = Math.max(0, newStart);
+                newEnd = Math.min(effectiveDurationMs, newEnd);
+                onViewportChange({
+                    startMs: newStart,
+                    endMs: newEnd
+                });
+            }
+            setHoveredLabelId(match.annotationId);
         };
         window.addEventListener('annotation-select', handleAnnotationSelect);
         return () => window.removeEventListener('annotation-select', handleAnnotationSelect);
-    }, [labels]);
-
+    }, [
+        labels,
+        viewport,
+        effectiveDurationMs,
+        onViewportChange
+    ]);
 
     useEffect(() => {
         const handleAnnotationsUpdated = (e) => {
@@ -924,20 +969,19 @@ export default function SignalChart({
     const autoFitDoneRef = useRef(false);
 
     useEffect(() => {
-        if (!labels || labels.length === 0) return;
+        if (!effectiveDurationMs) return;
         if (autoFitDoneRef.current) return;
-        const minStart = Math.min(...labels.map(l => Number(l.startTimeMs) || 0));
-        const maxEnd = Math.max(...labels.map(l => Number(l.endTimeMs) || 0));
-        if (!isFinite(minStart) || !isFinite(maxEnd) || maxEnd <= minStart) return;
-        const pad = Math.max(10, (maxEnd - minStart) * 0.02);
-        const fitStart = Math.max(0, minStart - pad);
-        const fitEnd = Math.min(effectiveDurationMs, maxEnd + pad);
-        const includesAll = viewport.startMs <= fitStart && viewport.endMs >= fitEnd;
-        if (!includesAll) {
-            onViewportChange({ startMs: fitStart, endMs: fitEnd });
-        }
+
+        onViewportChange({
+            startMs: 0,
+            endMs: effectiveDurationMs
+        });
+
         autoFitDoneRef.current = true;
-    }, [labels, effectiveDurationMs, viewport, onViewportChange]);
+    }, [effectiveDurationMs, onViewportChange]);
+
+
+
 
     const sampleDtMs = useMemo(() => {
         if (!samples || samples.length < 2) return 0;
@@ -956,6 +1000,62 @@ export default function SignalChart({
         const dt = sampleDtMs && sampleDtMs > 0 ? sampleDtMs : 1;
         return Math.max(base / 2, dt);
     }, [effectiveMinResizeMs, sampleDtMs]);
+
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.target && ['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+            if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+                return;
+            }
+            e.preventDefault();
+            e.stopPropagation();
+            const range = viewport.endMs - viewport.startMs;
+            if (range <= 0) return;
+            const step = range * 0.1;
+            let newStart = viewport.startMs;
+            let newEnd = viewport.endMs;
+            if (e.key === 'ArrowLeft') {
+                newStart -= step;
+                newEnd -= step;
+            }
+            if (e.key === 'ArrowRight') {
+                newStart += step;
+                newEnd += step;
+            }
+            if (newStart < 0) {
+                newEnd -= newStart;
+                newStart = 0;
+            }
+            if (newEnd > effectiveDurationMs) {
+                newStart -= (newEnd - effectiveDurationMs);
+                newEnd = effectiveDurationMs;
+            }
+            newStart = Math.max(0, newStart);
+            newEnd = Math.min(effectiveDurationMs, newEnd);
+            onViewportChange({
+                startMs: newStart,
+                endMs: newEnd
+            });
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+
+    }, [viewport, effectiveDurationMs, onViewportChange]);
+
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const wheelHandler = (e) => {
+            e.preventDefault();
+            handleWheel(e);
+        };
+        canvas.addEventListener('wheel', wheelHandler, { passive: false });
+        return () => {
+            canvas.removeEventListener('wheel', wheelHandler);
+        };
+    }, [handleWheel]);
+
+
 
     return (
         <div
@@ -977,7 +1077,6 @@ export default function SignalChart({
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
                 onMouseLeave={handleMouseLeave}
-                onWheel={handleWheel}
                 onContextMenu={handleContextMenu}
                 style={{ display: 'block' }}
             />
@@ -1000,8 +1099,8 @@ export default function SignalChart({
                         maxWidth: 150
                     }}
                 >
-                    <div>t: {hoverSample.timeMs.toFixed(2)} ms</div>
-                    <div>v: {typeof hoverSample.value === 'number' ? hoverSample.value.toFixed(3) : hoverSample.value}</div>
+                    <div>time: {hoverSample.timeMs.toFixed(2)} ms</div>
+                    <div>volt: {typeof hoverSample.value === 'number' ? hoverSample.value.toFixed(1) : hoverSample.value} µV</div>
                 </div>
             )}
 

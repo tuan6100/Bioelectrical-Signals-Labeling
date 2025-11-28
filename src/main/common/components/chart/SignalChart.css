@@ -17,6 +17,12 @@
     border-radius: 3px;
 }
 
+canvas {
+    overscroll-behavior: contain;
+    touch-action: none;
+}
+
+
 .label-modal-backdrop {
     position: fixed;
     inset: 0;
