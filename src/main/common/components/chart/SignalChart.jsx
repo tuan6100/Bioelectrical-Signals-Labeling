@@ -906,12 +906,43 @@ export default function SignalChart({
             const id = e?.detail?.id;
             if (id == null) return;
             const match = labels.find(l => (l.annotationId ?? l.id) === id);
-            if (match && match.annotationId != null) setHoveredLabelId(match.annotationId);
+            if (!match || match.annotationId == null) return;
+            const annStart = match.startTimeMs;
+            const annEnd = match.endTimeMs;
+            const viewStart = viewport.startMs;
+            const viewEnd = viewport.endMs;
+            const viewWidth = viewEnd - viewStart;
+            const isOutside =
+                annEnd < viewStart || annStart > viewEnd;
+            if (isOutside) {
+                const annCenter = (annStart + annEnd) / 2;
+                let newStart = annCenter - viewWidth / 2;
+                let newEnd = annCenter + viewWidth / 2;
+                if (newStart < 0) {
+                    newEnd -= newStart;
+                    newStart = 0;
+                }
+                if (newEnd > effectiveDurationMs) {
+                    newStart -= (newEnd - effectiveDurationMs);
+                    newEnd = effectiveDurationMs;
+                }
+                newStart = Math.max(0, newStart);
+                newEnd = Math.min(effectiveDurationMs, newEnd);
+                onViewportChange({
+                    startMs: newStart,
+                    endMs: newEnd
+                });
+            }
+            setHoveredLabelId(match.annotationId);
         };
         window.addEventListener('annotation-select', handleAnnotationSelect);
         return () => window.removeEventListener('annotation-select', handleAnnotationSelect);
-    }, [labels]);
-
+    }, [
+        labels,
+        viewport,
+        effectiveDurationMs,
+        onViewportChange
+    ]);
 
     useEffect(() => {
         const handleAnnotationsUpdated = (e) => {
