@@ -77,6 +77,7 @@ const ddl = `
         FOREIGN KEY (channel_id) REFERENCES channels(channel_id) ON DELETE CASCADE,
         FOREIGN KEY (label_id) REFERENCES labels(label_id)
     );
+    CREATE INDEX IF NOT EXISTS annotation_start_time_asc_idx ON annotations(start_time_ms ASC);
 
 `
 

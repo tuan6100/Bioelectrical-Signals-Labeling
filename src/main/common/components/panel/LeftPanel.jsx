@@ -7,20 +7,25 @@ import SignalChart from "../chart/SignalChart.jsx";
 import ChartToolbar from '../chart/ChartToolbar.jsx';
 
 export default function LeftPanel({
-    sessionId,
-    channels,
-    channelId,
-    defaultSignal,
-    onChannelSelected,
-    loading
+   sessionId,
+   channels,
+   channelId,
+   defaultSignal,
+   onChannelSelected,
+   loading,
+   labels: propLabels
 }) {
     const navigate = useNavigate();
     const [samples, setSamples] = useState([]);
     const [samplingRate, setSamplingRate] = useState(null);
     const [durationMs, setDurationMs] = useState(null);
-    const [labels, setLabels] = useState([]);
+    const [labels, setLabels] = useState(propLabels || []);
 
     const { viewport, updateViewport, resetViewport } = useSignalViewport(durationMs);
+
+    useEffect(() => {
+        setLabels(propLabels || []);
+    }, [propLabels]);
 
     useEffect(() => {
         if (!defaultSignal) {
@@ -31,24 +36,10 @@ export default function LeftPanel({
             return;
         }
         const sig = defaultSignal;
+        console.log(sig)
         setSamples(sig.samples || []);
         setSamplingRate(sig.samplingRateHz || null);
         setDurationMs(sig.durationMs);
-        const ann = sig.annotations
-            ? Array.isArray(sig.annotations)
-                ? sig.annotations
-                : [sig.annotations]
-            : [];
-        setLabels(
-            ann.map(a => ({
-                annotationId: a.annotationId,
-                startTimeMs: a.startTimeMs,
-                endTimeMs: a.endTimeMs,
-                labelName: a.label?.name || a.labelName || 'Unknown',
-                note: a.note || null,
-                label: a.label || null
-            }))
-        );
         resetViewport();
     }, [defaultSignal, resetViewport]);
 

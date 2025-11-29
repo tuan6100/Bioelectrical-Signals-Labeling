@@ -2,7 +2,7 @@
   "name": "biosignal-tool",
   "productName": "Biosignal Labeling",
   "homepage": "",
-  "version": "1.1.1-0",
+  "version": "1.1.1-alpha.0",
   "author": "iBME lab, HUST",
   "description": "Bioelectric signal labeling app",
   "main": "src/main/app/main.js",

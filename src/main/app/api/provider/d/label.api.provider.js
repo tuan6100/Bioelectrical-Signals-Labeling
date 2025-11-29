@@ -2,8 +2,8 @@ export async function getAllLabelsAppApi() {
     return window.biosignalApi.get.allLabels()
 }
 
-export async function createLabelAppApi(labelDto) {
-    return window.biosignalApi.post.createLabel(labelDto)
+export async function createLabelAppApi(labelDto, force = false) {
+    return window.biosignalApi.post.createLabel(labelDto, force)
 }
 
 export async function updateLabelAppApi(labelId, updateFields) {
@@ -14,8 +14,8 @@ export async function deleteLabelAppApi(labelId) {
     return window.biosignalApi.post.deleteLabel(labelId)
 }
 
-export async function updateAnnotationAppApi(annotationId, updateFields) {
-    return window.biosignalApi.post.updateAnnotation(annotationId, updateFields)
+export async function updateAnnotationAppApi(annotationId, updateFields, force = false) {
+    return window.biosignalApi.post.updateAnnotation(annotationId, updateFields, force)
 }
 
 export async function deleteAnnotationAppApi(annotationId) {
