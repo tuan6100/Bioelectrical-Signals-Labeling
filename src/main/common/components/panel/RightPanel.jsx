@@ -8,7 +8,6 @@ const RightPanel = ({
    session,
    annotations,
    channelId,
-   tableData,
    isLabeled,
    isDoubleChecked,
    onToggleLabeled,
@@ -33,7 +32,7 @@ const RightPanel = ({
             <div className="right-panel-content">
                 <div className="panel-box panel-table">
                     <LabelTable
-                        data={(Array.isArray(annotations) && annotations.length > 0) ? annotations : tableData}
+                        data={annotations}
                         channelId={channelId}
                     />
                 </div>
