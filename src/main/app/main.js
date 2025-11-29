@@ -1,28 +1,26 @@
 // src/main/main.js
-import { app, BrowserWindow, Menu, dialog, globalShortcut } from 'electron'
+import { app, BrowserWindow, Menu, globalShortcut, Notification } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { readFile } from "./domain/services/file/reader/txt.reader.js"
-import fs from "node:fs"
-import {processAndPersistData} from "./domain/services/data/command/session.command.js"
 import './api/handlers/index.js'
 import {db} from "./persistence/connection/sqlite.connection.js";
 import pkg from 'electron-updater';
+import {setMenuTemplate} from "./presentation/menu.js";
 const { autoUpdater } = pkg;
 
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const MAIN_WINDOW_VITE_DEV_SERVER_URL = process.env.NODE_ENV === 'dev'? 'http://localhost:5173': null
-
 const createWindow = () => {
     // Create the browser window.
     const mainWindow = new BrowserWindow({
         width: 800,
         height: 600,
         webPreferences: {
-            preload: path.join(__dirname, 'preload.cjs')
+            preload: path.join(__dirname, 'preload.cjs'),
+            spellcheck: true,
         },
         icon: `./public/favicon/biosignal.ico`,
         titleBarOverlay: {
@@ -33,62 +31,8 @@ const createWindow = () => {
         titleBarStyle: 'customButtonsOnHover'
     })
 
-    let lastOpenedDir = app.getPath('documents')
-    const template = [
-        {
-            label: 'File',
-            submenu: [
-                {
-                    label: 'Open',
-                    accelerator: 'CmdOrCtrl+O',
-                    click: async () => {
-                        const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
-                            title: 'Open Text File',
-                            defaultPath: lastOpenedDir,
-                            properties: ['openFile'],
-                            filters: [{ name: 'Text Files', extensions: ['txt'] }],
-                        })
-                        if (canceled || filePaths.length === 0) return
-                        const inputPath = filePaths[0]
-                        const outputBaseDir = app.getPath('userData')
-                        const outputStorageDir = path.join(outputBaseDir, 'Local Storage')
-                        const outputPath = path.join(outputStorageDir, 'data.json')
-
-                        readFile(inputPath, outputPath).then((resolved) => {
-                            function sendSessionId (sessionId) {
-                                mainWindow.webContents.send("send:session-id", { sessionId, refresh: Date.now() });
-                            }
-                            if (resolved.json === null) {
-                                console.log(`File already imported, session ID: ${resolved.sessionCode}`)
-                                sendSessionId(resolved.sessionCode)
-                            } else {
-                                const sessionId = processAndPersistData(resolved.inputFileName, resolved.json, resolved.sessionCode)
-                                console.log(`File imported successfully, session ID: ${sessionId}`)
-                                sendSessionId(sessionId)
-                            }
-                        }).catch(err => {
-                            console.error('Failed to read or process file:', err)
-                            dialog.showErrorBox('Error occurred when reading the file', err.message || String(err))
-                        }).finally(() => {
-                            if (process.env.NODE_ENV !== 'dev') {
-                                fs.writeFile(outputPath, '', () => {})
-                            }
-                            lastOpenedDir = path.dirname(inputPath)
-                        })
-                    },
-                },
-                { type: 'separator' },
-                {
-                    label: 'Exit',
-                    accelerator: 'Alt+F4',
-                    click: () => {
-                        app.quit()
-                    },
-                },
-            ],
-        },
-    ]
-    const menu = Menu.buildFromTemplate(template)
+    const defaultDir = app.getPath('documents')
+    const menu = Menu.buildFromTemplate(setMenuTemplate(mainWindow, defaultDir))
     Menu.setApplicationMenu(menu)
 
     // and load the index.html of the app.
@@ -98,12 +42,16 @@ const createWindow = () => {
         mainWindow.loadFile(path.join(__dirname, '..', '..', '..', 'dist', 'index.html'))
     }
 
+    //spell checker
+    mainWindow.webContents.session.setSpellCheckerLanguages(['en-US', 'vi', 'fr',])
+
     return mainWindow
 }
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
-app.whenReady().then(() => {
+app.whenReady().then(async() => {
+    await autoUpdater.checkForUpdatesAndNotify();
     const win = createWindow()
     try {
         db.initSchema()
@@ -134,10 +82,6 @@ app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
         app.quit()
     }
-})
-
-app.on('ready', async function()  {
-    await autoUpdater.checkForUpdatesAndNotify();
 })
 
 

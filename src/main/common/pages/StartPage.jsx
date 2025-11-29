@@ -53,6 +53,15 @@ export default function StartPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
+    useEffect(() => {
+        if (window.biosignalApi?.on?.sessionsUpdated) {
+            const unsubscribe = window.biosignalApi.on.sessionsUpdated(() => {
+                loadPage(1);
+            });
+            return () => unsubscribe();
+        }
+    }, [loadPage]);
+
     const canLoadMore = page.number < page.totalPages
 
     const filtered = useMemo(() => {
