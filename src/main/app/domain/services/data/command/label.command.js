@@ -1,9 +1,23 @@
+import { BrowserWindow } from "electron";
 import asTransaction from "../../../../persistence/transaction/index.js";
 import Label from "../../../../persistence/dao/label.dao.js";
 import Annotation from "../../../../persistence/dao/annotation.dao.js";
 import Channel from "../../../../persistence/dao/channel.dao.js";
 import Session from "../../../../persistence/dao/session.dao.js";
 import { confirmOverlap } from "../../../utils/overlapping-warning.util.js";
+
+function sendSessionUpdate(sessionId) {
+    const session = Session.findOneById(sessionId);
+    if (session) {
+        BrowserWindow.getAllWindows().forEach(win => {
+            win.webContents.send('session:status-updated', {
+                sessionId: session.sessionId,
+                status: session.status,
+                updatedAt: session.updatedAt
+            });
+        });
+    }
+}
 
 export function persistLabel(channelId, startTime, endTime, labelName, labelNote = null) {
     return asTransaction(function (channelId, startTime, endTime, labelName) {
@@ -28,7 +42,10 @@ export function persistLabel(channelId, startTime, endTime, labelName, labelNote
         }
         annotation = annotation.insert()
         const sessionId = Channel.findSessionIdByChannelId(channelId)
-        if (sessionId) Session.touch(sessionId)
+        if (sessionId) {
+            Session.touch(sessionId);
+            sendSessionUpdate(sessionId);
+        }
         return {
             annotationId: annotation.annotationId,
             channelId: annotation.channelId,
@@ -110,7 +127,10 @@ export function updateAnnotation(annotationId, updates) {
             throw new Error('Failed to update annotation')
         }
         const sessionId = Channel.findSessionIdByChannelId(updated.channelId)
-        if (sessionId) Session.touch(sessionId)
+        if (sessionId) {
+            Session.touch(sessionId);
+            sendSessionUpdate(sessionId);
+        }
         const label = Label.findOneById(updated.labelId)
         return {
             annotationId: updated.annotationId,
@@ -131,7 +151,10 @@ export function deleteAnnotation(annotationId) {
         const deleted = Annotation.delete(annotationId)
         if (deleted && ann) {
             const sessionId = Channel.findSessionIdByChannelId(ann.channelId)
-            if (sessionId) Session.touch(sessionId)
+            if (sessionId) {
+                Session.touch(sessionId);
+                sendSessionUpdate(sessionId);
+            }
         }
         return deleted
     })(annotationId)

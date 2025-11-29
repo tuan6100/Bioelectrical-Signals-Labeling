@@ -9,22 +9,25 @@ import {
     showErrorDialogAppApi,
     getChannelSamplesAppApi,
     getSessionInfoAppApi,
-    isDesktopEnv, getAllSessionsAppApi, getSessionsByPatientIdAppApi, getAnnotationsByChannelAppApi
+    isDesktopEnv, getAllSessionsAppApi, getSessionsByPatientIdAppApi, getAnnotationsByChannelAppApi,
+    updateSessionStatusAppApi
 } from '../../app/api/provider';
 
 /**
  * Fetches session information including patient details, channels, and default channel samples for display on the dashboard.
  *
  * @async
- * @function fetchSessionDashboard
+ * @function fetchSessionWorkspace
  * @param {number} sessionId - The ID of the session to fetch information for.
  * @returns {Promise<{
  *   session: {
+ *     sessionId: number,
  *     patientId: number,
  *     patientFirstName: string,
  *     patientGender: string,
  *     sessionStartTime: string,
  *     sessionEndTime: string,
+ *     sessionStatus: string,
  *     channels: Array<{ channelId: number, channelNumber: number, dataKind: string }>
  *   },
  *   defaultChannel: {
@@ -44,9 +47,9 @@ import {
  *       }>|null
  *     }|null
  *   }
- * }>} A promise that resolves to the session dashboard data including patient info, channels list, and default averaged channel samples.
+ * }>} A promise that resolves to the session data including patient info, channels list, and default averaged channel samples.
  */
-export async function fetchSessionDashboard(sessionId) {
+export async function fetchSessionWorkspace(sessionId) {
     if (isDesktopEnv()) {
         return await getSessionInfoAppApi(sessionId);
     } else {
@@ -282,6 +285,23 @@ export async function fetchAllSessions(page = 1, size = 10) {
 export async function fetchSessionsByPatientId(patientId) {
     if (isDesktopEnv()) {
         return await getSessionsByPatientIdAppApi(patientId);
+    } else {
+        // TODO: Implement web version
+    }
+}
+
+/**
+ * Updates the status of a session.
+ *
+ * @async
+ * @function fetchUpdateSessionStatus
+ * @param {number} sessionId - The id of the session to update.
+ * @param {string} newStatus - The new status to set ('NEW', 'IN_PROGRESS', 'COMPLETED').
+ * @returns {Promise<VoidFunction>}
+ */
+export async function fetchUpdateSessionStatus(sessionId, newStatus) {
+    if (isDesktopEnv()) {
+        return await updateSessionStatusAppApi(sessionId, newStatus);
     } else {
         // TODO: Implement web version
     }

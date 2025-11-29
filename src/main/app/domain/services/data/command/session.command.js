@@ -1,3 +1,4 @@
+import { BrowserWindow } from "electron";
 import asTransaction from "../../../../persistence/transaction/index.js";
 import {findKeyValue} from "../../../utils/json.util.js";
 import {extractChannelsFromJson} from "../../../utils/channel.util.js";
@@ -69,4 +70,31 @@ function insertSession(patientId, measurementType, startTime, endTime, inputFile
         console.error('Failed to insert session:', error)
         return null
     }
+}
+
+export function updateSessionStatus(sessionId, status) {
+    asTransaction(() => {
+        if (!['NEW', 'IN_PROGRESS', 'COMPLETED'].includes(status)) {
+            throw new Error(`Invalid session status: ${status}`)
+        }
+        const currentSession = Session.findOneById(sessionId)
+        if (!currentSession) {
+            throw new Error(`Session with ID ${sessionId} not found`)
+        }
+        if (['IN_PROGRESS', 'COMPLETED'].includes(currentSession.status) && status === 'NEW') {
+            throw new Error(`Cannot change status of a completed session to ${status}`)
+        }
+        Session.update(sessionId, {status: status});
+
+        const updatedSession = Session.findOneById(sessionId);
+        if (updatedSession) {
+            BrowserWindow.getAllWindows().forEach(win => {
+                win.webContents.send('session:status-updated', {
+                    sessionId: updatedSession.sessionId,
+                    status: updatedSession.status,
+                    updatedAt: updatedSession.updatedAt
+                });
+            });
+        }
+    })();
 }

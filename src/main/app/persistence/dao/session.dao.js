@@ -58,8 +58,13 @@ export default class Session {
     }
 
     static touch(sessionId) {
-        const now = new Date().toISOString()
-        Session.db.prepare(`UPDATE sessions SET updated_at = ? WHERE session_id = ?`).run(now, sessionId)
+        const session = Session.findOneById(sessionId);
+        if (session && session.status === 'NEW') {
+            Session.update(sessionId, { status: 'IN_PROGRESS' });
+        } else {
+            const now = new Date().toISOString();
+            Session.db.prepare(`UPDATE sessions SET updated_at = ? WHERE session_id = ?`).run(now, sessionId);
+        }
     }
 
     static countAll() {
@@ -89,26 +94,6 @@ export default class Session {
         )
     }
 
-    static findAll() {
-        const stmt = Session.db.prepare(`
-            SELECT 
-                session_id, patient_id, measurement_type, start_time, end_time, status, input_file_name, content_hash, updated_at
-            FROM sessions
-            ORDER BY datetime(updated_at) DESC
-        `)
-        const rows = stmt.all()
-        return rows.map(row => new Session(
-            row.session_id,
-            row.patient_id,
-            row.measurement_type,
-            row.start_time,
-            row.end_time,
-            row.input_file_name,
-            row.content_hash,
-            row.updated_at
-        ))
-    }
-
     static findAllWithPagination(page, size) {
         const limit = size
         const offset = (page - 1) * size
@@ -121,68 +106,6 @@ export default class Session {
             LIMIT ? OFFSET ?
         `)
         return stmt.all(limit, offset)
-    }
-
-    static findByPatientId(patientId) {
-        const stmt = Session.db.prepare(`
-            SELECT 
-                session_id, patient_id, measurement_type, start_time, end_time, status, input_file_name, updated_at
-            FROM sessions 
-            WHERE patient_id = ?
-            ORDER BY start_time DESC
-        `)
-        return  stmt.all(patientId)
-    }
-    static findSessionIdByContentHash(contentHash) {
-        const stmt = Session.db.prepare(`
-            SELECT session_id
-            FROM sessions
-            WHERE content_hash = ?
-        `)
-        const result = stmt.get(contentHash)
-        return result ? result.session_id : null
-    }
-
-    static update(sessionId, updateFields) {
-        const fields = Object.keys(updateFields)
-        if (fields.length === 0) return null
-        const fieldMap = {
-            patientId: 'patient_id',
-            startTime: 'start_time',
-            endTime: 'end_time',
-            status: 'status',
-        }
-        const setClause = fields.map(field => {
-            const dbField = fieldMap[field] || field
-            return `${dbField} = ?`
-        }).join(', ')
-        const values = fields.map(field => updateFields[field])
-        const now = new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' })
-        const stmt = Session.db.prepare(`
-            UPDATE sessions
-            SET ${setClause}, updated_at = ?
-            WHERE session_id = ?
-        `)
-        const info = stmt.run(...values, now, sessionId)
-        return info.changes > 0 ? this.findOneById(sessionId) : null
-    }
-
-    static delete(sessionId) {
-        const stmt = Session.db.prepare(`
-            DELETE FROM sessions
-            WHERE session_id = ?
-        `)
-        const info = stmt.run(sessionId)
-        return info.changes > 0
-    }
-
-    static deleteByPatientId(patientId) {
-        const stmt = Session.db.prepare(`
-            DELETE FROM sessions
-            WHERE patient_id = ?
-        `)
-        const info = stmt.run(patientId)
-        return info.changes
     }
 
     static findAllRelatedById(sessionId) {
@@ -202,6 +125,7 @@ export default class Session {
             return null
         }
         const result = {
+            sessionId,
             patientId: rows[0].patient_id,
             patientFirstName: rows[0].patient_first_name,
             patientGender: rows[0].patient_gender,
@@ -259,5 +183,67 @@ export default class Session {
             } : null
         }));
     }
-}
 
+    static findByPatientId(patientId) {
+        const stmt = Session.db.prepare(`
+            SELECT 
+                session_id, patient_id, measurement_type, start_time, end_time, status, input_file_name, updated_at
+            FROM sessions 
+            WHERE patient_id = ?
+            ORDER BY start_time DESC
+        `)
+        return  stmt.all(patientId)
+    }
+    static findSessionIdByContentHash(contentHash) {
+        const stmt = Session.db.prepare(`
+            SELECT session_id
+            FROM sessions
+            WHERE content_hash = ?
+        `)
+        const result = stmt.get(contentHash)
+        return result ? result.session_id : null
+    }
+
+    static update(sessionId, updateFields) {
+        const fields = Object.keys(updateFields)
+        if (fields.length === 0) return null
+        const fieldMap = {
+            patientId: 'patient_id',
+            startTime: 'start_time',
+            endTime: 'end_time',
+            status: 'status',
+        }
+        const setClause = fields.map(field => {
+            const dbField = fieldMap[field] || field
+            return `${dbField} = ?`
+        }).join(', ')
+        const values = fields.map(field => updateFields[field])
+        const now = new Date().toISOString()
+        const stmt = Session.db.prepare(`
+            UPDATE sessions
+            SET ${setClause}, updated_at = ?
+            WHERE session_id = ?
+        `)
+        stmt.run(...values, now, sessionId)
+    }
+
+    static delete(sessionId) {
+        const stmt = Session.db.prepare(`
+            DELETE FROM sessions
+            WHERE session_id = ?
+        `)
+        const info = stmt.run(sessionId)
+        return info.changes > 0
+    }
+
+    static deleteByPatientId(patientId) {
+        const stmt = Session.db.prepare(`
+            DELETE FROM sessions
+            WHERE patient_id = ?
+        `)
+        const info = stmt.run(patientId)
+        return info.changes
+    }
+
+
+}

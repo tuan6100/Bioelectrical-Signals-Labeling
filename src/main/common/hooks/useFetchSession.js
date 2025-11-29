@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { fetchSessionDashboard, fetchChannelSamples, fetchChannelAnnotations } from "../api/index.js";
+import { fetchSessionWorkspace, fetchChannelSamples, fetchChannelAnnotations } from "../api/index.js";
 
 export function useFetchSession(sessionId) {
     const [loading, setLoading] = useState(false);
@@ -10,6 +10,21 @@ export function useFetchSession(sessionId) {
     const [defaultSignal, setDefaultSignal] = useState(null);
     const [labels, setLabels] = useState([]);
     const fetchIdRef = useRef(0);
+
+    useEffect(() => {
+        if (window.biosignalApi?.on?.sessionStatusUpdated) {
+            const unsubscribe = window.biosignalApi.on.sessionStatusUpdated(updatedSession => {
+                if (updatedSession.sessionId === sessionId) {
+                    setSession(prev => ({
+                        ...prev,
+                        status: updatedSession.status,
+                        updatedAt: updatedSession.updatedAt
+                    }));
+                }
+            });
+            return () => unsubscribe();
+        }
+    }, [sessionId]);
 
     const formatAnnotations = (list) => {
         if (!Array.isArray(list)) return [];
@@ -49,7 +64,7 @@ export function useFetchSession(sessionId) {
         if (!sessionId) return;
         setLoading(true);
         setError(null);
-        fetchSessionDashboard(sessionId)
+        fetchSessionWorkspace(sessionId)
             .then(data => {
                 setSession(data.session || null);
                 const chs = data.session?.channels || [];

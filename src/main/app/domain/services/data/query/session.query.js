@@ -104,6 +104,7 @@ export function getSessionsByPage(page, size) {
         measurementType: r.measurement_type,
         startTime: r.start_time,
         endTime: r.end_time,
+        status: r.status,
         inputFileName: r.input_file_name,
         updatedAt: new Date(r.updated_at).toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' })
     }))

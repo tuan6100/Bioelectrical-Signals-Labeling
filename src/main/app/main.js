@@ -1,5 +1,5 @@
 // src/main/main.js
-import { app, BrowserWindow, Menu, globalShortcut, Notification } from 'electron'
+import { app, BrowserWindow, Menu, globalShortcut } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -64,15 +64,14 @@ app.whenReady().then(async() => {
     globalShortcut.register('F11', () => {
         win.setFullScreen(!win.isFullScreen())
     })
-    // Open the DevTools.
-    // if (process.env.NODE_ENV === 'dev') {
-    //     globalShortcut.register('Ctrl+F12', () => {
-    //         win.webContents.toggleDevTools()
-    //     })
-    // }
-    globalShortcut.register('Ctrl+F12', () => {
-        win.webContents.toggleDevTools()
-    })
+
+    //Open the DevTools.
+    if (process.env.NODE_ENV === 'dev') {
+        globalShortcut.register('Ctrl+F12', async () => {
+            win.webContents.toggleDevTools()
+        })
+    }
+
 
 })
 
