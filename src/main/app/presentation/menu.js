@@ -4,68 +4,75 @@ import fs from "node:fs";
 import {readFile} from "../domain/services/file/reader/txt.reader.js";
 import {processAndPersistData} from "../domain/services/data/command/session.command.js";
 
-export function setMenuTemplate(mainWindow, defaultDir) {
-    return [
-        {
-            label: 'File',
-            submenu: [
-                openFileSubmenu(mainWindow, defaultDir),
-                openFolderSubmenu(mainWindow, defaultDir),
-                { type: 'separator' },
-                {
-                    label: 'Exit',
-                    accelerator: 'Alt+F4',
-                    click: () => {
-                        app.quit()
-                    },
-                },
-            ],
-        },
-    ]
-}
+const processFiles = async (mainWindow, filePaths) => {
+    if (!filePaths || filePaths.length === 0) {
+        return;
+    }
+    try {
+        const outputBaseDir = app.getPath('userData');
+        const outputStorageDir = path.join(outputBaseDir, 'Local Storage');
+        if (!fs.existsSync(outputStorageDir)) {
+            fs.mkdirSync(outputStorageDir, { recursive: true });
+        }
+        const fileReadPromises = filePaths.map(filePath => {
+            const tempOutputPath = path.join(outputStorageDir, `temp-${path.basename(filePath)}-${Date.now()}.json`);
+            return readFile(filePath, tempOutputPath)
+                .finally(() => {
+                    fs.promises.rm(tempOutputPath, { force: true }).catch(console.error);
+                });
+        });
+
+        const results = await Promise.allSettled(fileReadPromises);
+
+        const errors = [];
+        results.forEach((result, index) => {
+            if (result.status === 'fulfilled') {
+                const resolved = result.value;
+                if (resolved.json !== null) {
+                    processAndPersistData(resolved.inputFileName, resolved.json, resolved.sessionCode);
+                } else {
+                    console.log(`File already imported, session ID: ${resolved.sessionCode}`);
+                }
+            } else {
+                errors.push({
+                    file: path.basename(filePaths[index]),
+                    reason: result.reason.message || String(result.reason)
+                });
+                console.error(`Failed to process file ${filePaths[index]}:`, result.reason);
+            }
+        });
+        mainWindow.webContents.send("sessions:updated", { refresh: Date.now() });
+        if (errors.length > 0) {
+            const errorDetails = errors.map(e => `${e.file}: ${e.reason}`).join('\n');
+            dialog.showErrorBox('File Processing Error', `Some files could not be processed:\n\n${errorDetails}`);
+        }
+    } catch (err) {
+        console.error('Error processing files:', err);
+        dialog.showErrorBox('Error', `An unexpected error occurred: ${err.message}`);
+    }
+};
+
 
 const openFileSubmenu = (mainWindow, defaultDir) => {
-    let lastOpenedDir = defaultDir
+    let lastOpenedDir = defaultDir;
     return {
-        label: 'Open File',
+        label: 'Open File(s)',
         accelerator: 'CmdOrCtrl+N',
         click: async () => {
             const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
-                title: 'Open Text File',
+                title: 'Open Text File(s)',
                 defaultPath: lastOpenedDir,
-                properties: ['openFile'],
+                properties: ['openFile', 'multiSelections'],
                 filters: [{ name: 'Text Files', extensions: ['txt'] }],
-            })
-            if (canceled || filePaths.length === 0) return
-            const inputPath = filePaths[0]
-            const outputBaseDir = app.getPath('userData')
-            const outputStorageDir = path.join(outputBaseDir, 'Local Storage')
-            const outputPath = path.join(outputStorageDir, 'data.json')
-            readFile(inputPath, outputPath).then((resolved) => {
-                function sendSessionId (sessionId) {
-                    mainWindow.webContents.send("send:session-id", { sessionId, refresh: Date.now() });
-                }
-                if (resolved.json === null) {
-                    console.log(`File already imported, session ID: ${resolved.sessionCode}`)
-                    sendSessionId(resolved.sessionCode)
-                } else {
-                    const sessionId = processAndPersistData(resolved.inputFileName, resolved.json, resolved.sessionCode)
-                    console.log(`File imported successfully, session ID: ${sessionId}`)
-                    sendSessionId(sessionId)
-                }
-            }).catch(err => {
-                console.error('Failed to read or process file:', err)
-                dialog.showErrorBox('Error occurred when reading the file', err.message || String(err))
-            }).finally(() => {
-                if (process.env.NODE_ENV !== 'dev') {
-                    fs.rm(outputPath, { force: true }, () => {})
-                }
-                lastOpenedDir = path.dirname(inputPath)
-            })
-        },
-    }
-}
+            });
 
+            if (canceled || filePaths.length === 0) return;
+
+            lastOpenedDir = path.dirname(filePaths[0]);
+            await processFiles(mainWindow, filePaths);
+        },
+    };
+};
 
 const openFolderSubmenu = (mainWindow, defaultDir) => {
     let lastOpenedDir = defaultDir;
@@ -103,47 +110,35 @@ const openFolderSubmenu = (mainWindow, defaultDir) => {
                     await dialog.showMessageBox(mainWindow, {
                         type: 'info',
                         title: 'No Text Files Found',
-                        message: 'The selected folder contains no Natus data files.',
+                        message: 'The selected folder and its subdirectories contain no .txt files.',
                     });
                     return;
                 }
-                const outputBaseDir = app.getPath('userData');
-                const outputStorageDir = path.join(outputBaseDir, 'Local Storage');
-                if (!fs.existsSync(outputStorageDir)) {
-                    fs.mkdirSync(outputStorageDir, { recursive: true });
-                }
-                const fileReadPromises = filesInFolder.map(filePath => {
-                    const tempOutputPath = path.join(outputStorageDir, `temp-${path.basename(filePath)}-${Date.now()}.json`);
-                    return readFile(filePath, tempOutputPath)
-                        .finally(() => {
-                            fs.promises.rm(tempOutputPath, { force: true }).catch(console.error);
-                        });
-                });
-                const results = await Promise.allSettled(fileReadPromises);
-                const errors = [];
-                results.forEach((result, index) => {
-                    if (result.status === 'fulfilled') {
-                        const resolved = result.value;
-                        if (resolved.json !== null) {
-                            processAndPersistData(resolved.inputFileName, resolved.json, resolved.sessionCode);
-                        }
-                    } else {
-                        errors.push({
-                            file: path.basename(filesInFolder[index]),
-                            reason: result.reason.message || String(result.reason)
-                        });
-                        console.error(`Failed to process file ${filesInFolder[index]}:`, result.reason);
-                    }
-                });
-                mainWindow.webContents.send("sessions:updated", { refresh: Date.now() });
-                if (errors.length > 0) {
-                    const errorDetails = errors.map(e => `${e.file}: ${e.reason}`).join('\n');
-                    dialog.showErrorBox('File Processing Error', `Some files could not be processed:\n\n${errorDetails}`);
-                }
+                await processFiles(mainWindow, filesInFolder);
             } catch (err) {
-                console.error('Error processing folder:', err);
-                dialog.showErrorBox('Error', `An error occurred while processing the folder: ${err.message}`);
+                console.error('Error reading folder:', err);
+                dialog.showErrorBox('Error Reading Folder', `An error occurred while reading the folder: ${err.message}`);
             }
         },
     };
 };
+
+export function setMenuTemplate(mainWindow, defaultDir) {
+    return [
+        {
+            label: 'File',
+            submenu: [
+                openFileSubmenu(mainWindow, defaultDir),
+                openFolderSubmenu(mainWindow, defaultDir),
+                { type: 'separator' },
+                {
+                    label: 'Exit',
+                    accelerator: 'Alt+F4',
+                    click: () => {
+                        app.quit()
+                    },
+                },
+            ],
+        },
+    ]
+}
