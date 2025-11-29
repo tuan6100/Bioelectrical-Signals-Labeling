@@ -1,6 +1,24 @@
-import './SessionTable.css'
+import { useState, useEffect } from 'react';
+import './SessionTable.css';
 
-export default function SessionTable({ session, onClick }) {
+export default function SessionTable({ session: initialSession, onClick }) {
+    const [session, setSession] = useState(initialSession);
+
+    useEffect(() => {
+        if (window.biosignalApi?.on?.sessionStatusUpdated) {
+            const unsubscribe = window.biosignalApi.on.sessionStatusUpdated(updatedSession => {
+                if (updatedSession.sessionId === session.sessionId) {
+                    setSession(prev => ({
+                        ...prev,
+                        status: updatedSession.status,
+                        updatedAt: updatedSession.updatedAt
+                    }));
+                }
+            });
+            return () => unsubscribe();
+        }
+    }, [session.sessionId]);
+
     const {
         sessionId,
         measurementType,
@@ -8,14 +26,15 @@ export default function SessionTable({ session, onClick }) {
         endTime,
         inputFileName,
         updatedAt,
-        patient
+        patient,
+        status
     } = session;
     const patientId = patient?.id;
     const patientName = patient?.name;
 
     function formatDateRange(start, end) {
         if (!start && !end) return "-";
-        return `${start} --> ${end}`
+        return `${start} → ${end}`
     }
 
     function formatRelative(dateStr) {
@@ -39,6 +58,7 @@ export default function SessionTable({ session, onClick }) {
         <button onClick={onClick} className="session-item">
             <div className="session-item-row-top">
                 <span className="session-item-title">Session #{sessionId}</span>
+                <span className={`session-item-badge status-${status?.toLowerCase()}`}>{status || "Unknown"}</span>
                 <span className="session-item-badge">{measurementType || "Unknown"}</span>
             </div>
             <div className="session-item-row">

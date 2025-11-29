@@ -36,7 +36,6 @@ export default function LeftPanel({
             return;
         }
         const sig = defaultSignal;
-        console.log(sig)
         setSamples(sig.samples || []);
         setSamplingRate(sig.samplingRateHz || null);
         setDurationMs(sig.durationMs);

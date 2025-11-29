@@ -3,21 +3,23 @@ import {useNavigate} from 'react-router-dom'
 
 import "./Dashboard.css"
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome"
-import {faArrowRotateRight} from "@fortawesome/free-solid-svg-icons"
+import {faArrowRotateRight, faSort, faSortUp, faSortDown} from "@fortawesome/free-solid-svg-icons"
 import {fetchAllSessions} from "../api/index.js";
 import SessionTable from "../components/table/SessionTable.jsx";
 
 export default function Dashboard() {
     const navigate = useNavigate()
     const [sessions, setSessions] = useState([])
-    const [page, setPage] = useState({ number: 1, size: 10, totalPages: 1, totalElements: 0 })
+    const [page, setPage] = useState({ number: 1, size: 5, totalPages: 1, totalElements: 0 })
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState("")
     const [query, setQuery] = useState("")
     const [hasLoaded, setHasLoaded] = useState(false)
+    const [statusSortOrder, setStatusSortOrder] = useState('none');
     const mountedRef = useRef(true)
 
     useEffect(() => {
+        mountedRef.current = true;
         return () => {
             mountedRef.current = false
         }
@@ -64,80 +66,109 @@ export default function Dashboard() {
 
     const canLoadMore = page.number < page.totalPages
 
-    const filtered = useMemo(() => {
+    const sortedAndFiltered = useMemo(() => {
         const raw = query.trim()
-        if (!raw) return sessions
-        const parts = raw.match(/("[^"]*"|'[^']*'|\S+)/g) || []
-        const tokens = []
-        for (let i = 0; i < parts.length; i++) {
-            const part = parts[i]
-            const m = part.match(/^(\w+)([=-])(.*)$/)
-            if (m) {
-                let key = m[1].toLowerCase()
-                const op = m[2]
-                let value = m[3] || ''
-                if (op === '=') {
-                    while (i + 1 < parts.length && !parts[i + 1].match(/^(\w+)([=-])/)) {
-                        if (parts[i + 1] === ',') break
-                        value += (value ? ' ' : '') + parts[++i]
+        let filteredSessions = sessions;
+
+        if (raw) {
+            const parts = raw.match(/("[^"]*"|'[^']*'|\S+)/g) || []
+            const tokens = []
+            for (let i = 0; i < parts.length; i++) {
+                const part = parts[i]
+                const m = part.match(/^(\w+)([=-])(.*)$/)
+                if (m) {
+                    let key = m[1].toLowerCase()
+                    const op = m[2]
+                    let value = m[3] || ''
+                    if (op === '=') {
+                        while (i + 1 < parts.length && !parts[i + 1].match(/^(\w+)([=-])/)) {
+                            if (parts[i + 1] === ',') break
+                            value += (value ? ' ' : '') + parts[++i]
+                        }
                     }
+                    value = value.replace(/^("|')(.*)\1$/, '$2')
+                    value = value.replace(/[\s,]+$/, '')
+                    tokens.push({ key, op, value })
                 }
-                value = value.replace(/^("|')(.*)\1$/, '$2')
-                value = value.replace(/[\s,]+$/, '')
-                tokens.push({ key, op, value })
+            }
+
+            const fieldExtractors = {
+                sessionid: s => (s.sessionId != null ? String(s.sessionId) : ''),
+                patientid: s => (
+                    s.patient?.id != null ? String(s.patient.id) :
+                        s.patientId != null ? String(s.patientId) :
+                            s.patient_id != null ? String(s.patient_id) : ''
+                ),
+                patientname: s => {
+                    const direct = s.patient?.name || s.patientName || s.patient_name || ''
+                    const fn = s.patient?.firstName || s.patientFirstName || s.patient_first_name || ''
+                    const ln = s.patient?.lastName || s.patientLastName || s.patient_last_name || ''
+                    const combined = [fn, ln].filter(Boolean).join(' ').trim()
+                    return (direct || combined).trim()
+                },
+                measurementtype: s => (s.measurementType || s.sessionMeasurementType || s.measurement_type || ''),
+                filename: s => (s.inputFileName || s.sourceFileName || s.fileName || s.source_file_name || ''),
+                status: s => (s.status || '').toLowerCase(),
+            }
+            const useStructured = tokens.length > 0 && tokens.every(t => fieldExtractors[t.key])
+            if (useStructured) {
+                filteredSessions = sessions.filter(s => {
+                    for (const t of tokens) {
+                        const rawFieldVal = fieldExtractors[t.key](s)
+                        const normField = rawFieldVal.replace(/\s+/g, ' ').trim().toLowerCase()
+                        const normValue = t.value.replace(/\s+/g, ' ').trim().toLowerCase()
+                        if (t.op === '=') {
+                            if (t.key === 'patientname' || t.key === 'status') {
+                                if (!normField.includes(normValue)) return false
+                            } else {
+                                if (normField !== normValue) return false
+                            }
+                        } else {
+                            if (!normField.includes(normValue)) return false
+                        }
+                    }
+                    return true
+                })
+            } else {
+                const q = raw.toLowerCase()
+                filteredSessions = sessions.filter(s => {
+                    const patientId = s.patient?.id
+                    const patientName = s.patient?.name || ''
+                    return (
+                        String(s.sessionId).includes(q) ||
+                        (patientId != null && String(patientId).includes(q)) ||
+                        patientName.toLowerCase().includes(q) ||
+                        (s.measurementType || '').toLowerCase().includes(q) ||
+                        (s.inputFileName || '').toLowerCase().includes(q) ||
+                        (s.status || '').toLowerCase().includes(q)
+                    )
+                })
             }
         }
 
-        const fieldExtractors = {
-            sessionid: s => (s.sessionId != null ? String(s.sessionId) : ''),
-            patientid: s => (
-                s.patient?.id != null ? String(s.patient.id) :
-                    s.patientId != null ? String(s.patientId) :
-                        s.patient_id != null ? String(s.patient_id) : ''
-            ),
-            patientname: s => {
-                const direct = s.patient?.name || s.patientName || s.patient_name || ''
-                const fn = s.patient?.firstName || s.patientFirstName || s.patient_first_name || ''
-                const ln = s.patient?.lastName || s.patientLastName || s.patient_last_name || ''
-                const combined = [fn, ln].filter(Boolean).join(' ').trim()
-                return (direct || combined).trim()
-            },
-            measurementtype: s => (s.measurementType || s.sessionMeasurementType || s.measurement_type || ''),
-            filename: s => (s.inputFileName || s.sourceFileName || s.fileName || s.source_file_name || ''),
-        }
-        const useStructured = tokens.length > 0 && tokens.every(t => fieldExtractors[t.key])
-        if (useStructured) {
-            return sessions.filter(s => {
-                for (const t of tokens) {
-                    const rawFieldVal = fieldExtractors[t.key](s)
-                    const normField = rawFieldVal.replace(/\s+/g, ' ').trim().toLowerCase()
-                    const normValue = t.value.replace(/\s+/g, ' ').trim().toLowerCase()
-                    if (t.op === '=') {
-                        if (t.key === 'patientname') {
-                            if (!normField.includes(normValue)) return false
-                        } else {
-                            if (normField !== normValue) return false
-                        }
-                    } else {
-                        if (!normField.includes(normValue)) return false
-                    }
+        if (statusSortOrder !== 'none') {
+            const statusOrder = { 'NEW': 1, 'IN_PROGRESS': 2, 'COMPLETED': 3 };
+            filteredSessions.sort((a, b) => {
+                const orderA = statusOrder[a.status] || 0;
+                const orderB = statusOrder[b.status] || 0;
+                if (statusSortOrder === 'asc') {
+                    return orderA - orderB;
+                } else {
+                    return orderB - orderA;
                 }
-                return true
-            })
+            });
         }
-        const q = raw.toLowerCase()
-        return sessions.filter(s => {
-            const patientId = s.patient?.id
-            const patientName = s.patient?.name || ''
-            return (
-                String(s.sessionId).includes(q) ||
-                (patientId != null && String(patientId).includes(q)) ||
-                patientName.toLowerCase().includes(q) ||
-                (s.measurementType || '').toLowerCase().includes(q) ||
-                (s.inputFileName || '').toLowerCase().includes(q)
-            )
-        })
-    }, [sessions, query])
+
+        return filteredSessions;
+    }, [sessions, query, statusSortOrder])
+
+    const toggleStatusSort = () => {
+        setStatusSortOrder(current => {
+            if (current === 'none') return 'asc';
+            if (current === 'asc') return 'desc';
+            return 'none';
+        });
+    };
 
     const handleOpenSession = (sessionId) => {
         navigate(`/sessions/${sessionId}`)
@@ -146,22 +177,35 @@ export default function Dashboard() {
     return (
         <div className="start-page-root">
             <aside className="start-page-sidebar">
-                <h1>Biosignal Labeling Preview</h1>
+                <h1>Biosignal Labeling Dashboard</h1>
                 <div className="start-page-sidebar-header">
                     <div className="start-page-sidebar-title">Sessions</div>
                     <div className="start-page-sidebar-actions">
-                        <>
+                        <button
+                            className="icon-btn"
+                            title={`Sort by Status (${statusSortOrder === 'asc' ? 'Completed first' :  'New first' })`}
+                            onClick={toggleStatusSort}
+                            style={{ marginRight: '15px' }}
+                        >
+                            <FontAwesomeIcon
+                                icon={statusSortOrder === 'asc' ? faSortUp : statusSortOrder === 'desc' ? faSortDown : faSort}
+                            />
+                        </button>
+                        <button
+                            className="icon-btn"
+                            title="Refresh List"
+                            onClick={(e) => {
+                                e.preventDefault()
+                                loadPage(1)
+                            }}
+                            disabled={loading}
+                        >
                             <FontAwesomeIcon
                                 icon={faArrowRotateRight}
-                                title="Refresh"
-                                style={{ cursor: 'pointer' }}
-                                onClick={(e) => {
-                                    e.preventDefault()
-                                    loadPage(1)
-                                }}
-                                disabled={loading}
+                                spin={loading}
+                                size="lg"
                             />
-                        </>
+                        </button>
                     </div>
                 </div>
 
@@ -169,7 +213,7 @@ export default function Dashboard() {
                     <input
                         className="start-page-search-input"
                         type="text"
-                        placeholder="Search (e.g. patientname=Nguyen Van A, sessionid=7, ..."
+                        placeholder="Search (e.g. status=NEW, patientname=Nguyen Van A, ...)"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                     />
@@ -186,7 +230,7 @@ export default function Dashboard() {
                         <div className="start-page-placeholder">No sessions found.</div>
                     )}
 
-                    {filtered.map(s => (
+                    {sortedAndFiltered.map(s => (
                         <SessionTable
                             key={s.sessionId}
                             session={s}
@@ -217,9 +261,11 @@ export default function Dashboard() {
                         <span className="or-text">or</span>
                         <span className="or-line" />
                     </div>
-                    <p className="shortcut-text">
-                        Or create a new session by pressing <code>Ctrl+O</code> (or <code>Cmd+O</code> on Mac).
-                    </p>
+                    <div className="shortcut-text">
+                        <p>Import a file: <code>Ctrl+N</code></p>
+                        <p>Import files from folder: <code>Ctrl+N</code></p>
+                    </div>
+
                 </div>
             </main>
         </div>

@@ -3,7 +3,7 @@
 ## Meeting on Monday, November 14, 2025
 
 - [x] Read multiple files
-- [ ] Save/filter session based on status
+- [x] Set status for sessions
 - [ ] Save labeled data to Excel
 - [ ] Insert default labels list
 - [ ] Add toolbars for the chart 

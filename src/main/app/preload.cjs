@@ -16,6 +16,11 @@ contextBridge.exposeInMainWorld("biosignalApi", {
             const listener = (_event, args) => callback(args);
             ipcRenderer.on("sessions:updated", listener);
             return () => ipcRenderer.removeListener("sessions:updated", listener);
+        },
+        sessionStatusUpdated: (callback) => {
+            const listener = (_event, args) => callback(args);
+            ipcRenderer.on('session:status-updated', listener);
+            return () => ipcRenderer.removeListener('session:status-updated', listener);
         }
     },
 
@@ -50,6 +55,12 @@ contextBridge.exposeInMainWorld("biosignalApi", {
     },
 
     post: {
+        updateSessionStatus: (sessionId, newStatus) => ipcRenderer.invoke(
+            "session:updateStatus",
+            sessionId,
+            newStatus
+        ),
+
         createLabel: (labelDto) => ipcRenderer.invoke(
             "label:create",
             labelDto

@@ -351,9 +351,9 @@ const LabelTable = ({ data, channelId }) => {
                             <thead>
                             <tr>
                                 <th>
-                  <span style={{cursor:'pointer'}} onClick={() => handleHeaderSort('startTimeMs')}>
-                    Start (ms)
-                  </span>
+                                    <span style={{cursor:'pointer'}} onClick={() => handleHeaderSort('startTimeMs')}>
+                                        Start (ms)
+                                    </span>
                                     <FontAwesomeIcon
                                         icon={faSort}
                                         title={`Sort by Start (current: ${sort.key==='startTimeMs'?sort.dir:'none'})`}
@@ -366,9 +366,9 @@ const LabelTable = ({ data, channelId }) => {
                                     />
                                 </th>
                                 <th>
-                  <span style={{cursor:'pointer'}} onClick={() => handleHeaderSort('endTimeMs')}>
-                    End (ms)
-                  </span>
+                                    <span style={{cursor:'pointer'}} onClick={() => handleHeaderSort('endTimeMs')}>
+                                        End (ms)
+                                    </span>
                                     <FontAwesomeIcon
                                         icon={faSort}
                                         title={`Sort by End (current: ${sort.key==='endTimeMs'?sort.dir:'none'})`}
@@ -381,9 +381,9 @@ const LabelTable = ({ data, channelId }) => {
                                     />
                                 </th>
                                 <th>
-                  <span style={{cursor:'pointer'}} onClick={() => handleHeaderSort('labelName')}>
-                    Label
-                  </span>
+                                    <span style={{cursor:'pointer'}} onClick={() => handleHeaderSort('labelName')}>
+                                        Label
+                                    </span>
                                     <FontAwesomeIcon
                                         icon={faSort}
                                         title={`Sort by Label (current: ${sort.key==='labelName'?sort.dir:'none'})`}
@@ -396,9 +396,9 @@ const LabelTable = ({ data, channelId }) => {
                                     />
                                 </th>
                                 <th>
-                  <span style={{cursor:'pointer'}} onClick={() => handleHeaderSort('note')}>
-                    Note
-                  </span>
+                                    <span style={{cursor:'pointer'}} onClick={() => handleHeaderSort('note')}>
+                                        Note
+                                    </span>
                                     <FontAwesomeIcon
                                         icon={faSort}
                                         title={`Sort by Note (current: ${sort.key==='note'?sort.dir:'none'})`}
@@ -425,7 +425,6 @@ const LabelTable = ({ data, channelId }) => {
                                     const id = row.annotationId ?? row.id
                                     const labelName = row.labelName || row.label?.name || 'Unknown'
                                     const note = row.note || ''
-                                    const isSelected = id === selectedId
                                     return (
                                         <tr
                                             key={id}

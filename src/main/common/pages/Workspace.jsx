@@ -25,8 +25,6 @@ export default function Workspace({ sessionId }) {
     const [annotations, setAnnotations] = useState([])
     const [layoutMode, setLayoutMode] = useState('split')
     const [startPosition, setStartPosition] = useState(1)
-    const [isLabeled, setIsLabeled] = useState(false)
-    const [isDoubleChecked, setIsDoubleChecked] = useState(false)
     const [leftPercent, setLeftPercent] = useState(50)
     const isDraggingRef = useRef(false)
     const startXRef = useRef(0)
@@ -178,10 +176,6 @@ export default function Workspace({ sessionId }) {
                             channelId={channelId}
                             startPosition={startPosition}
                             onStartPositionChange={setStartPosition}
-                            isLabeled={isLabeled}
-                            isDoubleChecked={isDoubleChecked}
-                            onToggleLabeled={setIsLabeled}
-                            onToggleDoubleChecked={setIsDoubleChecked}
                         />
                     </div>
                 )}
