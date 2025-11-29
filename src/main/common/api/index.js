@@ -9,7 +9,7 @@ import {
     showErrorDialogAppApi,
     getChannelSamplesAppApi,
     getSessionInfoAppApi,
-    isDesktopEnv, getAllSessionsAppApi, getSessionsByPatientIdAppApi
+    isDesktopEnv, getAllSessionsAppApi, getSessionsByPatientIdAppApi, getAnnotationsByChannelAppApi
 } from '../../app/api/provider';
 
 /**
@@ -25,7 +25,7 @@ import {
  *     patientGender: string,
  *     sessionStartTime: string,
  *     sessionEndTime: string,
- *     channels: Array<{channelId: number, channelNumber: number, dataKind: string>
+ *     channels: Array<{ channelId: number, channelNumber: number, dataKind: string }>
  *   },
  *   defaultChannel: {
  *     channelId: number|null,
@@ -33,15 +33,15 @@ import {
  *     signal: {
  *       samplingRateHz: number|null,
  *       durationMs: number|null,
- *       samples: Array<{time: number, value: number}>,
- *       annotations: {
+ *       samples: Array<{ time: number, value: number }>,
+ *       annotations: Array<{
  *         annotationId: number,
  *         startTimeMs: number,
  *         endTimeMs: number,
  *         note: string|null,
- *         timeline: Date
- *         label: {labelId: number, name: string}|null
- *       }|null
+ *         timeline: Date,
+ *         label: { labelId: number, name: string }|null
+ *       }>|null
  *     }|null
  *   }
  * }>} A promise that resolves to the session dashboard data including patient info, channels list, and default averaged channel samples.
@@ -73,7 +73,6 @@ export async function fetchSessionDashboard(sessionId) {
  *     label: {labelId: number, name: string}|null
  *   }|null
  * }>} A promise that resolves to the channel samples with time series data and any associated annotations.
- * @throws {Error} If channelId is null or undefined.
  */
 export async function fetchChannelSamples(channelId) {
     if (isDesktopEnv()) {
@@ -82,6 +81,32 @@ export async function fetchChannelSamples(channelId) {
         // TODO: Implement web version
     }
 }
+
+/**
+ * Fetches all annotations for a specific channel.
+ * @async
+ * @function fetchGetChannelAnnotations
+ * @param {number} channelId - The ID of the channel to fetch annotations for.
+ * @returns {Promise<Array<{
+ *     annotationId: number,
+ *     startTime: number,
+ *     endTime: number,
+ *     note: string|null,
+ *     label: {
+ *         id: number,
+ *         name: string
+ *     }
+ * }>>}
+ */
+export async function fetchChannelAnnotations(channelId) {
+    if (isDesktopEnv()) {
+        // previously returned channel samples by mistake; use annotations API
+        return await getAnnotationsByChannelAppApi(channelId);
+    } else {
+        // TODO: Implement web version
+    }
+}
+
 
 /**
  * Creates a new label on the samples.
@@ -95,11 +120,12 @@ export async function fetchChannelSamples(channelId) {
  * @param {string} labelDto.name - The name of the label.
  * @param {string} [labelDto.note] - An optional note for the label.
  * @param {string} labelDto.timeline - The timeline date for when the label was created.
+ * @param {boolean} [force=false] - Whether to force the creation even if it overlaps.
  * @returns {Promise<{annotationId: number, channelId: number, labelId: number, labelName: string, startTimeMs: number, endTimeMs: number, note: string|null}>}
  */
-export async function fetchCreateLabel(labelDto) {
+export async function fetchCreateLabel(labelDto, force = false) {
     if (isDesktopEnv()) {
-        return await createLabelAppApi(labelDto);
+        return await createLabelAppApi(labelDto, force);
     } else {
         // TODO: Implement web version
     }
@@ -176,11 +202,12 @@ export async function fetchExportLabel(sessionId) {
  * @function fetchUpdateAnnotation
  * @param {number} annotationId - The ID of the annotation to update.
  * @param {Object} updateFields - Fields to update (e.g., {labelName: 'newName', note: 'new note'}).
+ * @param {boolean} [force=false] - Whether to force the update even if it overlaps.
  * @returns {Promise<{annotationId: number, channelId: number, labelId: number, labelName: string, startTimeMs: number, endTimeMs: number, note: string|null, timeline: Date}>} A promise that resolves to the updated annotation.
  */
-export async function fetchUpdateAnnotation(annotationId, updateFields) {
+export async function fetchUpdateAnnotation(annotationId, updateFields, force = false) {
     if (isDesktopEnv()) {
-        return await updateAnnotationAppApi(annotationId, updateFields);
+        return await updateAnnotationAppApi(annotationId, updateFields, force);
     } else {
         // TODO: Implement web version
     }

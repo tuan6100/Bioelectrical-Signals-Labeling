@@ -10,22 +10,24 @@ import './SignalChart.css';
 import LabelContextMenu from './LabelContextMenu.jsx';
 
 export default function SignalChart({
-    samples,
-    samplingRateHz,
-    durationMs,
-    viewport,
-    onViewportChange,
-    channelId,
-    existingLabels,
-    minLabelDurationMs
+   samples,
+   samplingRateHz,
+   durationMs,
+   viewport,
+   onViewportChange,
+   channelId,
+   existingLabels,
+   minLabelDurationMs
 }) {
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
-    const overlapDialogShownRef = useRef(false);
     const [dimensions, setDimensions] = useState({ width: 800, height: 400 });
     const [dragState, setDragState] = useState({ active: false, startTime: null, endTime: null });
     const [panState, setPanState] = useState({ active: false, startX: null, startViewport: null });
     const [resizeState, setResizeState] = useState({ active: false, label: null, edge: null, originalStart: null, originalEnd: null });
+
+    const interactionStateRef = useRef({ isResizing: false, isPanning: false, isDragging: false });
+
     const [labels, setLabels] = useState([]);
     const [allLabelOptions, setAllLabelOptions] = useState([]);
     const [hoveredLabelId, setHoveredLabelId] = useState(null);
@@ -168,6 +170,21 @@ export default function SignalChart({
         return MARGIN.top + chartHeight - ((value - dataRange.min) / range) * chartHeight;
     }, [dataRange, chartHeight]);
 
+    const labelsToRender = useMemo(() => {
+        if (!hoveredLabelId) return labels;
+        const hoveredLabel = labels.find(l => l.annotationId === hoveredLabelId);
+        if (!hoveredLabel) return labels;
+        return [...labels.filter(l => l.annotationId !== hoveredLabelId), hoveredLabel];
+    }, [labels, hoveredLabelId]);
+
+    const findLabelAtTime = useCallback((timeMs) => {
+        for (let i = labelsToRender.length - 1; i >= 0; i--) {
+            const l = labelsToRender[i];
+            if (timeMs >= l.startTimeMs && timeMs <= l.endTimeMs) return l;
+        }
+        return null;
+    }, [labelsToRender]);
+
     const getColorScheme = useCallback((label, hovered) => {
         const baseName = (label.name || '').trim().toLowerCase();
         const pending = label.state === 'pending' || baseName === 'pending';
@@ -191,14 +208,6 @@ export default function SignalChart({
             line: 'rgba(200,0,0,0.95)'
         };
     }, []);
-
-    const findLabelAtTime = useCallback((timeMs) => {
-        for (let i = labels.length - 1; i >= 0; i--) {
-            const l = labels[i];
-            if (timeMs >= l.startTimeMs && timeMs <= l.endTimeMs) return l;
-        }
-        return null;
-    }, [labels]);
 
     const findLabelEdgeAtTime = useCallback((timeMs, tolerance = 5) => {
         const toleranceMs = tolerance * (clampedViewport.endMs - clampedViewport.startMs) / chartWidth;
@@ -253,7 +262,7 @@ export default function SignalChart({
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, dimensions.width, dimensions.height);
 
-        labels.forEach(label => {
+        labelsToRender.forEach(label => {
             const isHovered = hoveredLabelId === label.annotationId;
             const inView = !(label.endTimeMs < clampedViewport.startMs || label.startTimeMs > clampedViewport.endMs);
             if (!inView) return;
@@ -365,7 +374,7 @@ export default function SignalChart({
         ctx.fillText('Sample (µV)', 0, 0);
         ctx.restore();
     }, [
-        dimensions, samples, clampedViewport, dataRange, labels, dragState,
+        dimensions, samples, clampedViewport, dataRange, labelsToRender, dragState,
         timeToX, valueToY, chartWidth, chartHeight, samplingRateHz,
         hoveredLabelId, findLabelAtTime, getColorScheme, hoverSample
     ]);
@@ -425,7 +434,7 @@ export default function SignalChart({
     };
 
 
-    const handleMouseDown = (e) => {
+    const handleMouseDown = async (e) => {
         const rect = canvasRef.current.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
@@ -433,9 +442,11 @@ export default function SignalChart({
             y < MARGIN.top || y > MARGIN.top + chartHeight) {
             return;
         }
+
         const time = xToTime(x);
         const edgeInfo = findLabelEdgeAtTime(time);
         if (edgeInfo) {
+            interactionStateRef.current.isResizing = true;
             setResizeState({
                 active: true,
                 label: edgeInfo.label,
@@ -446,6 +457,7 @@ export default function SignalChart({
             return;
         }
         if (e.ctrlKey || e.metaKey) {
+            interactionStateRef.current.isPanning = true;
             setPanState({
                 active: true,
                 startX: x,
@@ -465,6 +477,7 @@ export default function SignalChart({
                 }
                 return;
             }
+            interactionStateRef.current.isDragging = true;
             setDragState({
                 active: true,
                 startTime: time,
@@ -499,7 +512,7 @@ export default function SignalChart({
         const time = xToTime(x);
         if (x >= MARGIN.left && x <= MARGIN.left + chartWidth &&
             y >= MARGIN.top && y <= MARGIN.top + chartHeight &&
-            !panState.active && !resizeState.active) {
+            !interactionStateRef.current.isPanning && !interactionStateRef.current.isResizing) {
             const nearest = findNearestSample(time);
             if (nearest) {
                 setHoverSample({
@@ -515,7 +528,7 @@ export default function SignalChart({
             setHoverSample(null);
         }
 
-        if (resizeState.active) {
+        if (interactionStateRef.current.isResizing) {
             const newTime = Math.max(0, Math.min(xToTime(x), effectiveDurationMs));
             setLabels(prev => prev.map(l => {
                 if (l.annotationId !== resizeState.label.annotationId) return l;
@@ -553,9 +566,9 @@ export default function SignalChart({
             setResizeEdge(null);
         }
 
-        if (dragState.active) {
+        if (interactionStateRef.current.isDragging) {
             setDragState(prev => ({ ...prev, endTime: time }));
-        } else if (panState.active) {
+        } else if (interactionStateRef.current.isPanning) {
             const dx = x - panState.startX;
             const timeRange = viewport.endMs - viewport.startMs;
             const timeShift = -(dx / chartWidth) * timeRange;
@@ -574,44 +587,36 @@ export default function SignalChart({
     };
 
     const handleMouseUp = async () => {
-        if (resizeState.active) {
+        if (interactionStateRef.current.isResizing) {
+            interactionStateRef.current.isResizing = false;
             const resizedLabel = labels.find(l => l.annotationId === resizeState.label.annotationId);
             if (resizedLabel) {
                 const newStart = resizedLabel.startTimeMs;
                 const newEnd = resizedLabel.endTimeMs;
                 if (newStart !== resizeState.originalStart || newEnd !== resizeState.originalEnd) {
-                    const hasOverlap = labels.some(l => {
-                        if (l.annotationId === resizedLabel.annotationId) return false;
-                        if (l.state === 'pending' || (l.name || '').toLowerCase() === 'pending') return false;
-                        return l.endTimeMs > newStart && l.startTimeMs < newEnd;
-                    });
-                    if (hasOverlap) {
-                        setLabels(prev => prev.map(l =>
-                            l.annotationId === resizeState.label.annotationId
-                                ? { ...l, startTimeMs: resizeState.originalStart, endTimeMs: resizeState.originalEnd }
-                                : l
-                        ));
-                    } else {
-                        try {
-                            await fetchUpdateAnnotation(resizedLabel.annotationId, {
-                                channelId: channelId,
-                                startTimeMs: newStart,
-                                endTimeMs: newEnd
-                            });
+                    try {
+                        const updatedAnnotation = await fetchUpdateAnnotation(resizedLabel.annotationId, {
+                            channelId: channelId,
+                            startTimeMs: newStart,
+                            endTimeMs: newEnd
+                        });
 
+                        if (updatedAnnotation) {
                             dispatchAnnotationsUpdated(labels.map(l =>
                                 l.annotationId === resizedLabel.annotationId
                                     ? { ...l, startTimeMs: newStart, endTimeMs: newEnd }
                                     : l
                             ));
-                        } catch (err) {
-                            console.error('Failed to update label time range:', err);
-                            setLabels(prev => prev.map(l =>
-                                l.annotationId === resizeState.label.annotationId
-                                    ? { ...l, startTimeMs: resizeState.originalStart, endTimeMs: resizeState.originalEnd }
-                                    : l
-                            ));
+                        } else {
+                             throw new Error('Update operation was cancelled or failed.');
                         }
+                    } catch (err) {
+                        console.error('Failed to update label time range:', err);
+                        setLabels(prev => prev.map(l =>
+                            l.annotationId === resizeState.label.annotationId
+                                ? { ...l, startTimeMs: resizeState.originalStart, endTimeMs: resizeState.originalEnd }
+                                : l
+                        ));
                     }
                 }
             }
@@ -619,7 +624,8 @@ export default function SignalChart({
             return;
         }
 
-        if (dragState.active) {
+        if (interactionStateRef.current.isDragging) {
+            interactionStateRef.current.isDragging = false;
             let s = Math.min(dragState.startTime, dragState.endTime);
             let e = Math.max(dragState.startTime, dragState.endTime);
             let width = e - s;
@@ -629,54 +635,39 @@ export default function SignalChart({
             }
 
             const pendingPredicate = (l) => l.state === 'pending' || (l.name || '').toLowerCase() === 'pending';
-            const persistedPredicate = (l) => !pendingPredicate(l);
-            const overlappingPersisted = labels.filter(l => persistedPredicate(l) && l.endTimeMs > s && l.startTimeMs < e);
-            if (overlappingPersisted.length) {
-                setDragState({ active: false, startTime: null, endTime: null });
-                if (!overlapDialogShownRef.current) {
-                    overlapDialogShownRef.current = true;
-                    await fetchShowErrorDialog(
-                        'Overlap',
-                        `Selection ${s.toFixed(2)} - ${e.toFixed(2)} ms overlaps an existing label. Choose a free region.`
-                    );
-                    overlapDialogShownRef.current = false;
-                }
-                return;
-            } else {
-                const overlappingPending = labels.filter(l => pendingPredicate(l) && l.endTimeMs > s && l.startTimeMs < e);
-                if (overlappingPending.length) {
-                    const mergedStart = Math.min(s, ...overlappingPending.map(l => l.startTimeMs));
-                    const mergedEnd = Math.max(e, ...overlappingPending.map(l => l.endTimeMs));
-                    setLabels(prev => {
-                        const filtered = prev.filter(l => !overlappingPending.includes(l));
-                        return [
-                            ...filtered,
-                            {
-                                annotationId: Date.now(),
-                                name: 'Pending',
-                                startTimeMs: mergedStart,
-                                endTimeMs: mergedEnd,
-                                state: 'pending'
-                            }
-                        ];
-                    });
-                } else {
-                    setLabels(prev => [
-                        ...prev,
+            const overlappingPending = labels.filter(l => pendingPredicate(l) && l.endTimeMs > s && l.startTimeMs < e);
+            if (overlappingPending.length) {
+                const mergedStart = Math.min(s, ...overlappingPending.map(l => l.startTimeMs));
+                const mergedEnd = Math.max(e, ...overlappingPending.map(l => l.endTimeMs));
+                setLabels(prev => {
+                    const filtered = prev.filter(l => !overlappingPending.includes(l));
+                    return [
+                        ...filtered,
                         {
                             annotationId: Date.now(),
                             name: 'Pending',
-                            startTimeMs: s,
-                            endTimeMs: e,
+                            startTimeMs: mergedStart,
+                            endTimeMs: mergedEnd,
                             state: 'pending'
                         }
-                    ]);
-                }
+                    ];
+                });
+            } else {
+                setLabels(prev => [
+                    ...prev,
+                    {
+                        annotationId: Date.now(),
+                        name: 'Pending',
+                        startTimeMs: s,
+                        endTimeMs: e,
+                        state: 'pending'
+                    }
+                ]);
             }
             setDragState({ active: false, startTime: null, endTime: null });
         }
-
-        if (panState.active) {
+        if (interactionStateRef.current.isPanning) {
+            interactionStateRef.current.isPanning = false;
             setPanState({ active: false, startX: null, startViewport: null });
         }
     };
@@ -770,15 +761,20 @@ export default function SignalChart({
                 };
                 savedLabel = await fetchCreateLabel(labelDto);
             }
-            setLabels(prev => {
-                const next = prev.map(l =>
-                    l.annotationId === label.annotationId
-                        ? { ...l, name: newName, labelName: savedLabel?.labelName || newName, ...savedLabel, state: 'persisted' }
-                        : l
-                );
-                dispatchAnnotationsUpdated(next);
-                return next;
-            });
+
+            if (savedLabel) {
+                setLabels(prev => {
+                    const next = prev.map(l =>
+                        l.annotationId === label.annotationId
+                            ? { ...l, name: newName, labelName: savedLabel?.labelName || newName, ...savedLabel, state: 'persisted' }
+                            : l
+                    );
+                    dispatchAnnotationsUpdated(next);
+                    return next;
+                });
+            } else {
+                setLabels(prev => prev.filter(l => l.annotationId !== label.annotationId));
+            }
         } catch (err) {
             console.error('Create label failed, removing pending selection:', err);
             setLabels(prev => prev.filter(l => l.annotationId !== label.annotationId));
@@ -807,7 +803,6 @@ export default function SignalChart({
             }
         } catch (err) {
             console.error('Update annotation failed:', err);
-            await fetchShowErrorDialog('Update Failed', `Failed to update annotation: ${err.message || err}`);
         } finally {
             setContextMenu({ visible: false, x: 0, y: 0, type: null, targetLabel: null });
             setIsEditingPersisted(false);

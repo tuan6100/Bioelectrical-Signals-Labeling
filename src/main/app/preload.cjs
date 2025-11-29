@@ -17,7 +17,15 @@ contextBridge.exposeInMainWorld("biosignalApi", {
     get: {
         sessionInfo: (sessionId) => ipcRenderer.invoke(
             "session:getInfo",
-                sessionId
+            sessionId
+        ),
+
+        sessionsPage: (page, size) => ipcRenderer.invoke(
+            "sessions:getPage", page, size
+        ),
+
+        sessionsByPatient: (patientId) => ipcRenderer.invoke(
+            "sessions:getByPatient", patientId
         ),
 
         channelSamples: (channelId) => ipcRenderer.invoke(
@@ -29,13 +37,11 @@ contextBridge.exposeInMainWorld("biosignalApi", {
             "label:getAll"
         ),
 
-        sessionsPage: (page, size) => ipcRenderer.invoke(
-            "sessions:getPage", page, size
-        ),
-
-        sessionsByPatient: (patientId) => ipcRenderer.invoke(
-            "sessions:getByPatient", patientId
+        annotationsByChannel: (channelId) => ipcRenderer.invoke(
+            "channel:getAllAnnotations",
+            channelId
         )
+
     },
 
     post: {

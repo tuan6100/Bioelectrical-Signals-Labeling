@@ -37,6 +37,18 @@ export default function Dashboard({ sessionId }) {
         setAnnotations(Array.isArray(hookLabels) ? hookLabels : [])
     }, [hookLabels])
 
+    useEffect(() => {
+        const onUpdated = (e) => {
+            const detail = e?.detail;
+            if (!detail) return;
+            if (detail.channelId != null && detail.channelId !== channelId) return;
+            const anns = Array.isArray(detail.annotations) ? detail.annotations : [];
+            setAnnotations(anns);
+        };
+        window.addEventListener('annotations-updated', onUpdated);
+        return () => window.removeEventListener('annotations-updated', onUpdated);
+    }, [channelId])
+
     const applyAutoLayout = useCallback(() => {
         const small = window.innerWidth < COLLAPSE_BREAKPOINT
         setLayoutMode(prev => small ? (prev === 'right' ? 'right' : 'left') : 'split')
@@ -107,18 +119,6 @@ export default function Dashboard({ sessionId }) {
         ))
     }
 
-    useEffect(() => {
-        const onUpdated = (e) => {
-            const detail = e?.detail;
-            if (!detail) return;
-            if (detail.channelId != null && detail.channelId !== channelId) return;
-            const anns = Array.isArray(detail.annotations) ? detail.annotations : [];
-            setAnnotations(anns);
-        };
-        window.addEventListener('annotations-updated', onUpdated);
-        return () => window.removeEventListener('annotations-updated', onUpdated);
-    }, [channelId])
-
     const rootClass = `dashboard-root ${layoutMode === 'split' ? 'split' : 'single'}`
 
     const containerStyle = useMemo(() => {
@@ -155,8 +155,8 @@ export default function Dashboard({ sessionId }) {
                 </div>
 
                 <div className="header-status">
-                    {loading && <span className="session-loading">Đang tải...</span>}
-                    {error && <span className="session-error">Lỗi tải dữ liệu</span>}
+                    {loading && <span className="session-loading">Loading...</span>}
+                    {error && <span className="session-error">Error occurs when loading</span>}
                 </div>
             </div>
 
@@ -174,6 +174,7 @@ export default function Dashboard({ sessionId }) {
                             channelId={channelId}
                             defaultSignal={defaultSignal}
                             onChannelSelected={setChannelId}
+                            labels={hookLabels}
                         />
                     </div>
                 )}

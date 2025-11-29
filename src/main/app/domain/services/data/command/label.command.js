@@ -3,7 +3,7 @@ import Label from "../../../../persistence/dao/label.dao.js";
 import Annotation from "../../../../persistence/dao/annotation.dao.js";
 import Channel from "../../../../persistence/dao/channel.dao.js";
 import Session from "../../../../persistence/dao/session.dao.js";
-
+import { confirmOverlap } from "../../../utils/overlapping-warning.util.js";
 
 export function persistLabel(channelId, startTime, endTime, labelName, labelNote = null) {
     return asTransaction(function (channelId, startTime, endTime, labelName) {
@@ -22,7 +22,9 @@ export function persistLabel(channelId, startTime, endTime, labelName, labelNote
         )
         checkTimeValidity(startTime, endTime, channelId)
         if (annotation.isOverlapping()) {
-            throw new Error('Annotation time range is overlapping with an existing annotation.')
+            if (!confirmOverlap()) {
+                throw new Error('Operation cancelled by user.');
+            }
         }
         annotation = annotation.insert()
         const sessionId = Channel.findSessionIdByChannelId(channelId)
@@ -96,8 +98,11 @@ export function updateAnnotation(annotationId, updates) {
             const newStart = updates.startTimeMs ?? annotation.startTimeMs
             const newEnd = updates.endTimeMs ?? annotation.endTimeMs
             checkTimeValidity(newStart, newEnd, channelId)
-            if (!Annotation.canResize(annotationId, channelId, newStart, newEnd)) {
-                throw new Error('Annotation time range is overlapping with an existing annotation.')
+            const tempAnnotation = new Annotation(annotationId, channelId, annotation.labelId, newStart, newEnd, annotation.note);
+            if (tempAnnotation.isOverlappingWithOthers()) {
+                if (!confirmOverlap()) {
+                    throw new Error('Operation cancelled by user.');
+                }
             }
         }
         const updated = Annotation.update(annotationId, updates)
