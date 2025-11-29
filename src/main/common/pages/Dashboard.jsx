@@ -25,7 +25,6 @@ export default function Dashboard({ sessionId }) {
     const [annotations, setAnnotations] = useState([])
     const [layoutMode, setLayoutMode] = useState('split')
     const [startPosition, setStartPosition] = useState(1)
-    const [tableData, setTableData] = useState([])
     const [isLabeled, setIsLabeled] = useState(false)
     const [isDoubleChecked, setIsDoubleChecked] = useState(false)
     const [leftPercent, setLeftPercent] = useState(50)
@@ -107,18 +106,6 @@ export default function Dashboard({ sessionId }) {
         }
     }, [onMouseMove, endResize])
 
-    const handleDeleteRow = (id) => setTableData(prev => prev.filter(row => row.id !== id))
-    const handleAddLabel = () => {
-        const newLabel = { id: Date.now(), startSecond: '', endSecond: '', label1: '', label2: '', label3: '', label4: '', label5: '' }
-        setTableData(prev => [...prev, newLabel])
-    }
-    const handleSave = () => console.log('Lưu kết quả:', tableData)
-    const handleLabelChange = (rowId, labelField, value) => {
-        setTableData(prev => prev.map(row =>
-            row.id === rowId ? { ...row, [labelField]: value } : row
-        ))
-    }
-
     const rootClass = `dashboard-root ${layoutMode === 'split' ? 'split' : 'single'}`
 
     const containerStyle = useMemo(() => {
@@ -191,15 +178,10 @@ export default function Dashboard({ sessionId }) {
                             channelId={channelId}
                             startPosition={startPosition}
                             onStartPositionChange={setStartPosition}
-                            tableData={tableData}
-                            onDeleteRow={handleDeleteRow}
-                            onAddLabel={handleAddLabel}
-                            onSave={handleSave}
                             isLabeled={isLabeled}
                             isDoubleChecked={isDoubleChecked}
                             onToggleLabeled={setIsLabeled}
                             onToggleDoubleChecked={setIsDoubleChecked}
-                            onLabelChange={handleLabelChange}
                         />
                     </div>
                 )}
