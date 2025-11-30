@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchExportLabel } from '../../api/index.js';
+import { fetchExportAllLabelInSession } from '../../api/index.js';
 import { useSignalViewport } from '../../hooks/useSignalViewport.js';
 import './LeftPanel.css';
 import SignalChart from "../chart/SignalChart.jsx";
@@ -46,7 +46,7 @@ export default function LeftPanel({
     const handleExport = async () => {
         if (!sessionId) return;
         try {
-            await fetchExportLabel(sessionId);
+            await fetchExportAllLabelInSession(sessionId);
         } catch (e) {
             console.error(e);
             alert('Export failed: ' + e.message);
@@ -96,7 +96,9 @@ export default function LeftPanel({
                     onViewportChange={updateViewport}
                     channelId={channelId}
                 />
-                <ChartToolbar />
+                <ChartToolbar
+                    channelId={channelId}
+                />
             </div>
         </div>
     );

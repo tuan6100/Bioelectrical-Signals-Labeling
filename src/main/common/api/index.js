@@ -1,6 +1,6 @@
 import {
     createAnnotationAppApi,
-    exportLabelAppApi,
+    exportToCsvAppApi,
     getAllLabelsAppApi,
     updateLabelAppApi,
     deleteLabelAppApi,
@@ -9,7 +9,7 @@ import {
     getChannelSamplesAppApi,
     getSessionInfoAppApi,
     isDesktopEnv, getAllSessionsAppApi, getSessionsByPatientIdAppApi, getAnnotationsByChannelAppApi,
-    updateSessionStatusAppApi
+    updateSessionStatusAppApi, exportToExcelAppApi
 } from '../../app/api/provider';
 
 /**
@@ -158,16 +158,33 @@ export async function fetchDeleteLabel(labelId) {
 }
 
 /**
- * Exports all labels in a given session ID.
+ * Exports all labels of a session to a csv file with a given session ID.
  *
  * @async
- * @function fetchExportLabel
+ * @function fetchExportAllLabelInSession
  * @param {number} sessionId - The ID of the session to export labels for.
- * @returns {Promise<Object>} A promise that resolves to the exported labels.
  */
-export async function fetchExportLabel(sessionId) {
+export async function fetchExportAllLabelInSession(sessionId) {
     if (isDesktopEnv()) {
-        return await exportLabelAppApi(sessionId);
+        return await exportToCsvAppApi(sessionId);
+    } else {
+        // TODO: Implement web version
+    }
+}
+
+/**
+ * Exports all labels of a specific channel to a csv file with a given channel ID.
+ *
+ * @async
+ * @function fetchExportAllLabelInSession
+ * @param {number} channelId - The ID of the session to export labels for.
+ * @param {string} extension - The file extension for export ('xlsx', 'csv').
+ */
+export async function fetchExportAllLabelInChannel(channelId, extension) {
+    if (isDesktopEnv()) {
+        if (extension === 'xlsx') {
+            return await exportToExcelAppApi(channelId)
+        }
     } else {
         // TODO: Implement web version
     }
