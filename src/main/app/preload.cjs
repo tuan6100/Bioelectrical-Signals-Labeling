@@ -51,30 +51,31 @@ contextBridge.exposeInMainWorld("biosignalApi", {
             "channel:getAllAnnotations",
             channelId
         )
+    },
 
+    head: {
+        exportToCsv: (sessionId) => ipcRenderer.send(
+            "label:exportCsv",
+            sessionId
+        ),
+        exportToExcel: (sessionId) => ipcRenderer.send(
+            "label:exportExcel",
+            sessionId
+        ),
     },
 
     post: {
+        createAnnotation: (labelDto) => ipcRenderer.invoke(
+            "annotation:create",
+            labelDto
+        ),
+    },
+
+    put: {
         updateSessionStatus: (sessionId, newStatus) => ipcRenderer.invoke(
             "session:updateStatus",
             sessionId,
             newStatus
-        ),
-
-        updateLabel: (labelId, updateFields) => ipcRenderer.invoke(
-            "label:update",
-            labelId,
-            updateFields
-        ),
-
-        deleteLabel: (labelId) => ipcRenderer.invoke(
-            "label:delete",
-            labelId
-        ),
-
-        createAnnotation: (labelDto) => ipcRenderer.invoke(
-            "annotation:create",
-            labelDto
         ),
 
         updateAnnotation: (annotationId, updateFields) => ipcRenderer.invoke(
@@ -88,10 +89,17 @@ contextBridge.exposeInMainWorld("biosignalApi", {
             annotationId
         ),
 
-        exportLabel: (sessionId) => ipcRenderer.send(
-            "label:export",
-            sessionId
-        )
-    },
+        updateLabel: (labelId, updateFields) => ipcRenderer.invoke(
+            "label:update",
+            labelId,
+            updateFields
+        ),
+
+        deleteLabel: (labelId) => ipcRenderer.invoke(
+            "label:delete",
+            labelId
+        ),
+
+    }
 
 });

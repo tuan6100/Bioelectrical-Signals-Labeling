@@ -24,7 +24,7 @@ export default function BottomControl({ session }) {
     return (
         <div className="bottom-controls">
             <div className="toggle">
-                <label>Mark as labeled</label>
+                <label>Mark as completed</label>
                 <input
                     type="checkbox"
                     checked={isLabeled}

@@ -31,7 +31,8 @@
   "dependencies": {
     "better-sqlite3": "^12.4.1",
     "crc-32": "^1.2.2",
-    "electron-updater": "^6.6.2"
+    "electron-updater": "^6.6.2",
+    "exceljs": "^4.4.0"
   },
   "devDependencies": {
     "@electron/fuses": "^1.8.0",

@@ -10,9 +10,15 @@ import {
     faChartLine,
     faSave
 } from '@fortawesome/free-solid-svg-icons';
+import {fetchExportAllLabelInChannel} from "../../api/index.js";
 import('./ChartToolbar.css')
 
-export default function ChartToolbar() {
+export default function ChartToolbar({channelId}) {
+
+    const handleSave = async () => {
+        await fetchExportAllLabelInChannel(channelId, 'xlsx')
+    }
+
     return (
         <div className="chart-bottom-toolbar">
             <button><FontAwesomeIcon icon={faHome} /></button>
@@ -22,7 +28,12 @@ export default function ChartToolbar() {
             <button><FontAwesomeIcon icon={faSearch} /></button>
             <button><FontAwesomeIcon icon={faSlidersH} /></button>
             <button><FontAwesomeIcon icon={faChartLine} /></button>
-            <button><FontAwesomeIcon icon={faSave} /></button>
+            <button>
+                <FontAwesomeIcon
+                    icon={faSave}
+                    onClick={() => handleSave()}
+                />
+            </button>
         </div>
     );
 }

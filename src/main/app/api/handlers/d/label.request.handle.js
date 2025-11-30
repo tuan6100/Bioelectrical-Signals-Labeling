@@ -9,6 +9,7 @@ import {
 
 import {getAllLabels} from "../../../domain/services/data/query/label.query.js";
 import {saveLabelsToCSV} from "../../../domain/services/file/writer/csv.writer.js";
+import {saveLabelToExcel} from "../../../domain/services/file/writer/excel.writer.js";
 
 
 ipcMain.removeHandler('annotation:create')
@@ -50,18 +51,32 @@ ipcMain.handle('annotation:delete', (event, annotationId) => {
     }
 })
 
-ipcMain.removeAllListeners('label:export')
+ipcMain.removeAllListeners('label:exportCsv')
 ipcMain.on('label:export', async (event, sessionId) => {
     const data = exportLabels(sessionId)
-    const result = await dialog.showSaveDialog({
+    const fileManager = await dialog.showSaveDialog({
         title: 'Export Labels to CSV',
         defaultPath: `labels_session_${sessionId}.csv`,
         filters: [
             { name: 'CSV Files', extensions: ['csv'] }
         ]
     })
-    if (!result.canceled && result.filePath) {
-        await saveLabelsToCSV(data, result.filePath)
+    if (!fileManager.canceled && fileManager.filePath) {
+        await saveLabelsToCSV(data, fileManager.filePath)
+    }
+})
+
+ipcMain.removeHandler('label:exportExcel')
+ipcMain.on('label:exportExcel', async (event, channelId) => {
+    const fileManager = await dialog.showSaveDialog({
+        title: 'Export Labels to CSV',
+        defaultPath: `labels_channel_${channelId}.xlsx`,
+        filters: [
+            { name: 'Excel Files', extensions: ['xlsx'] }
+        ]
+    })
+    if (!fileManager.canceled && fileManager.filePath) {
+        await saveLabelToExcel(channelId, fileManager.filePath)
     }
 })
 

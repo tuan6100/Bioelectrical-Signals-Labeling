@@ -11,5 +11,5 @@ export async function getSessionsByPatientIdAppApi(patientId) {
 }
 
 export async function updateSessionStatusAppApi(sessionId, newStatus) {
-    return window.biosignalApi.post.updateSessionStatus(sessionId, newStatus)
+    return window.biosignalApi.put.updateSessionStatus(sessionId, newStatus)
 }
