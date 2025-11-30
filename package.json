@@ -33,7 +33,11 @@
     "crc-32": "^1.2.2",
     "electron-updater": "^6.6.2",
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     "exceljs": "^4.4.0"
+=======
+    "recharts": "^3.5.1"
+>>>>>>> Stashed changes
 =======
     "recharts": "^3.5.1"
 >>>>>>> Stashed changes
