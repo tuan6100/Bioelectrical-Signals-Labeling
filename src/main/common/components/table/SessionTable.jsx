@@ -55,10 +55,9 @@ export default function SessionTable({ session: initialSession, onClick }) {
     }
 
     return (
-        <button onClick={onClick} className="session-item">
+        <button onClick={onClick} className={`session-item session-status-${status?.toLowerCase()}`}>
             <div className="session-item-row-top">
                 <span className="session-item-title">Session #{sessionId}</span>
-                <span className={`session-item-badge status-${status?.toLowerCase()}`}>{status || "Unknown"}</span>
                 <span className="session-item-badge">{measurementType || "Unknown"}</span>
             </div>
             <div className="session-item-row">

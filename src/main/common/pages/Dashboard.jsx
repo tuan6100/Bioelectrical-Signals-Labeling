@@ -7,6 +7,10 @@ import {faArrowRotateRight, faSort, faSortUp, faSortDown} from "@fortawesome/fre
 import {fetchAllSessions} from "../api/index.js";
 import SessionTable from "../components/table/SessionTable.jsx";
 
+import {
+    BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell
+} from "recharts";
+
 export default function Dashboard() {
     const navigate = useNavigate()
     const [sessions, setSessions] = useState([])
@@ -174,6 +178,17 @@ export default function Dashboard() {
         navigate(`/sessions/${sessionId}`)
     }
 
+    const total = sessions.length
+    const completed = sessions.filter(s => s.status === "COMPLETED").length
+    const inProgress = sessions.filter(s => s.status === "IN_PROGRESS").length
+    const newlyCreated = sessions.filter(s => s.status === "NEW").length
+
+    const chartData = [
+        { name: "New", value: newlyCreated },
+        { name: "In Progress", value: inProgress },
+        { name: "Completed", value: completed },
+    ]
+
     return (
         <div className="start-page-root">
             <aside className="start-page-sidebar">
@@ -254,18 +269,46 @@ export default function Dashboard() {
             </aside>
 
             <main className="start-page-main">
-                <div className="empty-state">
-                    <h2 className="empty-title">Choose a session to start</h2>
-                    <div className="or-divider">
-                        <span className="or-line" />
-                        <span className="or-text">or</span>
-                        <span className="or-line" />
-                    </div>
-                    <div className="shortcut-text">
-                        <p>Import a file: <code>Ctrl+N</code></p>
-                        <p>Import files from folder: <code>Ctrl+N</code></p>
+                <div className="dashboard-wrapper">
+                    <h2 className="dashboard-header">Project Overview</h2>
+
+                    <div className="dashboard-stats-row">
+                        <div className="dashboard-stat-card">
+                            <h4>Total Sessions</h4>
+                            <p>{total}</p>
+                        </div>
+
+                        <div className="dashboard-stat-card">
+                            <h4>Completed</h4>
+                            <p>{completed}</p>
+                        </div>
+
+                        <div className="dashboard-stat-card">
+                            <h4>In Progress</h4>
+                            <p>{inProgress}</p>
+                        </div>
+
+                        <div className="dashboard-stat-card">
+                            <h4>New</h4>
+                            <p>{newlyCreated}</p>
+                        </div>
                     </div>
 
+                    <div className="dashboard-chart-block" style={{ width: "100%", height: 260 }}>
+                        <h3>Session Status Breakdown</h3>
+                        <ResponsiveContainer>
+                            <BarChart data={chartData}>
+                                <XAxis dataKey="name" />
+                                <YAxis />
+                                <Tooltip />
+                                <Bar dataKey="value">
+                                    <Cell fill="#ef4444" />
+                                    <Cell fill="#facc15" />
+                                    <Cell fill="#22c55e" />
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
                 </div>
             </main>
         </div>
