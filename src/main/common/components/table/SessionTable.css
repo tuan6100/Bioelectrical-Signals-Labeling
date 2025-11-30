@@ -65,3 +65,41 @@
 .session-item:hover {
     background: #f3f4f6;
 }
+
+.session-item {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 12px;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.session-status-new {
+    background: #fee2e2;       /* light red */
+    border-color: #fecaca;
+}
+
+.session-status-in_progress {
+    background: #fef9c3;       /* light yellow */
+    border-color: #fde68a;
+}
+
+.session-status-completed {
+    background: #dcfce7;       /* light green */
+    border-color: #bbf7d0;
+}
+
+.session-status-new:hover {
+    background: #fecaca;
+}
+
+.session-status-in_progress:hover {
+    background: #fde68a;
+}
+
+.session-status-completed:hover {
+    background: #bbf7d0;
+}
