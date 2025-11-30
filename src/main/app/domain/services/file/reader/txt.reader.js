@@ -1,7 +1,7 @@
 import fs from "fs/promises"
 import path from "node:path"
 import {saveJson} from "../writer/json.writer.js"
-import {isNatusSignature} from "../../../utils/input-validation.util.js";
+import {isNatusSignature} from "../../../utils/natus.validation.util.js";
 import {checkFileImported} from "../../../utils/check-imported.util.js";
 
 function isTxt(filePath) {

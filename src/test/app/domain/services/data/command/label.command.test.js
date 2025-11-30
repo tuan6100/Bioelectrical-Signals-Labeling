@@ -7,7 +7,7 @@ import Session from "@biosignal/app/persistence/dao/session.dao.js";
 import * as LabelCommand from "@biosignal/app/domain/services/data/command/label.command.js";
 import * as TransactionMod from "@biosignal/app/persistence/transaction";
 
-describe('label.command persistLabel', () => {
+describe('label.command createAnnotation', () => {
     let asTxStub;
     let labelFindByNameStub, labelInsertStub, annotationInsertStub, annotationOverlapStub;
     let channelDurationStub, channelFindSessionStub, sessionTouchStub;

@@ -206,9 +206,9 @@ export default class Annotation {
             SELECT annotation_id
             FROM annotations
             WHERE channel_id = ?
+            AND annotation_id != ?
             AND end_time_ms > ?
             AND start_time_ms < ?
-            AND annotation_id != ?
         `);
         const rows = stmt.all(this.channelId, this.startTimeMs, this.endTimeMs, this.annotationId);
         return rows.length > 0;

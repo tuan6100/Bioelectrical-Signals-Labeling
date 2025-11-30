@@ -2,7 +2,7 @@ import Label from "../../../../persistence/dao/label.dao.js";
 import Annotation from "../../../../persistence/dao/annotation.dao.js";
 
 export function getAllLabels() {
-    return Label.findAll();
+    return Label.findAll().filter(l => l.name.toLowerCase() !== 'pending')
 }
 
 export function getAllAnnotationsByChannel(channelId) {

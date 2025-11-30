@@ -81,7 +81,6 @@ tr.highlight-unknown {
 
 .back-btn {
     align-self: flex-start;
-    /* margin-bottom: 10px; */
 }
 
 td.action-links {
@@ -94,18 +93,48 @@ td.action-links {
     vertical-align: middle;
 }
 
-.editing {
-    padding-top: 14px;
-    opacity: 0;
-    transform: translateY(-4px) scale(0.95);
-    animation: actionFadeIn 0.15s forwards ease-out;
-}
 
 @keyframes actionFadeIn {
     to {
         opacity: 1;
         transform: translateY(0) scale(1);
     }
+}
+
+.icon-btn {
+    background: transparent;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: inherit;
+    font-size: inherit;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.icon-btn:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.icon-btn:focus {
+    outline: 2px solid #4da3ff;
+    background-color: rgba(77, 163, 255, 0.1);
+}
+
+.icon-btn:disabled {
+    opacity: 0.3;
+    cursor: default;
+    pointer-events: none;
+}
+
+.editing {
+    padding-top: 0;
+    opacity: 0;
+    transform: translateY(-4px) scale(0.95);
+    animation: actionFadeIn 0.15s forwards ease-out;
 }
 
 .action-links svg {

@@ -1,12 +1,11 @@
 import {
-    createLabelAppApi,
+    createAnnotationAppApi,
     exportLabelAppApi,
     getAllLabelsAppApi,
     updateLabelAppApi,
     deleteLabelAppApi,
     updateAnnotationAppApi,
     deleteAnnotationAppApi,
-    showErrorDialogAppApi,
     getChannelSamplesAppApi,
     getSessionInfoAppApi,
     isDesktopEnv, getAllSessionsAppApi, getSessionsByPatientIdAppApi, getAnnotationsByChannelAppApi,
@@ -110,30 +109,6 @@ export async function fetchChannelAnnotations(channelId) {
     }
 }
 
-
-/**
- * Creates a new label on the samples.
- *
- * @async
- * @function fetchCreateLabel
- * @param {Object} labelDto - The data transfer object containing label details.
- * @param {number} labelDto.channelId - The ID of the channel the label is associated with.
- * @param {number} labelDto.startTime - The start time of the label in milliseconds.
- * @param {number} labelDto.endTime - The end time of the label in milliseconds.
- * @param {string} labelDto.name - The name of the label.
- * @param {string} [labelDto.note] - An optional note for the label.
- * @param {string} labelDto.timeline - The timeline date for when the label was created.
- * @param {boolean} [force=false] - Whether to force the creation even if it overlaps.
- * @returns {Promise<{annotationId: number, channelId: number, labelId: number, labelName: string, startTimeMs: number, endTimeMs: number, note: string|null}>}
- */
-export async function fetchCreateLabel(labelDto, force = false) {
-    if (isDesktopEnv()) {
-        return await createLabelAppApi(labelDto, force);
-    } else {
-        // TODO: Implement web version
-    }
-}
-
 /**
  * Gets all labels from the database.
  *
@@ -199,6 +174,28 @@ export async function fetchExportLabel(sessionId) {
 }
 
 /**
+ * Creates a new label on the samples.
+ *
+ * @async
+ * @function fetchCreateAnnotation
+ * @param {Object} labelDto - The data transfer object containing label details.
+ * @param {number} labelDto.channelId - The ID of the channel the label is associated with.
+ * @param {number} labelDto.startTime - The start time of the label in milliseconds.
+ * @param {number} labelDto.endTime - The end time of the label in milliseconds.
+ * @param {string} labelDto.name - The name of the label.
+ * @param {string} [labelDto.note] - An optional note for the label.
+ * @param {string} labelDto.timeline - The timeline date for when the label was created.
+ * @returns {Promise<{annotationId: number, channelId: number, labelId: number, labelName: string, startTimeMs: number, endTimeMs: number, note: string|null}>}
+ */
+export async function fetchCreateAnnotation(labelDto) {
+    if (isDesktopEnv()) {
+        return await createAnnotationAppApi(labelDto);
+    } else {
+        // TODO: Implement web version
+    }
+}
+
+/**
  * Updates an annotation by ID (changes label name, time range, or note).
  *
  * @async
@@ -229,23 +226,6 @@ export async function fetchDeleteAnnotation(annotationId) {
         return await deleteAnnotationAppApi(annotationId);
     } else {
         // TODO: Implement web version
-    }
-}
-
-/**
- * Shows a native error dialog box.
- *
- * @async
- * @function fetchShowErrorDialog
- * @param {string} title - The title of the error dialog.
- * @param {string} message - The error message to display.
- * @returns {Promise<void>} A promise that resolves when the dialog is closed.
- */
-export async function fetchShowErrorDialog(title, message) {
-    if (isDesktopEnv()) {
-        return await showErrorDialogAppApi(title, message);
-    } else {
-        alert(`${title}\n\n${message}`);
     }
 }
 

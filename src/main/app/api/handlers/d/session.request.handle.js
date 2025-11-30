@@ -13,7 +13,6 @@ ipcMain.handle('session:getInfo', (event, sessionId) => {
         return getSessionInfo(sessionId)
     } catch (error) {
         dialog.showErrorBox('Session Info Error', error.message || String(error))
-        throw error
     }
 })
 
@@ -23,7 +22,6 @@ ipcMain.handle('sessions:getPage', (event, page, size) => {
         return getSessionsByPage(page, size)
     } catch (error) {
         dialog.showErrorBox('Sessions Page Error', error.message || String(error))
-        throw error
     }
 })
 
@@ -33,7 +31,6 @@ ipcMain.handle('sessions:getByPatient', (event, patientId) => {
         return getSessionsByPatientId(patientId)
     } catch (error) {
         dialog.showErrorBox('Sessions By Patient Error', error.message || String(error))
-        throw error
     }
 })
 
@@ -43,6 +40,5 @@ ipcMain.handle('session:updateStatus', (event, sessionId, newStatus) => {
         updateSessionStatus(sessionId, newStatus)
     } catch (error) {
         dialog.showErrorBox('Update Session Status Error', error.message || String(error))
-        throw error
     }
 })
