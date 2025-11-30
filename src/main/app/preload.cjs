@@ -61,11 +61,6 @@ contextBridge.exposeInMainWorld("biosignalApi", {
             newStatus
         ),
 
-        createLabel: (labelDto) => ipcRenderer.invoke(
-            "label:create",
-            labelDto
-        ),
-
         updateLabel: (labelId, updateFields) => ipcRenderer.invoke(
             "label:update",
             labelId,
@@ -75,6 +70,11 @@ contextBridge.exposeInMainWorld("biosignalApi", {
         deleteLabel: (labelId) => ipcRenderer.invoke(
             "label:delete",
             labelId
+        ),
+
+        createAnnotation: (labelDto) => ipcRenderer.invoke(
+            "annotation:create",
+            labelDto
         ),
 
         updateAnnotation: (annotationId, updateFields) => ipcRenderer.invoke(
@@ -93,13 +93,5 @@ contextBridge.exposeInMainWorld("biosignalApi", {
             sessionId
         )
     },
-
-    dialog: {
-        showError: (title, message) => ipcRenderer.invoke(
-            "dialog:showError",
-            title,
-            message
-        )
-    }
 
 });

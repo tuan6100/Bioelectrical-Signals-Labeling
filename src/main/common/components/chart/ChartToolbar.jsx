@@ -10,6 +10,7 @@ import {
     faChartLine,
     faSave
 } from '@fortawesome/free-solid-svg-icons';
+import('./ChartToolbar.css')
 
 export default function ChartToolbar() {
     return (

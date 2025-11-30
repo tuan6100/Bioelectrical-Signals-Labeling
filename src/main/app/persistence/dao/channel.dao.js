@@ -76,20 +76,30 @@ export default class Channel {
         insertMany(channels)
     }
 
-    static findOneById(channelId) {
-        const stmt = Channel.db.prepare(`
+    static findOneById(channelId, rawSamples) {
+        const query = rawSamples ? `
+            SELECT 
+                channel_id, session_id, channel_number, data_kind,
+                raw_samples_uv,
+                sampling_frequency_khz, subsampled_khz, duration_ms
+            FROM channels 
+            WHERE channel_id = ?
+        ` : `
             SELECT 
                 channel_id, session_id, channel_number, data_kind,
                 sampling_frequency_khz, subsampled_khz, duration_ms
             FROM channels 
             WHERE channel_id = ?
-        `)
+        `
+        const stmt = Channel.db.prepare(query)
         const row = stmt.get(channelId)
         if (!row) return null
         return new Channel(
+            channelId,
             row.session_id,
             row.channel_number,
             row.data_kind,
+            rawSamples ? row.raw_samples_uv : null,
             row.sampling_frequency_khz,
             row.subsampled_khz,
             row.duration_ms
@@ -117,6 +127,7 @@ export default class Channel {
         const rows = stmt.all()
         return rows.map(row => {
             const channel = new Channel(
+                row.channel_id,
                 row.session_id,
                 row.channel_number,
                 row.data_kind,

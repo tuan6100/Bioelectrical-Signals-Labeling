@@ -1,9 +1,8 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
-    fetchCreateLabel,
+    fetchCreateAnnotation,
     fetchDeleteAnnotation,
     fetchGetAllLabels,
-    fetchShowErrorDialog,
     fetchUpdateAnnotation
 } from '../../api';
 import './SignalChart.css';
@@ -49,33 +48,23 @@ export default function SignalChart({
 
     const MARGIN = { top: 20, right: 20, bottom: 80, left: 60 };
 
-    // --- LOGIC MỚI: Xử lý Anti-Jitter (Chống rung) & Zoom Fix ---
     const msPerPixelRef = useRef(0);
     const prevChartWidthRef = useRef(0);
 
     const chartWidth = dimensions.width - MARGIN.left - MARGIN.right;
     const chartHeight = dimensions.height - MARGIN.top - MARGIN.bottom;
-
-    // 1. Đồng bộ props viewport vào ref khi KHÔNG resize (xử lý Reset Zoom, Init)
     useEffect(() => {
         if (chartWidth <= 0) return;
-
-        // Nếu chiều rộng không đổi (nghĩa là thay đổi do Zoom hoặc Reset, không phải do kéo panel)
-        // Hoặc nếu là lần đầu tiên
         if (Math.abs(chartWidth - prevChartWidthRef.current) < 2) {
             const range = viewport.endMs - viewport.startMs;
             if (range > 0) {
-                // Cập nhật lại tỷ lệ chuẩn dựa trên props mới
                 msPerPixelRef.current = range / chartWidth;
             }
         }
     }, [viewport.startMs, viewport.endMs, chartWidth]);
 
-    // 2. Xử lý Resize: Khi width thay đổi, giữ nguyên tỷ lệ ms/pixel cũ
     useEffect(() => {
         if (chartWidth <= 0) return;
-
-        // Nếu width thay đổi đáng kể (>1px), nghĩa là đang resize panel
         if (Math.abs(chartWidth - prevChartWidthRef.current) >= 2) {
             if (msPerPixelRef.current > 0) {
                 const newRange = msPerPixelRef.current * chartWidth;
@@ -88,20 +77,14 @@ export default function SignalChart({
                 }
             }
         }
-        // Luôn cập nhật lại width hiện tại để so sánh cho lần sau
         prevChartWidthRef.current = chartWidth;
     }, [chartWidth, viewport.startMs, onViewportChange]);
 
-    // 3. Render Viewport: Tính toán viewport để vẽ
     const renderViewport = useMemo(() => {
-        // Fallback an toàn
         if (msPerPixelRef.current <= 0 || chartWidth <= 0) return viewport;
-
-        // Ưu tiên tính range từ msPerPixelRef (để mượt khi resize)
         const calculatedRange = msPerPixelRef.current * chartWidth;
-
-        const effectiveDuration = (durationMs != null) ? durationMs : (samples && samples.length > 0 ? samples[samples.length - 1].time : 1000);
-
+        const effectiveDuration = (durationMs != null) ? durationMs :
+            (samples && samples.length > 0 ? samples[samples.length - 1].time : 1000);
         return {
             startMs: Math.max(0, viewport.startMs),
             endMs: Math.min(
@@ -110,9 +93,6 @@ export default function SignalChart({
             )
         };
     }, [viewport.startMs, chartWidth, durationMs, samples, viewport.endMs /* Thêm endMs vào deps để trigger khi zoom */]);
-    // Logic trong useMemo sẽ tự dùng msPerPixelRef mới nhất
-
-    // --------------------------------------------------
 
     const dispatchAnnotationsUpdated = useCallback((next) => {
         try {
@@ -135,7 +115,6 @@ export default function SignalChart({
 
     const buildLabelOptions = useCallback((raw) => {
         const options = (raw || [])
-            .filter(l => l.name && l.name.trim() && l.name.toLowerCase() !== 'pending')
             .map(l => ({ value: l.name.trim(), label: l.name.trim() }));
         const unique = options.filter((opt, idx, arr) =>
             arr.findIndex(o => o.value.toLowerCase() === opt.value.toLowerCase()) === idx
@@ -206,7 +185,6 @@ export default function SignalChart({
         return () => observer.disconnect();
     }, []);
 
-    // Helper use renderViewport instead of props.viewport
     const timeToX = useCallback((time) => {
         const range = renderViewport.endMs - renderViewport.startMs;
         if (range <= 0) return MARGIN.left;
@@ -302,7 +280,6 @@ export default function SignalChart({
         return samples[idx];
     }, [samples]);
 
-    // --- DRAWING LOGIC ---
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -319,7 +296,6 @@ export default function SignalChart({
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, dimensions.width, dimensions.height);
 
-        // Draw Labels
         labelsToRender.forEach(label => {
             const isHovered = hoveredLabelId === label.annotationId;
             const inView = !(label.endTimeMs < renderViewport.startMs || label.startTimeMs > renderViewport.endMs);
@@ -347,7 +323,6 @@ export default function SignalChart({
             }
         });
 
-        // Fixed Grid Time (10 steps)
         const timeRange = renderViewport.endMs - renderViewport.startMs;
         const timeStep = timeRange / 10;
 
@@ -365,7 +340,6 @@ export default function SignalChart({
             ctx.stroke();
         }
 
-        // Draw Grid Values
         for (let v = dataRange.min; v <= dataRange.max; v += dataRange.step) {
             const y = valueToY(v);
             ctx.beginPath();
@@ -686,7 +660,7 @@ export default function SignalChart({
                         if (updatedAnnotation) {
                             dispatchAnnotationsUpdated(labels.map(l =>
                                 l.annotationId === resizedLabel.annotationId
-                                    ? { ...l, startTimeMs: newStart, endTimeMs: newEnd }
+                                    ? { ...l, startTimeMs: updatedAnnotation.startTimeMs, endTimeMs: updatedAnnotation.endTimeMs }
                                     : l
                             ));
                         } else {
@@ -766,7 +740,6 @@ export default function SignalChart({
         return base > 0 ? base : 10;
     }, [minLabelDurationMs]);
 
-    // [MODIFIED] Cập nhật logic Zoom để update ref
     const handleWheel = (e) => {
         e.preventDefault();
         const rect = canvasRef.current.getBoundingClientRect();
@@ -775,7 +748,6 @@ export default function SignalChart({
 
         const zoomFactor = e.deltaY > 0 ? 1.1 : 0.9;
 
-        // Sử dụng renderViewport để tính toán
         const currentRange = renderViewport.endMs - renderViewport.startMs;
         const newRange = currentRange * zoomFactor;
 
@@ -793,18 +765,14 @@ export default function SignalChart({
             newStart = newStart - (newEnd - effectiveDurationMs);
             newEnd = effectiveDurationMs;
         }
-
         if (newEnd - newStart < minViewportSpanMs) {
             const mid = (newStart + newEnd) / 2;
             newStart = Math.max(0, mid - minViewportSpanMs / 2);
             newEnd = Math.min(effectiveDurationMs, mid + minViewportSpanMs / 2);
         }
-
-        // [QUAN TRỌNG] Cập nhật ref ngay lập tức để mở khóa render
         if (chartWidth > 0) {
             msPerPixelRef.current = (newEnd - newStart) / chartWidth;
         }
-
         onViewportChange({ startMs: Math.max(0, newStart), endMs: Math.min(effectiveDurationMs, newEnd) });
     };
 
@@ -862,7 +830,7 @@ export default function SignalChart({
                     endTime: label.endTimeMs,
                     name: newName
                 };
-                savedLabel = await fetchCreateLabel(labelDto);
+                savedLabel = await fetchCreateAnnotation(labelDto);
             }
 
             if (savedLabel) {
@@ -943,7 +911,6 @@ export default function SignalChart({
             }
         } catch (err) {
             console.error('Delete annotation failed:', err);
-            await fetchShowErrorDialog('Delete Failed', `Failed to delete annotation: ${err.message || err}`);
         } finally {
             setContextMenu({ visible: false, x: 0, y: 0, type: null, targetLabel: null });
         }
@@ -1007,7 +974,6 @@ export default function SignalChart({
             if (!match || match.annotationId == null) return;
             const annStart = match.startTimeMs;
             const annEnd = match.endTimeMs;
-            // Dùng renderViewport cho ổn định
             const viewStart = renderViewport.startMs;
             const viewEnd = renderViewport.endMs;
             const viewWidth = viewEnd - viewStart;
@@ -1175,7 +1141,7 @@ export default function SignalChart({
                         maxWidth: 150
                     }}
                 >
-                    <div>time: {hoverSample.timeMs.toFixed(2)} ms</div>
+                    <div>time: {hoverSample.timeMs.toFixed(3)} ms</div>
                     <div>volt: {typeof hoverSample.value === 'number' ? hoverSample.value.toFixed(1) : hoverSample.value} µV</div>
                 </div>
             )}

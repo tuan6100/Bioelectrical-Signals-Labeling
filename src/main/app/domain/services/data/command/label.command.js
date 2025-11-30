@@ -1,63 +1,12 @@
-import { BrowserWindow } from "electron";
-import asTransaction from "../../../../persistence/transaction/index.js";
-import Label from "../../../../persistence/dao/label.dao.js";
-import Annotation from "../../../../persistence/dao/annotation.dao.js";
-import Channel from "../../../../persistence/dao/channel.dao.js";
-import Session from "../../../../persistence/dao/session.dao.js";
-import { confirmOverlap } from "../../../utils/overlapping-warning.util.js";
+import { BrowserWindow } from "electron"
+import asTransaction from "../../../../persistence/transaction/index.js"
+import Label from "../../../../persistence/dao/label.dao.js"
+import Annotation from "../../../../persistence/dao/annotation.dao.js"
+import Channel from "../../../../persistence/dao/channel.dao.js"
+import Session from "../../../../persistence/dao/session.dao.js"
+import { confirmOverlap } from "../../../utils/overlapping-warning.util.js"
+import {findNearestTimePoint} from "../../../utils/algorithm.util.js"
 
-function sendSessionUpdate(sessionId) {
-    const session = Session.findOneById(sessionId);
-    if (session) {
-        BrowserWindow.getAllWindows().forEach(win => {
-            win.webContents.send('session:status-updated', {
-                sessionId: session.sessionId,
-                status: session.status,
-                updatedAt: session.updatedAt
-            });
-        });
-    }
-}
-
-export function persistLabel(channelId, startTime, endTime, labelName, labelNote = null) {
-    return asTransaction(function (channelId, startTime, endTime, labelName) {
-        let label = Label.findOneByName(labelName)
-        if (label === null) {
-            label = new Label(null, labelName)
-            label = label.insert()
-        }
-        let annotation = new Annotation(
-            null,
-            channelId,
-            label.labelId,
-            startTime,
-            endTime,
-            labelNote,
-        )
-        checkTimeValidity(startTime, endTime, channelId)
-        if (annotation.isOverlapping()) {
-            if (!confirmOverlap()) {
-                throw new Error('Operation cancelled by user.');
-            }
-        }
-        annotation = annotation.insert()
-        const sessionId = Channel.findSessionIdByChannelId(channelId)
-        if (sessionId) {
-            Session.touch(sessionId);
-            sendSessionUpdate(sessionId);
-        }
-        return {
-            annotationId: annotation.annotationId,
-            channelId: annotation.channelId,
-            labelId: annotation.labelId,
-            labelName: label.name,
-            startTimeMs: annotation.startTimeMs,
-            endTimeMs: annotation.endTimeMs,
-            note: annotation.note,
-            timeline: new Date(annotation.labeledAt).toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' })
-        }
-    })(channelId, startTime, endTime, labelName)
-}
 
 export function exportLabels(sessionId) {
     const data = Session.getAllLabelsBySessionId(sessionId)
@@ -83,7 +32,7 @@ export function updateLabel(labelId, updateFields) {
     return asTransaction(function (labelId, updateFields) {
         const updated = Label.update(labelId, updateFields)
         if (updated) {
-            //TODO: touching all sessions that have annotations with this label would be expensive; skipped
+            //TODO: touching all sessions that have annotations with this label would be expensive skipped
         }
         return updated
     })(labelId, updateFields)
@@ -93,6 +42,54 @@ export function deleteLabel(labelId) {
     return asTransaction(function (labelId) {
         return Label.delete(labelId)
     })(labelId)
+}
+
+export function createAnnotation(channelId, startTime, endTime, labelName, labelNote = null) {
+    return asTransaction(function (channelId, startTime, endTime, labelName) {
+        let label = Label.findOneByName(labelName)
+        if (label === null) {
+            label = new Label(null, labelName)
+            label = label.insert()
+        }
+        const channel = Channel.findOneById(channelId, false)
+        const subsampledKhz = channel.subsampledKhz
+        const durationMs = channel.durationMs
+        let annotation = new Annotation(
+            null,
+            channelId,
+            label.labelId,
+            startTime,
+            endTime,
+            labelNote,
+        )
+        checkTimeValidity(startTime, endTime, channelId, durationMs)
+        if (annotation.isOverlapping()) {
+            if (!confirmOverlap()) {
+                throw new OverlapError('Operation cancelled by user.')
+            }
+        }
+        const timeSeries = generateTimeSeries(subsampledKhz, durationMs)
+        const normalizedStart = findNearestTimePoint(startTime, timeSeries)
+        const normalizedEnd = findNearestTimePoint(endTime, timeSeries)
+        annotation.startTimeMs = normalizedStart
+        annotation.endTimeMs = normalizedEnd
+        annotation = annotation.insert()
+        const sessionId = channel.sessionId
+        if (sessionId) {
+            Session.touch(sessionId)
+            sendSessionUpdate(sessionId)
+        }
+        return {
+            annotationId: annotation.annotationId,
+            channelId: annotation.channelId,
+            labelId: annotation.labelId,
+            labelName: label.name,
+            startTimeMs: annotation.startTimeMs,
+            endTimeMs: annotation.endTimeMs,
+            note: annotation.note,
+            timeline: new Date(annotation.labeledAt).toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' })
+        }
+    })(channelId, startTime, endTime, labelName)
 }
 
 export function updateAnnotation(annotationId, updates) {
@@ -114,11 +111,21 @@ export function updateAnnotation(annotationId, updates) {
             const channelId = updates.channelId ?? annotation.channelId
             const newStart = updates.startTimeMs ?? annotation.startTimeMs
             const newEnd = updates.endTimeMs ?? annotation.endTimeMs
-            checkTimeValidity(newStart, newEnd, channelId)
-            const tempAnnotation = new Annotation(annotationId, channelId, annotation.labelId, newStart, newEnd, annotation.note);
+            const channel = Channel.findOneById(channelId, false)
+            const subsampledKhz = channel.subsampledKhz
+            const durationMs = channel.durationMs
+            checkTimeValidity(newStart, newEnd, channelId, durationMs)
+            const timeSeries = generateTimeSeries(subsampledKhz, durationMs)
+            const normalizedStart = findNearestTimePoint(newStart, timeSeries)
+            const normalizedEnd = findNearestTimePoint(newEnd, timeSeries)
+            updates.startTimeMs = normalizedStart
+            updates.endTimeMs = normalizedEnd
+            const tempAnnotation = new Annotation(
+                annotationId, channelId, annotation.labelId, normalizedStart, normalizedEnd, annotation.note
+            )
             if (tempAnnotation.isOverlappingWithOthers()) {
                 if (!confirmOverlap()) {
-                    throw new Error('Operation cancelled by user.');
+                    throw new OverlapError('Operation cancelled by user.')
                 }
             }
         }
@@ -128,8 +135,8 @@ export function updateAnnotation(annotationId, updates) {
         }
         const sessionId = Channel.findSessionIdByChannelId(updated.channelId)
         if (sessionId) {
-            Session.touch(sessionId);
-            sendSessionUpdate(sessionId);
+            Session.touch(sessionId)
+            sendSessionUpdate(sessionId)
         }
         const label = Label.findOneById(updated.labelId)
         return {
@@ -140,9 +147,22 @@ export function updateAnnotation(annotationId, updates) {
             startTimeMs: updated.startTimeMs,
             endTimeMs: updated.endTimeMs,
             note: updated.note,
-            timeline: new Date(updated.updatedAt?? updated.labeledAt)
+            timeline: new Date(updated.updatedAt ?? updated.labeledAt)
         }
     })(annotationId, updates)
+}
+
+function generateTimeSeries(subsampledKhz, durationMs) {
+    const samplingRateHz = subsampledKhz * 1000
+    const intervalMs = 1000 / samplingRateHz
+    const timeSeries = []
+    let currentTime = 0
+
+    while (currentTime <= durationMs) {
+        timeSeries.push(currentTime)
+        currentTime += intervalMs
+    }
+    return timeSeries
 }
 
 export function deleteAnnotation(annotationId) {
@@ -152,24 +172,51 @@ export function deleteAnnotation(annotationId) {
         if (deleted && ann) {
             const sessionId = Channel.findSessionIdByChannelId(ann.channelId)
             if (sessionId) {
-                Session.touch(sessionId);
-                sendSessionUpdate(sessionId);
+                Session.touch(sessionId)
+                sendSessionUpdate(sessionId)
             }
         }
         return deleted
     })(annotationId)
 }
 
-function checkTimeValidity(startTime, endTime, channelId) {
-    if (startTime < 0 || endTime < 0) {
-        throw new Error('Annotation time cannot be negative.')
+function sendSessionUpdate(sessionId) {
+    const session = Session.findOneById(sessionId)
+    if (session) {
+        BrowserWindow.getAllWindows().forEach(win => {
+            win.webContents.send('session:status-updated', {
+                sessionId: session.sessionId,
+                status: session.status,
+                updatedAt: session.updatedAt
+            })
+        })
     }
-    if (endTime <= startTime) {
-        throw new Error('Annotation end time must be greater than start time.')
+}
+
+function checkTimeValidity(startTime, endTime, channelId, duration) {
+    console.log(`New startTime: ${startTime}, endTime: ${endTime} for channel ${channelId}`)
+    const parsedStartTime = Number(startTime)
+    const parsedEndTime = Number(endTime)
+    if (isNaN(parsedStartTime) || isNaN(parsedEndTime)) {
+        throw new Error(`Annotation times must be numbers.`)
     }
-    const channelDuration = Channel.findOneDurationById(channelId)
-    if (endTime > channelDuration) {
-        throw new Error('Annotation end time exceeds channel duration.')
+    if (!Number.isFinite(parsedStartTime) || !Number.isFinite(parsedEndTime)) {
+        throw new Error(`Annotation times must be finite numbers.`)
+    }
+    if (parsedStartTime < 0 || parsedEndTime < 0) {
+        throw new Error(`Annotation time cannot be negative.`)
+    }
+    if (parsedEndTime <= parsedStartTime) {
+        throw new Error(`Annotation end time must be greater than start time.`)
+    }
+    if (parsedEndTime > duration) {
+        throw new Error(`Annotation end time exceeds channel duration.`)
     }
     return true
 }
+export class OverlapError extends Error {
+    constructor(message) {
+        super(message)
+    }
+}
+

@@ -9,8 +9,7 @@ ipcMain.handle('channel:getSamples', (event, channelId) => {
     try {
         return getChannelSignal(channelId)
     } catch (error) {
-        dialog.showErrorBox('Channel Samples Error', error.message || String(error))
-        throw error
+        dialog.showErrorBox('Channel Samples Error', error.message)
     }
 })
 
@@ -19,6 +18,6 @@ ipcMain.handle('channel:getAllAnnotations', (event, channelId) => {
     try {
         return getAllAnnotationsByChannel(channelId)
     } catch (error) {
-        throw error
+        dialog.showErrorBox('Channel Annotations Error', error.message)
     }
 })
