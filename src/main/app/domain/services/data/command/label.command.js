@@ -157,9 +157,8 @@ function generateTimeSeries(subsampledKhz, durationMs) {
     const intervalMs = 1000 / samplingRateHz
     const timeSeries = []
     let currentTime = 0
-
     while (currentTime <= durationMs) {
-        timeSeries.push(currentTime)
+        timeSeries.push(parseFloat(currentTime.toFixed(3)))
         currentTime += intervalMs
     }
     return timeSeries
