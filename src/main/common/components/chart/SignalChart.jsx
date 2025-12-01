@@ -1070,6 +1070,17 @@ export default function SignalChart({
                 newEnd -= newStart;
                 newStart = 0;
             }
+            if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                const zoomFactor = e.key === 'ArrowUp' ? 0.9 : 1.1
+                const currentRange = renderViewport.endMs - renderViewport.startMs;
+                if (currentRange <= 0) return;
+                let newRange = currentRange * zoomFactor;
+                if (newRange < minViewportSpanMs) newRange = minViewportSpanMs;
+                if (newRange > effectiveDurationMs) newRange = effectiveDurationMs;
+                const center = newStart + currentRange / 2;
+                newStart = center - newRange / 2;
+                newEnd = center + newRange / 2;
+            }
             if (newEnd > effectiveDurationMs) {
                 newStart -= (newEnd - effectiveDurationMs);
                 newEnd = effectiveDurationMs;
