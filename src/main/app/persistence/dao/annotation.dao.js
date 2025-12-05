@@ -210,7 +210,7 @@ export default class Annotation {
             AND end_time_ms > ?
             AND start_time_ms < ?
         `);
-        const rows = stmt.all(this.channelId, this.startTimeMs, this.endTimeMs, this.annotationId);
+        const rows = stmt.all(this.channelId , this.annotationId, this.startTimeMs, this.endTimeMs);
         return rows.length > 0;
     }
 }

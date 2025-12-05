@@ -26,6 +26,6 @@ export async function exportToCsvAppApi(sessionId) {
     return window.biosignalApi.head.exportToCsv(sessionId)
 }
 
-export async function exportToExcelAppApi(channelId) {
-    return window.biosignalApi.head.exportToExcel(channelId)
+export async function exportToExcelAppApi(sessionId, channelId) {
+    return window.biosignalApi.head.exportToExcel(sessionId, channelId)
 }

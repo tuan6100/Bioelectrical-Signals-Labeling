@@ -177,13 +177,14 @@ export async function fetchExportAllLabelInSession(sessionId) {
  *
  * @async
  * @function fetchExportAllLabelInSession
+ * @param {number} sessionId - The ID of the session to export labels for.
  * @param {number} channelId - The ID of the session to export labels for.
  * @param {string} extension - The file extension for export ('xlsx', 'csv').
  */
-export async function fetchExportAllLabelInChannel(channelId, extension) {
+export async function fetchExportAllLabelInChannel(sessionId, channelId, extension) {
     if (isDesktopEnv()) {
         if (extension === 'xlsx') {
-            return await exportToExcelAppApi(channelId)
+            return await exportToExcelAppApi(sessionId, channelId)
         }
     } else {
         // TODO: Implement web version

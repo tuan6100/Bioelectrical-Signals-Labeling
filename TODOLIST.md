@@ -4,7 +4,7 @@
 
 - [x] Read multiple files
 - [x] Set status for sessions
-- [ ] Save labeled data to Excel
+- [x] Save labeled data to Excel
 - [ ] Insert default labels list
 - [ ] Add toolbars for the chart 
 - [x] Fix overlapping behavior

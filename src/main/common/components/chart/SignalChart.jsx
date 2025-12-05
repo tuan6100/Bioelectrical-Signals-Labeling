@@ -9,14 +9,14 @@ import './SignalChart.css';
 import LabelContextMenu from './LabelContextMenu.jsx';
 
 export default function SignalChart({
-    samples,
-    samplingRateHz,
-    durationMs,
-    viewport,
-    onViewportChange,
-    channelId,
-    existingLabels,
-    minLabelDurationMs
+   samples,
+   samplingRateHz,
+   durationMs,
+   viewport,
+   onViewportChange,
+   channelId,
+   existingLabels,
+   minLabelDurationMs
 }) {
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
@@ -402,12 +402,17 @@ export default function SignalChart({
             }
         }
 
+        const currentDuration = Math.max(1, renderViewport.endMs - renderViewport.startMs);
+        const zoomLevel = effectiveDurationMs / currentDuration;
+        const zoomPercent = Math.round(zoomLevel);
+
         ctx.font = '12px sans-serif';
         ctx.fillText(
-            `Total ${durationMs} ms`,
+            `Total ${durationMs} ms (${zoomPercent}%)`,
             MARGIN.left + chartWidth / 2,
             dimensions.height - 10
         );
+
         ctx.textAlign = 'right';
         ctx.font = '11px sans-serif';
         for (let v = dataRange.min; v <= dataRange.max; v += dataRange.step) {
@@ -425,7 +430,7 @@ export default function SignalChart({
         dimensions, samples, renderViewport, dataRange, labelsToRender, dragState,
         timeToX, valueToY, chartWidth, chartHeight, samplingRateHz,
         hoveredLabelId, findLabelAtTime, getColorScheme, hoverSample,
-        MARGIN.left, MARGIN.top, durationMs
+        MARGIN.left, MARGIN.top, durationMs, effectiveDurationMs
     ]);
 
     const drawWaveform = (ctx, samples) => {
@@ -745,18 +750,18 @@ export default function SignalChart({
         const rect = canvasRef.current.getBoundingClientRect();
         const x = e.clientX - rect.left;
         if (x < MARGIN.left || x > MARGIN.left + chartWidth) return;
-
         const zoomFactor = e.deltaY > 0 ? 1.1 : 0.9;
-
         const currentRange = renderViewport.endMs - renderViewport.startMs;
-        const newRange = currentRange * zoomFactor;
-
+        let newRange = currentRange * zoomFactor;
+        if (newRange < minViewportSpanMs) {
+            if (zoomFactor < 1) {
+                newRange = minViewportSpanMs;
+            }
+        }
         const mouseTime = xToTime(x);
         const mouseRatio = (mouseTime - renderViewport.startMs) / currentRange;
-
         let newStart = mouseTime - newRange * mouseRatio;
         let newEnd = mouseTime + newRange * (1 - mouseRatio);
-
         if (newStart < 0) {
             newEnd = newEnd - newStart;
             newStart = 0;
@@ -764,11 +769,6 @@ export default function SignalChart({
         if (newEnd > effectiveDurationMs) {
             newStart = newStart - (newEnd - effectiveDurationMs);
             newEnd = effectiveDurationMs;
-        }
-        if (newEnd - newStart < minViewportSpanMs) {
-            const mid = (newStart + newEnd) / 2;
-            newStart = Math.max(0, mid - minViewportSpanMs / 2);
-            newEnd = Math.min(effectiveDurationMs, mid + minViewportSpanMs / 2);
         }
         if (chartWidth > 0) {
             msPerPixelRef.current = (newEnd - newStart) / chartWidth;
@@ -1069,6 +1069,17 @@ export default function SignalChart({
             if (newStart < 0) {
                 newEnd -= newStart;
                 newStart = 0;
+            }
+            if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                const zoomFactor = e.key === 'ArrowUp' ? 0.9 : 1.1
+                const currentRange = renderViewport.endMs - renderViewport.startMs;
+                if (currentRange <= 0) return;
+                let newRange = currentRange * zoomFactor;
+                if (newRange < minViewportSpanMs) newRange = minViewportSpanMs;
+                if (newRange > effectiveDurationMs) newRange = effectiveDurationMs;
+                const center = newStart + currentRange / 2;
+                newStart = center - newRange / 2;
+                newEnd = center + newRange / 2;
             }
             if (newEnd > effectiveDurationMs) {
                 newStart -= (newEnd - effectiveDurationMs);

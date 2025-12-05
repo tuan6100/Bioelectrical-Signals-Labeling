@@ -13,10 +13,10 @@ import {
 import {fetchExportAllLabelInChannel} from "../../api/index.js";
 import('./ChartToolbar.css')
 
-export default function ChartToolbar({channelId}) {
+export default function ChartToolbar({sessionId, channelId}) {
 
     const handleSave = async () => {
-        await fetchExportAllLabelInChannel(channelId, 'xlsx')
+        await fetchExportAllLabelInChannel(sessionId, channelId, 'xlsx')
     }
 
     return (

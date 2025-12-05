@@ -10,6 +10,9 @@ import {
 import {getAllLabels} from "../../../domain/services/data/query/label.query.js";
 import {saveLabelsToCSV} from "../../../domain/services/file/writer/csv.writer.js";
 import {saveLabelToExcel} from "../../../domain/services/file/writer/excel.writer.js";
+import {getInputFileName} from "../../../domain/services/data/query/session.query.js";
+import path from "node:path";
+import fs from "node:fs";
 
 
 ipcMain.removeHandler('annotation:create')
@@ -67,18 +70,36 @@ ipcMain.on('label:export', async (event, sessionId) => {
 })
 
 ipcMain.removeHandler('label:exportExcel')
-ipcMain.on('label:exportExcel', async (event, channelId) => {
-    const fileManager = await dialog.showSaveDialog({
-        title: 'Export Labels to CSV',
-        defaultPath: `labels_channel_${channelId}.xlsx`,
-        filters: [
-            { name: 'Excel Files', extensions: ['xlsx'] }
-        ]
-    })
-    if (!fileManager.canceled && fileManager.filePath) {
-        await saveLabelToExcel(channelId, fileManager.filePath)
+ipcMain.on('label:exportExcel', async (event, sessionId, channelId) => {
+    try {
+        const inputFileName = getInputFileName(sessionId)
+            .replace(path.extname(getInputFileName(sessionId)), '')
+        const fileManager = await dialog.showSaveDialog({
+            title: 'Export Labels to CSV',
+            defaultPath: `${inputFileName}.xlsx`,
+            filters: [
+                { name: 'Excel Files', extensions: ['xlsx'] }
+            ]
+        })
+        if (fileManager.canceled || !fileManager.filePath) return
+        const chosenPath = fileManager.filePath
+        const baseDir = path.dirname(chosenPath)
+        const baseName = path.basename(chosenPath)
+        const now = new Date();
+        const day = String(now.getDate()).padStart(2, '0');
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const year = now.getFullYear();
+        const folderName = `${day}-${month}-${year}`;
+        const targetDir = path.join(baseDir, folderName);
+        await fs.promises.mkdir(targetDir, { recursive: true })
+        const targetPath = path.join(targetDir, baseName)
+        await saveLabelToExcel(channelId, targetPath)
+    } catch (error) {
+        dialog.showErrorBox('Export Error', error.message)
+        console.trace(error)
     }
 })
+
 
 ipcMain.removeHandler('label:getAll')
 ipcMain.handle('label:getAll', (event) => {
