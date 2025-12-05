@@ -12,7 +12,7 @@
 
 ## Meeting on Monday, December 1, 2025
 
-- [ ] Arrow up, down for zoom in, out center of the graph
+- [x] Arrow up, down for zoom in, out center of the graph
 - [ ] Use different color to highlight overlapped areas
 - [ ] Use table to display sessions instead
 - [ ] Error: Overlap notification upon manually changing area of label on the graph
