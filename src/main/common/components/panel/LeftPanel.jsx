@@ -97,6 +97,7 @@ export default function LeftPanel({
                     channelId={channelId}
                 />
                 <ChartToolbar
+                    sessionId={sessionId}
                     channelId={channelId}
                 />
             </div>

@@ -3,7 +3,7 @@ import Session from "../../../../persistence/dao/session.dao.js";
 
 export function getSessionInfo(sessionId) {
     const sessionInfo =  Session.findAllRelatedById(sessionId)
-    const defaultChannelId = Channel.findByDataKind(sessionId, 'average')
+    const defaultChannelId = Channel.findByDataKind(sessionId, 'trace')
     const defaultChannelSignal = defaultChannelId ? getChannelSignal(defaultChannelId) : null
     return {
         session: sessionInfo,
@@ -130,4 +130,12 @@ export function getSessionsByPatientId(patientId) {
         inputFileName: s.inputFileName,
         updatedAt: s.updatedAt
     }))
+}
+
+export function getInputFileName(sessionId) {
+    const session = Session.findOneById(sessionId)
+    if (!session) {
+        throw new Error(`Session with ID ${sessionId} not found`)
+    }
+    return session.inputFileName
 }

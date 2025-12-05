@@ -89,7 +89,6 @@ export default class Session {
             row.end_time,
             row.status,
             row.input_file_name,
-            row.content_hash,
             row.updated_at
         )
     }
@@ -145,7 +144,7 @@ export default class Session {
         return result
     }
 
-    static getAllLabelsBySessionId(sessionId) {
+    static findAllLabelsBySessionId(sessionId) {
         const stmt = Session.db.prepare(`
             SELECT
                 c.channel_id,

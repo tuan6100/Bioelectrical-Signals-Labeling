@@ -9,7 +9,7 @@ import {findNearestTimePoint} from "../../../utils/algorithm.util.js"
 
 
 export function exportLabels(sessionId) {
-    const data = Session.getAllLabelsBySessionId(sessionId)
+    const data = Session.findAllLabelsBySessionId(sessionId)
     return  data.flatMap(item => {
         const freqKhz = item.subsampled || item.samplingFrequency
         const freqHz = (freqKhz || 0) * 1000
