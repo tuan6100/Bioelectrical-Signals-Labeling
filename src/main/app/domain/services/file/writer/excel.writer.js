@@ -7,9 +7,8 @@ export async function saveLabelToExcel(channelId, filePath) {
     const workbook = new ExcelJS.Workbook();
     const channelSheet = workbook.addWorksheet('Channels');
     channelSheet.columns = [
-        { header: 'channel_id', key: 'channelId', width: 10 },
         { header: 'data_kind', key: 'dataKind', width: 15 },
-        { header: 'raw_samples', key: 'rawSamples' },
+        { header: 'raw_samples', key: 'rawSamples', width: 20 },
         { header: 'raw_sample_unit', key: 'rawSampleUnit', width: 15 },
         { header: 'sampling_frequency', key: 'samplingFrequency', width: 20 },
         { header: 'subsampled', key: 'subsampled', width: 15 },
@@ -19,7 +18,6 @@ export async function saveLabelToExcel(channelId, filePath) {
     ];
     const labelSheet = workbook.addWorksheet('Labels');
     labelSheet.columns = [
-        { header: 'channel_id', key: 'channelId', width: 10 },
         { header: 'label_name', key: 'labelName', width: 20 },
         { header: 'start_time', key: 'startTime', width: 15 },
         { header: 'end_time', key: 'endTime', width: 15 },
@@ -28,8 +26,9 @@ export async function saveLabelToExcel(channelId, filePath) {
     ];
 
     const channel = Channel.findOneById(channelId, true);
+
     if (channel) {
-        let formattedSamples;
+        let samplesArray = [];
         if (channel.rawSamplesUv) {
             try {
                 let parsedData = channel.rawSamplesUv;
@@ -41,30 +40,44 @@ export async function saveLabelToExcel(channelId, filePath) {
                     }
                 }
                 if (Array.isArray(parsedData)) {
-                    formattedSamples = parsedData.join(', ');
+                    samplesArray = parsedData;
                 } else {
-                    formattedSamples = String(parsedData);
+                    samplesArray = [parsedData];
                 }
             } catch (e) {
                 console.error(`Error processing samples for channel ${channelId}`, e);
             }
         }
-        channelSheet.addRow({
-            channelId: channel.channelId,
-            dataKind: channel.dataKind,
-            rawSamples: formattedSamples,
-            rawSampleUnit: 'uV',
-            samplingFrequency: channel.samplingFrequencyKhz,
-            subsampled: channel.subsampledKhz,
-            frequencyUnit: 'kHz',
-            duration: channel.durationMs,
-            durationUnit: 'ms'
-        });
+
+        if (samplesArray.length > 0) {
+            for (let i = 0; i < samplesArray.length; i++) {
+                channelSheet.addRow({
+                    dataKind: (i === 0) ? channel.dataKind : null,
+                    rawSamples: samplesArray[i],
+                    rawSampleUnit: (i === 0) ? 'uV' : null,
+                    samplingFrequency: (i === 0) ? channel.samplingFrequencyKhz : null,
+                    subsampled: (i === 0) ? channel.subsampledKhz : null,
+                    frequencyUnit: (i === 0) ? 'kHz' : null,
+                    duration: (i === 0) ? channel.durationMs : null,
+                    durationUnit: (i === 0) ? 'ms' : null
+                });
+            }
+        } else {
+            channelSheet.addRow({
+                dataKind: channel.dataKind,
+                rawSamples: "",
+                rawSampleUnit: 'uV',
+                samplingFrequency: channel.samplingFrequencyKhz,
+                subsampled: channel.subsampledKhz,
+                frequencyUnit: 'kHz',
+                duration: channel.durationMs,
+                durationUnit: 'ms'
+            });
+        }
         const annotations = Annotation.findByChannelId(channelId);
         if (annotations && annotations.length > 0) {
             annotations.forEach(ann => {
                 labelSheet.addRow({
-                    channelId: channelId,
                     labelName: ann.label_name || 'Unknown',
                     startTime: ann.start_time_ms,
                     endTime: ann.end_time_ms,
@@ -79,5 +92,6 @@ export async function saveLabelToExcel(channelId, filePath) {
     if (openResult) {
         console.warn(`Failed to open exported file: ${openResult}`);
     }
+
     return filePath;
 }

@@ -9,7 +9,7 @@ import {findNearestTimePoint} from "../../../utils/algorithm.util.js"
 
 
 export function exportLabels(sessionId) {
-    const data = Session.getAllLabelsBySessionId(sessionId)
+    const data = Session.findAllLabelsBySessionId(sessionId)
     return  data.flatMap(item => {
         const freqKhz = item.subsampled || item.samplingFrequency
         const freqHz = (freqKhz || 0) * 1000
@@ -157,9 +157,8 @@ function generateTimeSeries(subsampledKhz, durationMs) {
     const intervalMs = 1000 / samplingRateHz
     const timeSeries = []
     let currentTime = 0
-
     while (currentTime <= durationMs) {
-        timeSeries.push(currentTime)
+        timeSeries.push(parseFloat(currentTime.toFixed(3)))
         currentTime += intervalMs
     }
     return timeSeries
