@@ -83,23 +83,18 @@ export default class Annotation {
         ))
 }
 
-    findBySessionId(channelId) {
+    static findByChannelId(channelId) {
         const stmt = Annotation.db.prepare(`
         SELECT 
-            annotation_id, channel_id, label_id, start_time_ms, end_time_ms, note
-        FROM annotations 
+            a.annotation_id, a.start_time_ms, a.end_time_ms, a.note,
+            l.label_id, l.name AS label_name
+        FROM annotations a
+        INNER JOIN labels l ON a.label_id = l.label_id
         WHERE channel_id = ?
         ORDER BY start_time_ms
     `)
-        const rows = stmt.all(channelId)
-        return rows.map(row => new Annotation(
-            row.annotation_id,
-            row.channel_id,
-            row.label_id,
-            row.start_time_ms,
-            row.end_timeMs,
-            row.note
-        ))
+        return stmt.all(channelId)
+
 }
 
     static findByLabelId(labelId) {
@@ -206,16 +201,16 @@ export default class Annotation {
         return rows.length > 0
     }
 
-    static canResize(annotationId, channelId, newStartMs, newEndMs) {
+    isOverlappingWithOthers() {
         const stmt = Annotation.db.prepare(`
-            SELECT annotation_id, start_time_ms, end_time_ms
+            SELECT annotation_id
             FROM annotations
             WHERE channel_id = ?
             AND annotation_id != ?
             AND end_time_ms > ?
             AND start_time_ms < ?
-        `)
-        const rows = stmt.all(channelId, annotationId, newStartMs, newEndMs)
-        return rows.length === 0
+        `);
+        const rows = stmt.all(this.channelId , this.annotationId, this.startTimeMs, this.endTimeMs);
+        return rows.length > 0;
     }
 }

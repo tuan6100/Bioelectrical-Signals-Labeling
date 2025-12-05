@@ -4,6 +4,7 @@ import {
     getSessionsByPage,
     getSessionsByPatientId
 } from "../../../domain/services/data/query/session.query.js";
+import {updateSessionStatus} from "../../../domain/services/data/command/session.command.js";
 
 
 ipcMain.removeHandler('session:getInfo')
@@ -12,7 +13,6 @@ ipcMain.handle('session:getInfo', (event, sessionId) => {
         return getSessionInfo(sessionId)
     } catch (error) {
         dialog.showErrorBox('Session Info Error', error.message || String(error))
-        throw error
     }
 })
 
@@ -22,7 +22,6 @@ ipcMain.handle('sessions:getPage', (event, page, size) => {
         return getSessionsByPage(page, size)
     } catch (error) {
         dialog.showErrorBox('Sessions Page Error', error.message || String(error))
-        throw error
     }
 })
 
@@ -32,6 +31,14 @@ ipcMain.handle('sessions:getByPatient', (event, patientId) => {
         return getSessionsByPatientId(patientId)
     } catch (error) {
         dialog.showErrorBox('Sessions By Patient Error', error.message || String(error))
-        throw error
+    }
+})
+
+ipcMain.removeHandler('session:updateStatus')
+ipcMain.handle('session:updateStatus', (event, sessionId, newStatus) => {
+    try {
+        updateSessionStatus(sessionId, newStatus)
+    } catch (error) {
+        dialog.showErrorBox('Update Session Status Error', error.message || String(error))
     }
 })

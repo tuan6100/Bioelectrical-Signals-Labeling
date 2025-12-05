@@ -1,31 +1,33 @@
 import {
-    createLabelAppApi,
-    exportLabelAppApi,
+    createAnnotationAppApi,
+    exportToCsvAppApi,
     getAllLabelsAppApi,
     updateLabelAppApi,
     deleteLabelAppApi,
     updateAnnotationAppApi,
     deleteAnnotationAppApi,
-    showErrorDialogAppApi,
     getChannelSamplesAppApi,
     getSessionInfoAppApi,
-    isDesktopEnv, getAllSessionsAppApi, getSessionsByPatientIdAppApi
+    isDesktopEnv, getAllSessionsAppApi, getSessionsByPatientIdAppApi, getAnnotationsByChannelAppApi,
+    updateSessionStatusAppApi, exportToExcelAppApi
 } from '../../app/api/provider';
 
 /**
  * Fetches session information including patient details, channels, and default channel samples for display on the dashboard.
  *
  * @async
- * @function fetchSessionDashboard
+ * @function fetchSessionWorkspace
  * @param {number} sessionId - The ID of the session to fetch information for.
  * @returns {Promise<{
  *   session: {
+ *     sessionId: number,
  *     patientId: number,
  *     patientFirstName: string,
  *     patientGender: string,
  *     sessionStartTime: string,
  *     sessionEndTime: string,
- *     channels: Array<{channelId: number, channelNumber: number, dataKind: string, sweepIndex: number|null}>
+ *     sessionStatus: string,
+ *     channels: Array<{ channelId: number, channelNumber: number, dataKind: string }>
  *   },
  *   defaultChannel: {
  *     channelId: number|null,
@@ -33,20 +35,20 @@ import {
  *     signal: {
  *       samplingRateHz: number|null,
  *       durationMs: number|null,
- *       samples: Array<{time: number, value: number}>,
- *       annotations: {
+ *       samples: Array<{ time: number, value: number }>,
+ *       annotations: Array<{
  *         annotationId: number,
  *         startTimeMs: number,
  *         endTimeMs: number,
  *         note: string|null,
- *         timeline: Date
- *         label: {labelId: number, name: string}|null
- *       }|null
+ *         timeline: Date,
+ *         label: { labelId: number, name: string }|null
+ *       }>|null
  *     }|null
  *   }
- * }>} A promise that resolves to the session dashboard data including patient info, channels list, and default averaged channel samples.
+ * }>} A promise that resolves to the session data including patient info, channels list, and default averaged channel samples.
  */
-export async function fetchSessionDashboard(sessionId) {
+export async function fetchSessionWorkspace(sessionId) {
     if (isDesktopEnv()) {
         return await getSessionInfoAppApi(sessionId);
     } else {
@@ -73,7 +75,6 @@ export async function fetchSessionDashboard(sessionId) {
  *     label: {labelId: number, name: string}|null
  *   }|null
  * }>} A promise that resolves to the channel samples with time series data and any associated annotations.
- * @throws {Error} If channelId is null or undefined.
  */
 export async function fetchChannelSamples(channelId) {
     if (isDesktopEnv()) {
@@ -84,24 +85,25 @@ export async function fetchChannelSamples(channelId) {
 }
 
 /**
- * Creates a new label on the samples.
- *
+ * Fetches all annotations for a specific channel.
  * @async
- * @function fetchCreateLabel
- * @param {Object} labelDto - The data transfer object containing label details.
- * @param {number} labelDto.channelId - The ID of the channel the label is associated with.
- * @param {number} labelDto.startTime - The start time of the label in milliseconds.
- * @param {number} labelDto.endTime - The end time of the label in milliseconds.
- * @param {string} labelDto.name - The name of the label.
- * @param {string} [labelDto.note] - An optional note for the label.
- * @param {string} labelDto.timeline - The timeline date for when the label was created.
- * @returns {Promise<{annotationId: number, channelId: number, labelId: number, labelName: string, startTimeMs: number, endTimeMs: number, note: string|null}>}
+ * @function fetchGetChannelAnnotations
+ * @param {number} channelId - The ID of the channel to fetch annotations for.
+ * @returns {Promise<Array<{
+ *     annotationId: number,
+ *     startTime: number,
+ *     endTime: number,
+ *     note: string|null,
+ *     label: {
+ *         id: number,
+ *         name: string
+ *     }
+ * }>>}
  */
-
-
-export async function fetchCreateLabel(labelDto) {
+export async function fetchChannelAnnotations(channelId) {
     if (isDesktopEnv()) {
-        return await createLabelAppApi(labelDto);
+        // previously returned channel samples by mistake; use annotations API
+        return await getAnnotationsByChannelAppApi(channelId);
     } else {
         // TODO: Implement web version
     }
@@ -156,16 +158,56 @@ export async function fetchDeleteLabel(labelId) {
 }
 
 /**
- * Exports all labels in a given session ID.
+ * Exports all labels of a session to a csv file with a given session ID.
  *
  * @async
- * @function fetchExportLabel
+ * @function fetchExportAllLabelInSession
  * @param {number} sessionId - The ID of the session to export labels for.
- * @returns {Promise<Object>} A promise that resolves to the exported labels.
  */
-export async function fetchExportLabel(sessionId) {
+export async function fetchExportAllLabelInSession(sessionId) {
     if (isDesktopEnv()) {
-        return await exportLabelAppApi(sessionId);
+        return await exportToCsvAppApi(sessionId);
+    } else {
+        // TODO: Implement web version
+    }
+}
+
+/**
+ * Exports all labels of a specific channel to a csv file with a given channel ID.
+ *
+ * @async
+ * @function fetchExportAllLabelInSession
+ * @param {number} sessionId - The ID of the session to export labels for.
+ * @param {number} channelId - The ID of the session to export labels for.
+ * @param {string} extension - The file extension for export ('xlsx', 'csv').
+ */
+export async function fetchExportAllLabelInChannel(sessionId, channelId, extension) {
+    if (isDesktopEnv()) {
+        if (extension === 'xlsx') {
+            return await exportToExcelAppApi(sessionId, channelId)
+        }
+    } else {
+        // TODO: Implement web version
+    }
+}
+
+/**
+ * Creates a new label on the samples.
+ *
+ * @async
+ * @function fetchCreateAnnotation
+ * @param {Object} labelDto - The data transfer object containing label details.
+ * @param {number} labelDto.channelId - The ID of the channel the label is associated with.
+ * @param {number} labelDto.startTime - The start time of the label in milliseconds.
+ * @param {number} labelDto.endTime - The end time of the label in milliseconds.
+ * @param {string} labelDto.name - The name of the label.
+ * @param {string} [labelDto.note] - An optional note for the label.
+ * @param {string} labelDto.timeline - The timeline date for when the label was created.
+ * @returns {Promise<{annotationId: number, channelId: number, labelId: number, labelName: string, startTimeMs: number, endTimeMs: number, note: string|null}>}
+ */
+export async function fetchCreateAnnotation(labelDto) {
+    if (isDesktopEnv()) {
+        return await createAnnotationAppApi(labelDto);
     } else {
         // TODO: Implement web version
     }
@@ -178,11 +220,12 @@ export async function fetchExportLabel(sessionId) {
  * @function fetchUpdateAnnotation
  * @param {number} annotationId - The ID of the annotation to update.
  * @param {Object} updateFields - Fields to update (e.g., {labelName: 'newName', note: 'new note'}).
+ * @param {boolean} [force=false] - Whether to force the update even if it overlaps.
  * @returns {Promise<{annotationId: number, channelId: number, labelId: number, labelName: string, startTimeMs: number, endTimeMs: number, note: string|null, timeline: Date}>} A promise that resolves to the updated annotation.
  */
-export async function fetchUpdateAnnotation(annotationId, updateFields) {
+export async function fetchUpdateAnnotation(annotationId, updateFields, force = false) {
     if (isDesktopEnv()) {
-        return await updateAnnotationAppApi(annotationId, updateFields);
+        return await updateAnnotationAppApi(annotationId, updateFields, force);
     } else {
         // TODO: Implement web version
     }
@@ -201,23 +244,6 @@ export async function fetchDeleteAnnotation(annotationId) {
         return await deleteAnnotationAppApi(annotationId);
     } else {
         // TODO: Implement web version
-    }
-}
-
-/**
- * Shows a native error dialog box.
- *
- * @async
- * @function fetchShowErrorDialog
- * @param {string} title - The title of the error dialog.
- * @param {string} message - The error message to display.
- * @returns {Promise<void>} A promise that resolves when the dialog is closed.
- */
-export async function fetchShowErrorDialog(title, message) {
-    if (isDesktopEnv()) {
-        return await showErrorDialogAppApi(title, message);
-    } else {
-        alert(`${title}\n\n${message}`);
     }
 }
 
@@ -257,6 +283,23 @@ export async function fetchAllSessions(page = 1, size = 10) {
 export async function fetchSessionsByPatientId(patientId) {
     if (isDesktopEnv()) {
         return await getSessionsByPatientIdAppApi(patientId);
+    } else {
+        // TODO: Implement web version
+    }
+}
+
+/**
+ * Updates the status of a session.
+ *
+ * @async
+ * @function fetchUpdateSessionStatus
+ * @param {number} sessionId - The id of the session to update.
+ * @param {string} newStatus - The new status to set ('NEW', 'IN_PROGRESS', 'COMPLETED').
+ * @returns {Promise<VoidFunction>}
+ */
+export async function fetchUpdateSessionStatus(sessionId, newStatus) {
+    if (isDesktopEnv()) {
+        return await updateSessionStatusAppApi(sessionId, newStatus);
     } else {
         // TODO: Implement web version
     }

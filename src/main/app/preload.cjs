@@ -11,13 +11,31 @@ contextBridge.exposeInMainWorld("biosignalApi", {
             const listener = (_event, sessionId) => callback(sessionId)
             ipcRenderer.on("send:session-id", listener)
             return () => ipcRenderer.removeListener("send:session-id", listener)
+        },
+        sessionsUpdated: (callback) => {
+            const listener = (_event, args) => callback(args);
+            ipcRenderer.on("sessions:updated", listener);
+            return () => ipcRenderer.removeListener("sessions:updated", listener);
+        },
+        sessionStatusUpdated: (callback) => {
+            const listener = (_event, args) => callback(args);
+            ipcRenderer.on('session:status-updated', listener);
+            return () => ipcRenderer.removeListener('session:status-updated', listener);
         }
     },
 
     get: {
         sessionInfo: (sessionId) => ipcRenderer.invoke(
             "session:getInfo",
-                sessionId
+            sessionId
+        ),
+
+        sessionsPage: (page, size) => ipcRenderer.invoke(
+            "sessions:getPage", page, size
+        ),
+
+        sessionsByPatient: (patientId) => ipcRenderer.invoke(
+            "sessions:getByPatient", patientId
         ),
 
         channelSamples: (channelId) => ipcRenderer.invoke(
@@ -29,30 +47,35 @@ contextBridge.exposeInMainWorld("biosignalApi", {
             "label:getAll"
         ),
 
-        sessionsPage: (page, size) => ipcRenderer.invoke(
-            "sessions:getPage", page, size
-        ),
-
-        sessionsByPatient: (patientId) => ipcRenderer.invoke(
-            "sessions:getByPatient", patientId
+        annotationsByChannel: (channelId) => ipcRenderer.invoke(
+            "channel:getAllAnnotations",
+            channelId
         )
     },
 
+    head: {
+        exportToCsv: (sessionId) => ipcRenderer.send(
+            "label:exportCsv",
+            sessionId
+        ),
+        exportToExcel: (sessionId, channelId) => ipcRenderer.send(
+            "label:exportExcel",
+            sessionId, channelId
+        ),
+    },
+
     post: {
-        createLabel: (labelDto) => ipcRenderer.invoke(
-            "label:create",
+        createAnnotation: (labelDto) => ipcRenderer.invoke(
+            "annotation:create",
             labelDto
         ),
+    },
 
-        updateLabel: (labelId, updateFields) => ipcRenderer.invoke(
-            "label:update",
-            labelId,
-            updateFields
-        ),
-
-        deleteLabel: (labelId) => ipcRenderer.invoke(
-            "label:delete",
-            labelId
+    put: {
+        updateSessionStatus: (sessionId, newStatus) => ipcRenderer.invoke(
+            "session:updateStatus",
+            sessionId,
+            newStatus
         ),
 
         updateAnnotation: (annotationId, updateFields) => ipcRenderer.invoke(
@@ -66,18 +89,17 @@ contextBridge.exposeInMainWorld("biosignalApi", {
             annotationId
         ),
 
-        exportLabel: (sessionId) => ipcRenderer.send(
-            "label:export",
-            sessionId
-        )
-    },
+        updateLabel: (labelId, updateFields) => ipcRenderer.invoke(
+            "label:update",
+            labelId,
+            updateFields
+        ),
 
-    dialog: {
-        showError: (title, message) => ipcRenderer.invoke(
-            "dialog:showError",
-            title,
-            message
-        )
+        deleteLabel: (labelId) => ipcRenderer.invoke(
+            "label:delete",
+            labelId
+        ),
+
     }
 
 });

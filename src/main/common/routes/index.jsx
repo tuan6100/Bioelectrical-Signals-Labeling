@@ -1,18 +1,18 @@
 import React from 'react'
 import { useRoutes, useParams } from 'react-router-dom'
-import StartPage from '../pages/StartPage.jsx'
 import Dashboard from '../pages/Dashboard.jsx'
+import Workspace from '../pages/Workspace.jsx'
 
-function DashboardRouteWrapper() {
+function WorkspaceRouteWrapper() {
     const { sessionId } = useParams()
     if (!sessionId) return null
     const idNum = Number(sessionId)
-    return <Dashboard sessionId={Number.isFinite(idNum) ? idNum : sessionId} />
+    return <Workspace sessionId={Number.isFinite(idNum) ? idNum : sessionId} />
 }
 
 export default function AppRoutes() {
     return useRoutes([
-        { path: '/', element: <StartPage /> },
-        { path: '/sessions/:sessionId', element: <DashboardRouteWrapper /> }
+        { path: '/', element: <Dashboard /> },
+        { path: '/sessions/:sessionId', element: <WorkspaceRouteWrapper /> }
     ])
 }

@@ -2,19 +2,23 @@ import {ipcMain, dialog} from "electron"
 import {
     deleteAnnotation,
     deleteLabel, exportLabels,
-    persistLabel,
+    createAnnotation,
     updateAnnotation,
-    updateLabel
+    updateLabel, OverlapError
 } from "../../../domain/services/data/command/label.command.js";
 
 import {getAllLabels} from "../../../domain/services/data/query/label.query.js";
 import {saveLabelsToCSV} from "../../../domain/services/file/writer/csv.writer.js";
+import {saveLabelToExcel} from "../../../domain/services/file/writer/excel.writer.js";
+import {getInputFileName} from "../../../domain/services/data/query/session.query.js";
+import path from "node:path";
+import fs from "node:fs";
 
 
-ipcMain.removeHandler('label:create')
-ipcMain.handle('label:create', (event, labelDto) => {
+ipcMain.removeHandler('annotation:create')
+ipcMain.handle('annotation:create', (event, labelDto) => {
     try {
-        return persistLabel(
+        return createAnnotation(
             labelDto.channelId,
             labelDto.startTime,
             labelDto.endTime,
@@ -22,24 +26,11 @@ ipcMain.handle('label:create', (event, labelDto) => {
             labelDto.note
         )
     } catch (error) {
-        dialog.showErrorBox('Label Create Error', error.message || String(error))
-        throw error
+        if (!(error instanceof OverlapError)) {
+            dialog.showErrorBox('Label Creation Error', error.message)
+        }
+        console.trace(error.message)
     }
-})
-
-ipcMain.removeHandler('label:getAll')
-ipcMain.handle('label:getAll', (event) => {
-    return getAllLabels()
-})
-
-ipcMain.removeHandler('label:update')
-ipcMain.handle('label:update', (event, labelId, updateFields) => {
-    return updateLabel(labelId, updateFields)
-})
-
-ipcMain.removeHandler('label:delete')
-ipcMain.handle('label:delete', (event, labelId) => {
-    return deleteLabel(labelId)
 })
 
 ipcMain.removeHandler('annotation:update')
@@ -47,8 +38,10 @@ ipcMain.handle('annotation:update', (event, annotationId, updateFields) => {
     try {
         return updateAnnotation(annotationId, updateFields)
     } catch (error) {
-        dialog.showErrorBox('Annotation Update Error', error.message || String(error))
-        throw error
+        if (!(error instanceof OverlapError)) {
+            dialog.showErrorBox('Annotation Update Error', error.message)
+        }
+            console.trace(error.message)
     }
 })
 
@@ -57,27 +50,82 @@ ipcMain.handle('annotation:delete', (event, annotationId) => {
     try {
         return deleteAnnotation(annotationId)
     } catch (error) {
-        dialog.showErrorBox('Annotation Delete Error', error.message || String(error))
-        throw error
+        dialog.showErrorBox('Annotation Deletion Error', error.message)
     }
 })
 
-ipcMain.removeHandler('dialog:showError')
-ipcMain.handle('dialog:showError', (event, title, message) => {
-    dialog.showErrorBox(title, message)
-})
-
-ipcMain.removeAllListeners('label:export')
+ipcMain.removeAllListeners('label:exportCsv')
 ipcMain.on('label:export', async (event, sessionId) => {
     const data = exportLabels(sessionId)
-    const result = await dialog.showSaveDialog({
+    const fileManager = await dialog.showSaveDialog({
         title: 'Export Labels to CSV',
         defaultPath: `labels_session_${sessionId}.csv`,
         filters: [
             { name: 'CSV Files', extensions: ['csv'] }
         ]
     })
-    if (!result.canceled && result.filePath) {
-        await saveLabelsToCSV(data, result.filePath)
+    if (!fileManager.canceled && fileManager.filePath) {
+        await saveLabelsToCSV(data, fileManager.filePath)
     }
+})
+
+ipcMain.removeHandler('label:exportExcel')
+ipcMain.on('label:exportExcel', async (event, sessionId, channelId) => {
+    try {
+        const inputFileName = getInputFileName(sessionId)
+            .replace(path.extname(getInputFileName(sessionId)), '')
+        const fileManager = await dialog.showSaveDialog({
+            title: 'Export Labels to CSV',
+            defaultPath: `${inputFileName}.xlsx`,
+            filters: [
+                { name: 'Excel Files', extensions: ['xlsx'] }
+            ]
+        })
+        if (fileManager.canceled || !fileManager.filePath) return
+        const chosenPath = fileManager.filePath
+        const baseDir = path.dirname(chosenPath)
+        const baseName = path.basename(chosenPath)
+        const now = new Date();
+        const day = String(now.getDate()).padStart(2, '0');
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const year = now.getFullYear();
+        const folderName = `${day}-${month}-${year}`;
+        const targetDir = path.join(baseDir, folderName);
+        await fs.promises.mkdir(targetDir, { recursive: true })
+        const targetPath = path.join(targetDir, baseName)
+        await saveLabelToExcel(channelId, targetPath)
+    } catch (error) {
+        dialog.showErrorBox('Export Error', error.message)
+        console.trace(error)
+    }
+})
+
+
+ipcMain.removeHandler('label:getAll')
+ipcMain.handle('label:getAll', (event) => {
+    try {
+        return getAllLabels()
+    } catch (error) {
+        dialog.showErrorBox('Label Retrieval Error', error.message)
+    }
+})
+
+ipcMain.removeHandler('label:update')
+ipcMain.handle('label:update', (event, labelId, updateFields) => {
+    try {
+        return updateLabel(labelId, updateFields)
+    } catch (error) {
+        dialog.showErrorBox('Label Update Error', error.message)
+    }
+
+})
+
+ipcMain.removeHandler('label:delete')
+ipcMain.handle('label:delete', (event, labelId) => {
+    try {
+        return deleteLabel(labelId)
+    } catch (error) {
+        dialog.showErrorBox('Label Deletion Error', error.message)
+    }
+
 })

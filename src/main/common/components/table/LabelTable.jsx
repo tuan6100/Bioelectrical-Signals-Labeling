@@ -12,10 +12,9 @@ import {
     faArrowRotateRight
 } from "@fortawesome/free-solid-svg-icons"
 import {
-    fetchCreateLabel,
+    fetchCreateAnnotation,
     fetchDeleteAnnotation,
     fetchGetAllLabels,
-    fetchShowErrorDialog,
     fetchUpdateAnnotation
 } from "../../api/index.js";
 
@@ -25,17 +24,15 @@ const LabelTable = ({ data, channelId }) => {
     const prevLengthRef = useRef(null)
     const prevRowsMapRef = useRef(new Map())
     const [filterText, setFilterText] = useState('')
-    const [sort, setSort] = useState({ key: '', dir: '' })
+    const [sort, setSort] = useState({ key: 'startTimeMs', dir: 'asc' })
     const [newRow, setNewRow] = useState({ startTimeMs: '', endTimeMs: '', labelName: '', note: '' })
     const [editId, setEditId] = useState(null)
     const [editFields, setEditFields] = useState({ labelName: '', note: '', startTimeMs: '', endTimeMs: '' })
     const [allLabels, setAllLabels] = useState([])
     const [labelsLoading, setLabelsLoading] = useState(false)
-    const [flashTrigger, setFlashTrigger] = useState(0)
 
     useEffect(() => {
         selectedIdRef.current = selectedId
-        console.log('Selected ID changed:', selectedId)
     }, [selectedId])
 
     const isAnnotationRow = (row) =>
@@ -54,12 +51,17 @@ const LabelTable = ({ data, channelId }) => {
         }
 
         const prevLength = prevLengthRef.current
-        const firstId = (data[0].annotationId ?? data[0].id)
-        const lastId = (data[data.length - 1].annotationId ?? data[data.length - 1].id)
-        const selectedStillExists = data.some(row => (row.annotationId ?? row.id) === selectedId)
+        // Defensive check: đảm bảo phần tử tồn tại trước khi truy cập
+        const firstRow = data[0];
+        const lastRow = data[data.length - 1];
+
+        const firstId = firstRow ? (firstRow.annotationId ?? firstRow.id) : null;
+        const lastId = lastRow ? (lastRow.annotationId ?? lastRow.id) : null;
+        const selectedStillExists = data.some(row => row && (row.annotationId ?? row.id) === selectedId)
 
         const currMap = new Map()
         for (const row of data) {
+            if (!row) continue; // Bỏ qua row lỗi
             const id = row.annotationId ?? row.id
             const labelName = row.labelName || row.label?.name || ''
             const note = row.note || ''
@@ -68,9 +70,9 @@ const LabelTable = ({ data, channelId }) => {
         }
 
         if (prevLength == null) {
-            if (selectedId !== firstId) setSelectedId(firstId)
+            if (firstId && selectedId !== firstId) setSelectedId(firstId)
         } else if (data.length > prevLength) {
-            if (selectedId !== lastId) setSelectedId(lastId)
+            if (lastId && selectedId !== lastId) setSelectedId(lastId)
         } else {
             if (selectedStillExists) {
                 try {
@@ -85,12 +87,9 @@ const LabelTable = ({ data, channelId }) => {
                             if (changedCount > 1) break
                         }
                     }
-                    if (prevLength === data.length && changedCount === 1 && changedId != null) {
-                        flashSelect(changedId)
-                    }
                 } catch (_) {}
             } else {
-                if (selectedId !== firstId) setSelectedId(firstId)
+                if (firstId && selectedId !== firstId) setSelectedId(firstId)
             }
         }
 
@@ -103,14 +102,12 @@ const LabelTable = ({ data, channelId }) => {
             const id = e?.detail?.id
             if (id == null) return
             if (Array.isArray(data)) {
-                const exists = data.some(row => (row.annotationId ?? row.id) === id)
+                const exists = data.some(row => row && (row.annotationId ?? row.id) === id)
                 if (!exists) return
             }
             setSelectedId(id)
-            setFlashTrigger(t => t + 1)
         }
         window.addEventListener('annotation-select', handleAnnotationSelect)
-        console.log('Added annotation-select listener')
         return () => window.removeEventListener('annotation-select', handleAnnotationSelect)
     }, [data])
 
@@ -119,6 +116,7 @@ const LabelTable = ({ data, channelId }) => {
             const t = e.target;
             const tag = (t.tagName || '').toUpperCase();
             if (t.isContentEditable || ['INPUT','SELECT','TEXTAREA','BUTTON','A','LABEL'].includes(tag)) return;
+            if (t.closest('.icon-btn')) return;
         }
         if (id === selectedId) return;
         setSelectedId(id)
@@ -135,19 +133,15 @@ const LabelTable = ({ data, channelId }) => {
         window.dispatchEvent(evt)
     }
 
-    function flashSelect(id) {
-        if (selectedIdRef.current !== id) {
-            setSelectedId(id)
-        }
-        setFlashTrigger(t => t + 1)
-    }
-
     const handleCellUpdate = async (id, fields) => {
         if (!id || !fields || typeof fields !== 'object') return
         try {
             const updated = await fetchUpdateAnnotation(id, fields)
+            // Nếu update lỗi trả về null/undefined thì không làm gì cả
+            if (!updated) return;
+
             const next = (Array.isArray(data) ? data : []).map(row =>
-                (row.annotationId ?? row.id) === id
+                row && (row.annotationId ?? row.id) === id
                     ? {
                         ...row,
                         ...(updated?.labelName != null ? { labelName: updated.labelName } : {}),
@@ -157,15 +151,12 @@ const LabelTable = ({ data, channelId }) => {
                     }
                     : row
             )
-
-            flashSelect(id)
             if (fields.labelName) {
                 const nm = (fields.labelName || '').trim()
                 if (nm && !allLabels.some(l => (l.name || '').toLowerCase() === nm.toLowerCase())) {
                     setAllLabels(prev => [...prev, { labelId: updated?.labelId ?? Date.now(), name: nm, createdAt: new Date().toISOString() }])
                 }
             }
-
             dispatchAnnotationsUpdated(next, id)
             if (editId === id) {
                 setEditId(null)
@@ -185,23 +176,11 @@ const LabelTable = ({ data, channelId }) => {
         try {
             const success = await fetchDeleteAnnotation(id)
             if (!success) throw new Error('Delete failed')
-            const next = (Array.isArray(data) ? data : []).filter(row => (row.annotationId ?? row.id) !== id)
+            const next = (Array.isArray(data) ? data : []).filter(row => row && (row.annotationId ?? row.id) !== id)
             dispatchAnnotationsUpdated(next, null)
         } catch (err) {
             console.error('Failed to delete annotation:', err)
         }
-    }
-
-    const formatMs = (ms, decimalPlaces = 2) => {
-        if (ms === null || ms === undefined || ms === '') return ''
-        let n = Number(ms)
-        if (!Number.isFinite(n)) return ''
-        if (decimalPlaces < 0) decimalPlaces = 0
-        if (Math.abs(n) >= 1000) {
-            const seconds = n / 1000
-            return `${seconds.toFixed(decimalPlaces)}`
-        }
-        return `${n.toFixed(decimalPlaces)}`
     }
 
     const handleHeaderSort = (key) => {
@@ -214,7 +193,7 @@ const LabelTable = ({ data, channelId }) => {
     }
 
     const handleReload = async () => {
-        setSort({ key: '', dir: '' })
+        setSort({ key: 'startTimeMs', dir: 'asc' })
         setFilterText('')
         try {
             setLabelsLoading(true)
@@ -229,14 +208,17 @@ const LabelTable = ({ data, channelId }) => {
 
     const filteredSortedData = React.useMemo(() => {
         if (!Array.isArray(data)) return data
+        // Lọc bỏ dữ liệu rác (null/undefined) để tránh crash khi render
+        const safeData = data.filter(r => r !== null && r !== undefined);
+
         const ft = (filterText || '').trim().toLowerCase()
         const filtered = ft
-            ? data.filter(row => {
+            ? safeData.filter(row => {
                 const label = (row.labelName || row.label?.name || '').toLowerCase()
                 const note = (row.note || '').toLowerCase()
                 return label.includes(ft) || note.includes(ft)
             })
-            : data.slice()
+            : safeData.slice()
         const { key, dir } = sort || {}
         if (!key) return filtered
         const sign = dir === 'desc' ? -1 : 1
@@ -271,58 +253,67 @@ const LabelTable = ({ data, channelId }) => {
         return () => { cancelled = true }
     }, [])
 
+    // --- LOGIC CHÍNH ĐÃ SỬA ---
     const handleCreate = async () => {
         const sMs = Number(newRow.startTimeMs)
         const eMs = Number(newRow.endTimeMs)
         const name = (newRow.labelName || '').trim()
         const note = (newRow.note || '').trim()
-        if (!Number.isFinite(sMs) || !Number.isFinite(eMs) || !name || !channelId) {
-            await fetchShowErrorDialog('Failed to create', 'Please set Start, End (ms) and Label, and ensure a channel is selected.')
-            return
-        }
-        if (eMs <= sMs) {
-            await fetchShowErrorDialog('Failed to create', 'End time must be greater than Start time.')
-            return
-        }
+
+        // Validation phía client (nếu cần thiết, nếu không backend lo)
+        if (isNaN(sMs) || isNaN(eMs)) return;
+
         try {
-            const created = await fetchCreateLabel({ channelId, startTime: Math.round(sMs), endTime: Math.round(eMs), name, note })
-            const createdId = created?.annotationId ?? created?.id
+            const created = await fetchCreateAnnotation({ channelId, startTime: sMs, endTime: eMs, name, note })
+
+            // --- KIỂM TRA QUAN TRỌNG ---
+            // Nếu backend trả về null, undefined hoặc object lỗi (không có id)
+            // thì DỪNG LẠI NGAY. Không thêm vào mảng, không clear form.
+            if (!created || (created.annotationId == null && created.id == null)) {
+                return; // Giữ nguyên trạng thái render cũ
+            }
+
+            // Nếu thành công (có ID hợp lệ)
+            const createdId = created.annotationId ?? created.id
             const next = [...(Array.isArray(data) ? data : []), created]
-            flashSelect(createdId)
             dispatchAnnotationsUpdated(next, createdId)
+
             if (name && !allLabels.some(l => (l.name || '').toLowerCase() === name.toLowerCase())) {
                 setAllLabels(prev => [...prev, { labelId: created?.labelId ?? Date.now(), name, createdAt: new Date().toISOString() }])
             }
+            // Chỉ clear form khi thành công
             setNewRow({ startTimeMs: '', endTimeMs: '', labelName: '', note: '' })
+
         } catch (err) {
+            // Lỗi mạng hoặc lỗi JS khác
             console.error('Create failed:', err)
+            // Không làm gì cả -> giữ nguyên trạng thái render
         }
     }
 
-    const handleSaveLabelEdited = async (e, row) => {
+    const handleEdit = async (e, row) => {
         e.preventDefault()
         e.stopPropagation()
         const id = row.annotationId ?? row.id
-        const trimmedLabel = (editFields.labelName || '').trim()
         const fields = {}
-        if (trimmedLabel !== (row.labelName || row.label?.name || '')) fields.labelName = trimmedLabel
-        if ((editFields.note || '') !== (row.note || '')) fields.note = editFields.note || ''
-        const startVal = editFields.startTimeMs === '' ? row.startTimeMs : Number(editFields.startTimeMs)
-        const endVal = editFields.endTimeMs === '' ? row.endTimeMs : Number(editFields.endTimeMs)
-        const startChanged = editFields.startTimeMs !== '' && Number(startVal) !== Number(row.startTimeMs)
-        const endChanged = editFields.endTimeMs !== '' && Number(endVal) !== Number(row.endTimeMs)
-        if (startChanged) fields.startTimeMs = Math.round(Number(startVal))
-        if (endChanged) fields.endTimeMs = Math.round(Number(endVal))
-        if ((fields.startTimeMs !== undefined || fields.endTimeMs !== undefined)) {
-            const s = fields.startTimeMs !== undefined ? fields.startTimeMs : row.startTimeMs
-            const eMs = fields.endTimeMs !== undefined ? fields.endTimeMs : row.endTimeMs
-            if (!Number.isFinite(s) || !Number.isFinite(eMs) || eMs <= s) {
-                await fetchShowErrorDialog('Failed to update', 'Please ensure Start/End are valid ms and End > Start.')
-                return
-            }
+        const trimmedLabel = (editFields.labelName || '').trim()
+        if (trimmedLabel !== (row.labelName || row.label?.name || '')) {
+            fields.labelName = trimmedLabel
         }
-        if (Object.keys(fields).length > 0) await handleCellUpdate(id, fields)
-        else setEditId(null)
+        if ((editFields.note || '') !== (row.note || '')) {
+            fields.note = editFields.note || ''
+        }
+        if (editFields.startTimeMs !== '' && editFields.startTimeMs !== row.startTimeMs) {
+            fields.startTimeMs = editFields.startTimeMs
+        }
+        if (editFields.endTimeMs !== '' && editFields.endTimeMs !== row.endTimeMs) {
+            fields.endTimeMs = editFields.endTimeMs
+        }
+        if (Object.keys(fields).length > 0) {
+            await handleCellUpdate(id, fields)
+        } else {
+            setEditId(null)
+        }
     }
 
     useEffect(() => {
@@ -330,18 +321,16 @@ const LabelTable = ({ data, channelId }) => {
             const detail = e?.detail
             if (!detail) return
             if (detail.channelId != null && detail.channelId !== channelId) return
-            const { annotations: nextAnn, updatedId } = detail
-            if (updatedId != null) {
-                const exists = Array.isArray(nextAnn) && nextAnn.some(r => (r.annotationId ?? r.id) === updatedId)
-                if (exists) {
-                    flashSelect(updatedId)
-                }
-            }
         }
-        console.log('Adding annotations-updated listener')
         window.addEventListener('annotations-updated', handleAnnotationsUpdated)
         return () => window.removeEventListener('annotations-updated', handleAnnotationsUpdated)
     }, [channelId])
+
+    const hasInputData =
+        newRow.startTimeMs !== '' ||
+        newRow.endTimeMs !== '' ||
+        newRow.labelName.trim() !== '' ||
+        newRow.note.trim() !== '';
 
     return (
         <div className="table-container">
@@ -354,16 +343,15 @@ const LabelTable = ({ data, channelId }) => {
                     placeholder="Filter by label or note..."
                     style={{ flex: 1, minWidth: 120 }}
                 />
-                <FontAwesomeIcon
-                    icon={faArrowRotateRight}
+
+                <button
+                    className="icon-btn"
+                    onClick={handleReload}
                     title="Reload & reset sort"
                     aria-label="Reload"
-                    role="button"
-                    tabIndex={0}
-                    style={{ cursor: 'pointer' }}
-                    onClick={handleReload}
-                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleReload(); } }}
-                />
+                >
+                    <FontAwesomeIcon icon={faArrowRotateRight} />
+                </button>
             </div>
             {(() => {
                 const displayedRowsCount = allAnnotationMode
@@ -376,64 +364,56 @@ const LabelTable = ({ data, channelId }) => {
                             <thead>
                             <tr>
                                 <th>
-                  <span style={{cursor:'pointer'}} onClick={() => handleHeaderSort('startTimeMs')}>
-                    Start (ms)
-                  </span>
-                                    <FontAwesomeIcon
-                                        icon={faSort}
-                                        title={`Sort by Start (current: ${sort.key==='startTimeMs'?sort.dir:'none'})`}
-                                        aria-label="Sort Start"
-                                        role="button"
-                                        tabIndex={0}
-                                        style={{ marginLeft:4, cursor:'pointer' }}
+                                    <span style={{cursor:'pointer'}} onClick={() => handleHeaderSort('startTimeMs')}>
+                                        Start (ms)
+                                    </span>
+                                    <button
+                                        className="icon-btn"
                                         onClick={() => handleHeaderSort('startTimeMs')}
-                                        onKeyDown={(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); handleHeaderSort('startTimeMs'); } }}
-                                    />
+                                        title={`Sort by Start (current: ${sort.key==='startTimeMs'?sort.dir:'none'})`}
+                                        style={{ marginLeft: 4 }}
+                                    >
+                                        <FontAwesomeIcon icon={faSort} />
+                                    </button>
                                 </th>
                                 <th>
-                  <span style={{cursor:'pointer'}} onClick={() => handleHeaderSort('endTimeMs')}>
-                    End (ms)
-                  </span>
-                                    <FontAwesomeIcon
-                                        icon={faSort}
-                                        title={`Sort by End (current: ${sort.key==='endTimeMs'?sort.dir:'none'})`}
-                                        aria-label="Sort End"
-                                        role="button"
-                                        tabIndex={0}
-                                        style={{ marginLeft:4, cursor:'pointer' }}
+                                    <span style={{cursor:'pointer'}} onClick={() => handleHeaderSort('endTimeMs')}>
+                                        End (ms)
+                                    </span>
+                                    <button
+                                        className="icon-btn"
                                         onClick={() => handleHeaderSort('endTimeMs')}
-                                        onKeyDown={(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); handleHeaderSort('endTimeMs'); } }}
-                                    />
+                                        title={`Sort by End (current: ${sort.key==='endTimeMs'?sort.dir:'none'})`}
+                                        style={{ marginLeft: 4 }}
+                                    >
+                                        <FontAwesomeIcon icon={faSort} />
+                                    </button>
                                 </th>
                                 <th>
-                  <span style={{cursor:'pointer'}} onClick={() => handleHeaderSort('labelName')}>
-                    Label
-                  </span>
-                                    <FontAwesomeIcon
-                                        icon={faSort}
-                                        title={`Sort by Label (current: ${sort.key==='labelName'?sort.dir:'none'})`}
-                                        aria-label="Sort Label"
-                                        role="button"
-                                        tabIndex={0}
-                                        style={{ marginLeft:4, cursor:'pointer' }}
+                                    <span style={{cursor:'pointer'}} onClick={() => handleHeaderSort('labelName')}>
+                                        Label
+                                    </span>
+                                    <button
+                                        className="icon-btn"
                                         onClick={() => handleHeaderSort('labelName')}
-                                        onKeyDown={(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); handleHeaderSort('labelName'); } }}
-                                    />
+                                        title={`Sort by Label (current: ${sort.key==='labelName'?sort.dir:'none'})`}
+                                        style={{ marginLeft: 4 }}
+                                    >
+                                        <FontAwesomeIcon icon={faSort} />
+                                    </button>
                                 </th>
                                 <th>
-                  <span style={{cursor:'pointer'}} onClick={() => handleHeaderSort('note')}>
-                    Note
-                  </span>
-                                    <FontAwesomeIcon
-                                        icon={faSort}
-                                        title={`Sort by Note (current: ${sort.key==='note'?sort.dir:'none'})`}
-                                        aria-label="Sort Note"
-                                        role="button"
-                                        tabIndex={0}
-                                        style={{ marginLeft:4, cursor:'pointer' }}
+                                    <span style={{cursor:'pointer'}} onClick={() => handleHeaderSort('note')}>
+                                        Note
+                                    </span>
+                                    <button
+                                        className="icon-btn"
                                         onClick={() => handleHeaderSort('note')}
-                                        onKeyDown={(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); handleHeaderSort('note'); } }}
-                                    />
+                                        title={`Sort by Note (current: ${sort.key==='note'?sort.dir:'none'})`}
+                                        style={{ marginLeft: 4 }}
+                                    >
+                                        <FontAwesomeIcon icon={faSort} />
+                                    </button>
                                 </th>
                                 <th>Action</th>
                             </tr>
@@ -447,10 +427,14 @@ const LabelTable = ({ data, channelId }) => {
                                 </tr>
                             ) : (
                                 filteredSortedData.map((row) => {
+                                    // --- DEFENSIVE CHECK: Bỏ qua nếu row không hợp lệ ---
+                                    if (!row) return null;
+
                                     const id = row.annotationId ?? row.id
                                     const labelName = row.labelName || row.label?.name || 'Unknown'
                                     const note = row.note || ''
-                                    const isSelected = id === selectedId
+                                    const isEditing = id === editId
+
                                     return (
                                         <tr
                                             key={id}
@@ -459,46 +443,48 @@ const LabelTable = ({ data, channelId }) => {
                                                 const ln = (labelName || '').toLowerCase()
                                                 return ln === 'unknown' ? 'highlight-unknown' : 'highlight'
                                             })()}
-                                            onClick={(e) => handleRowClick(e, id)}
+                                            onClick={(e) => {
+                                                if (!isEditing) handleRowClick(e, id)
+                                            }}
                                             tabIndex={0}
-                                            onKeyDown={(e) => { if (e.key === 'Enter') handleRowClick(e, id) }}
-                                            style={{ cursor: 'pointer' }}
+                                            onKeyDown={(e) => { if (e.key === 'Enter' && !isEditing) handleRowClick(e, id) }}
+                                            style={{ cursor: isEditing ? 'default' : 'pointer' }}
                                         >
                                             <td>
-                                                {id === editId ? (
+                                                {isEditing ? (
                                                     <input
                                                         type="number"
                                                         className="edit-input"
-                                                        value={editFields.startTimeMs}
+                                                        value={editFields.startTimeMs ?? ''}
                                                         onChange={(e) => setEditFields(f => ({ ...f, startTimeMs: e.target.value }))}
                                                         onClick={(e) => e.stopPropagation()}
                                                         style={{ width: '100%' }}
                                                     />
                                                 ) : (
-                                                    formatMs(row.startTimeMs)
+                                                    row.startTimeMs
                                                 )}
                                             </td>
                                             <td>
-                                                {id === editId ? (
+                                                {isEditing ? (
                                                     <input
                                                         type="number"
                                                         className="edit-input"
-                                                        value={editFields.endTimeMs}
+                                                        value={editFields.endTimeMs ?? ''}
                                                         onChange={(e) => setEditFields(f => ({ ...f, endTimeMs: e.target.value }))}
                                                         onClick={(e) => e.stopPropagation()}
                                                         style={{ width: '100%' }}
                                                     />
                                                 ) : (
-                                                    formatMs(row.endTimeMs)
+                                                    row.endTimeMs
                                                 )}
                                             </td>
                                             <td>
-                                                {id === editId ? (
+                                                {isEditing ? (
                                                     <input
                                                         type="text"
                                                         className="edit-input"
                                                         list="label-options"
-                                                        value={editFields.labelName}
+                                                        value={editFields.labelName ?? ''}
                                                         onChange={(e) => setEditFields(f => ({ ...f, labelName: e.target.value }))}
                                                         onClick={(e) => e.stopPropagation()}
                                                         style={{ width: '100%' }}
@@ -508,72 +494,53 @@ const LabelTable = ({ data, channelId }) => {
                                                 )}
                                             </td>
                                             <td>
-                                                {id === editId ? (
+                                                {isEditing ? (
                                                     <input
                                                         type="text"
                                                         className="edit-input"
-                                                        value={editFields.note}
+                                                        value={editFields.note ?? ''}
                                                         onChange={(e) => setEditFields(f => ({ ...f, note: e.target.value }))}
                                                         onClick={(e) => e.stopPropagation()}
+                                                        onKeyDown={(e) => { if(e.key === 'Enter') e.stopPropagation() }}
                                                         style={{ width: '100%' }}
                                                     />
                                                 ) : (
                                                     note
                                                 )}
                                             </td>
-                                            <td className={`action-links ${id === editId ? "editing" : ""}`}>
-                                                {id === editId ? (
+                                            <td className={`action-links`} onClick={(e) => e.stopPropagation()}>
+                                                {isEditing ? (
                                                     <>
-                                                        <FontAwesomeIcon
-                                                            icon={faFloppyDisk}
-                                                            title="Save"
-                                                            aria-label="Save"
-                                                            role="button"
-                                                            tabIndex={0}
-                                                            style={{ cursor: 'pointer' }}
-                                                            onClick={(e) => handleSaveLabelEdited(e, row)}
-                                                            onKeyDown={(e) => {
-                                                                if (e.key === 'Enter' || e.key === ' ') {
-                                                                    e.preventDefault()
-                                                                    handleSaveLabelEdited(e, row)
-                                                                }
-                                                            }}
-                                                        />
+                                                        <button
+                                                            className="icon-btn editing"
+                                                            onClick={(e) => handleEdit(e, row)}
+                                                            title="Save changes"
+                                                            style={{ marginRight: 8 }}
+                                                        >
+                                                            <FontAwesomeIcon icon={faFloppyDisk} />
+                                                        </button>
 
-                                                        <FontAwesomeIcon
-                                                            icon={faRectangleXmark}
-                                                            title="Cancel"
-                                                            aria-label="Cancel"
-                                                            role="button"
-                                                            tabIndex={0}
-                                                            style={{ cursor: 'pointer' }}
+                                                        <button
+                                                            className="icon-btn editing"
+                                                            title="Cancel editing"
                                                             onClick={(e) => {
                                                                 e.preventDefault()
                                                                 e.stopPropagation()
                                                                 setEditId(null)
                                                             }}
-                                                            onKeyDown={(e) => {
-                                                                if (e.key === 'Enter' || e.key === ' ') {
-                                                                    e.preventDefault()
-                                                                    setEditId(null)
-                                                                }
-                                                            }}
-                                                        />
+                                                        >
+                                                            <FontAwesomeIcon icon={faRectangleXmark} />
+                                                        </button>
                                                     </>
                                                 ) : (
                                                     <>
-                                                        <FontAwesomeIcon
-                                                            icon={faPencil}
-                                                            title="Edit"
-                                                            aria-label="Edit"
-                                                            className="editing"
-                                                            role="button"
-                                                            tabIndex={0}
-                                                            style={{ cursor: 'pointer' }}
+                                                        <button
+                                                            className="icon-btn editing"
+                                                            title="Edit annotation"
+                                                            style={{ marginRight: 8 }}
                                                             onClick={(e) => {
                                                                 e.preventDefault()
                                                                 e.stopPropagation()
-                                                                flashSelect(id)
                                                                 setEditId(id)
                                                                 setEditFields({
                                                                     labelName: labelName || '',
@@ -582,40 +549,21 @@ const LabelTable = ({ data, channelId }) => {
                                                                     endTimeMs: String(row.endTimeMs ?? '')
                                                                 })
                                                             }}
-                                                            onKeyDown={(e) => {
-                                                                if (e.key === 'Enter' || e.key === ' ') {
-                                                                    e.preventDefault()
-                                                                    flashSelect(id)
-                                                                    setEditId(id)
-                                                                    setEditFields({
-                                                                        labelName: labelName || '',
-                                                                        note: note || '',
-                                                                        startTimeMs: String(row.startTimeMs ?? ''),
-                                                                        endTimeMs: String(row.endTimeMs ?? '')
-                                                                    })
-                                                                }
-                                                            }}
-                                                        />
+                                                        >
+                                                            <FontAwesomeIcon icon={faPencil} />
+                                                        </button>
 
-                                                        <FontAwesomeIcon
-                                                            icon={faTrash}
-                                                            title="Delete"
-                                                            aria-label="Delete"
-                                                            className="editing"
-                                                            tabIndex={0}
-                                                            style={{ cursor: 'pointer' }}
+                                                        <button
+                                                            className="icon-btn editing"
+                                                            title="Delete annotation"
                                                             onClick={(e) => {
                                                                 e.preventDefault()
                                                                 e.stopPropagation()
                                                                 handleDelete(e, id)
                                                             }}
-                                                            onKeyDown={(e) => {
-                                                                if (e.key === 'Enter' || e.key === ' ') {
-                                                                    e.preventDefault()
-                                                                    handleDelete(e, id)
-                                                                }
-                                                            }}
-                                                        />
+                                                        >
+                                                            <FontAwesomeIcon icon={faTrash} />
+                                                        </button>
                                                     </>
                                                 )}
                                             </td>
@@ -675,20 +623,14 @@ const LabelTable = ({ data, channelId }) => {
                                     />
                                 </td>
                                 <td>
-                                    <FontAwesomeIcon
-                                        icon={faPlus}
+                                    <button
+                                        className="icon-btn"
                                         onClick={handleCreate}
-                                        role="button"
-                                        tabIndex={0}
-                                        title="Create"
-                                        style={{ cursor: 'pointer' }}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter' || e.key === ' ') {
-                                                e.preventDefault()
-                                                handleCreate()
-                                            }
-                                        }}
-                                    />
+                                        title={hasInputData ? "Add new annotation" : "Enter details to add"}
+                                        disabled={!hasInputData}
+                                    >
+                                        <FontAwesomeIcon icon={faPlus} />
+                                    </button>
                                 </td>
                             </tr>
                             </tbody>

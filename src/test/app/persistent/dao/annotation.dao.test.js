@@ -68,7 +68,7 @@ describe('Annotation DAO', () => {
         allStub.returns([
             { annotation_id: 1, channel_id: 22, label_id: 3, start_time_ms: 100, end_time_ms: 200, note: 'n1' }
         ]);
-        const result = new Annotation().findBySessionId(22); // instance method in code
+        const result = new Annotation().findByChannelId(22);
         expect(result).to.have.length(1);
         expect(result[0].channelId).to.equal(22);
     });

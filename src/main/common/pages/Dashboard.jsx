@@ -1,208 +1,316 @@
-import React, { useRef, useState, useMemo, useEffect, useCallback } from 'react'
-import './Dashboard.css'
-import {useFetchSession} from "../hooks/useFetchSession.js";
-import LeftPanel from "../components/panel/LeftPanel.jsx";
-import RightPanel from "../components/panel/RightPanel.jsx";
+import {useMemo, useState, useEffect, useCallback, useRef} from "react"
+import {useNavigate} from 'react-router-dom'
 
+import "./Dashboard.css"
+import {FontAwesomeIcon} from "@fortawesome/react-fontawesome"
+import {faArrowRotateRight, faSort, faSortUp, faSortDown} from "@fortawesome/free-solid-svg-icons"
+import {fetchAllSessions} from "../api/index.js";
+import SessionTable from "../components/table/SessionTable.jsx";
 
-const COLLAPSE_BREAKPOINT = 1100
-const RESIZER_WIDTH_PX = 6
+import {
+    BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell
+} from "recharts";
 
-export default function Dashboard({ sessionId }) {
-    const containerRef = useRef(null)
-
-    const {
-        loading,
-        error,
-        session,
-        channels,
-        channelId,
-        defaultSignal,
-        labels: hookLabels,
-        setChannelId
-    } = useFetchSession(sessionId)
-
-    const [annotations, setAnnotations] = useState([])
-    const [layoutMode, setLayoutMode] = useState('split')
-    const [startPosition, setStartPosition] = useState(1)
-    const [tableData, setTableData] = useState([])
-    const [isLabeled, setIsLabeled] = useState(false)
-    const [isDoubleChecked, setIsDoubleChecked] = useState(false)
-    const [leftPercent, setLeftPercent] = useState(50)
-    const isDraggingRef = useRef(false)
-    const startXRef = useRef(0)
-    const startPercentRef = useRef(50)
+export default function Dashboard() {
+    const navigate = useNavigate()
+    const [sessions, setSessions] = useState([])
+    const [page, setPage] = useState({ number: 1, size: 5, totalPages: 1, totalElements: 0 })
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState("")
+    const [query, setQuery] = useState("")
+    const [hasLoaded, setHasLoaded] = useState(false)
+    const [statusSortOrder, setStatusSortOrder] = useState('none');
+    const mountedRef = useRef(true)
 
     useEffect(() => {
-        setAnnotations(Array.isArray(hookLabels) ? hookLabels : [])
-    }, [hookLabels])
-
-    const applyAutoLayout = useCallback(() => {
-        const small = window.innerWidth < COLLAPSE_BREAKPOINT
-        setLayoutMode(prev => small ? (prev === 'right' ? 'right' : 'left') : 'split')
-    }, [])
-
-    useEffect(() => {
-        applyAutoLayout()
-        window.addEventListener('resize', applyAutoLayout)
-        return () => window.removeEventListener('resize', applyAutoLayout)
-    }, [applyAutoLayout])
-
-    const gridTemplateColumns = useMemo(() => {
-        if (layoutMode !== 'split') return '1fr'
-        const left = Math.max(10, Math.min(90, leftPercent))
-        const right = 100 - left
-        return `calc(${left}% - ${RESIZER_WIDTH_PX/2}px) ${RESIZER_WIDTH_PX}px calc(${right}% - ${RESIZER_WIDTH_PX/2}px)`
-    }, [layoutMode, leftPercent])
-
-    const endResize = useCallback(() => {
-        if (!isDraggingRef.current) return
-        isDraggingRef.current = false
-        document.body.classList.remove('dragging')
-        window.removeEventListener('mousemove', onMouseMove)
-        window.removeEventListener('mouseup', endResize)
-    }, [])
-
-    const onMouseMove = useCallback((e) => {
-        if (!isDraggingRef.current || !containerRef.current) return
-        const rect = containerRef.current.getBoundingClientRect()
-        const width = rect.width
-        if (width <= 0) return
-        const usable = Math.max(1, width - RESIZER_WIDTH_PX)
-        const dx = e.clientX - startXRef.current
-        const deltaPercent = (dx / usable) * 100
-        const next = Math.max(10, Math.min(90, startPercentRef.current + deltaPercent))
-        setLeftPercent(next)
-    }, [])
-
-    const startResize = useCallback((e) => {
-        if (layoutMode !== 'split') return
-        isDraggingRef.current = true
-        startXRef.current = e.clientX
-        startPercentRef.current = leftPercent
-        document.body.classList.add('dragging')
-        window.addEventListener('mousemove', onMouseMove)
-        window.addEventListener('mouseup', endResize)
-    }, [layoutMode, leftPercent, onMouseMove, endResize])
-
-    useEffect(() => {
+        mountedRef.current = true;
         return () => {
-            if (isDraggingRef.current) {
-                document.body.classList.remove('dragging')
-                window.removeEventListener('mousemove', onMouseMove)
-                window.removeEventListener('mouseup', endResize)
+            mountedRef.current = false
+        }
+    }, [])
+
+    const loadPage = useCallback(async (nextPage) => {
+        if (loading) return
+        try {
+            setLoading(true)
+            setError("")
+            const res = await fetchAllSessions(nextPage, page.size)
+            const incoming = Array.isArray(res?.contents) ? res.contents : []
+            if (!mountedRef.current) return
+            setSessions(prev => nextPage === 1 ? incoming : [...prev, ...incoming])
+            if (res?.page) {
+                setPage(res.page)
+            } else {
+                setPage(p => ({ number: nextPage, size: p.size, totalPages: 0, totalElements: 0 }))
+            }
+        } catch (e) {
+            console.error(e)
+            if (mountedRef.current) setError("Failed to load sessions.")
+        } finally {
+            if (mountedRef.current) {
+                setLoading(false)
+                setHasLoaded(true)
             }
         }
-    }, [onMouseMove, endResize])
-
-    const handleDeleteRow = (id) => setTableData(prev => prev.filter(row => row.id !== id))
-    const handleAddLabel = () => {
-        const newLabel = { id: Date.now(), startSecond: '', endSecond: '', label1: '', label2: '', label3: '', label4: '', label5: '' }
-        setTableData(prev => [...prev, newLabel])
-    }
-    const handleSave = () => console.log('Lưu kết quả:', tableData)
-    const handleLabelChange = (rowId, labelField, value) => {
-        setTableData(prev => prev.map(row =>
-            row.id === rowId ? { ...row, [labelField]: value } : row
-        ))
-    }
+    }, [page.size, loading])
 
     useEffect(() => {
-        const onUpdated = (e) => {
-            const detail = e?.detail;
-            if (!detail) return;
-            if (detail.channelId != null && detail.channelId !== channelId) return;
-            const anns = Array.isArray(detail.annotations) ? detail.annotations : [];
-            setAnnotations(anns);
-        };
-        window.addEventListener('annotations-updated', onUpdated);
-        return () => window.removeEventListener('annotations-updated', onUpdated);
-    }, [channelId])
+        loadPage(1)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
 
-    const rootClass = `dashboard-root ${layoutMode === 'split' ? 'split' : 'single'}`
+    useEffect(() => {
+        if (window.biosignalApi?.on?.sessionsUpdated) {
+            const unsubscribe = window.biosignalApi.on.sessionsUpdated(() => {
+                loadPage(1);
+            });
+            return () => unsubscribe();
+        }
+    }, [loadPage]);
 
-    const containerStyle = useMemo(() => {
-        return layoutMode === 'split'
-            ? { gridTemplateColumns, columnGap: 0 }
-            : { gridTemplateColumns }
-    }, [layoutMode, gridTemplateColumns])
+    const canLoadMore = page.number < page.totalPages
+
+    const sortedAndFiltered = useMemo(() => {
+        const raw = query.trim()
+        let filteredSessions = sessions;
+
+        if (raw) {
+            const parts = raw.match(/("[^"]*"|'[^']*'|\S+)/g) || []
+            const tokens = []
+            for (let i = 0; i < parts.length; i++) {
+                const part = parts[i]
+                const m = part.match(/^(\w+)([=-])(.*)$/)
+                if (m) {
+                    let key = m[1].toLowerCase()
+                    const op = m[2]
+                    let value = m[3] || ''
+                    if (op === '=') {
+                        while (i + 1 < parts.length && !parts[i + 1].match(/^(\w+)([=-])/)) {
+                            if (parts[i + 1] === ',') break
+                            value += (value ? ' ' : '') + parts[++i]
+                        }
+                    }
+                    value = value.replace(/^("|')(.*)\1$/, '$2')
+                    value = value.replace(/[\s,]+$/, '')
+                    tokens.push({ key, op, value })
+                }
+            }
+
+            const fieldExtractors = {
+                sessionid: s => (s.sessionId != null ? String(s.sessionId) : ''),
+                patientid: s => (
+                    s.patient?.id != null ? String(s.patient.id) :
+                        s.patientId != null ? String(s.patientId) :
+                            s.patient_id != null ? String(s.patient_id) : ''
+                ),
+                patientname: s => {
+                    const direct = s.patient?.name || s.patientName || s.patient_name || ''
+                    const fn = s.patient?.firstName || s.patientFirstName || s.patient_first_name || ''
+                    const ln = s.patient?.lastName || s.patientLastName || s.patient_last_name || ''
+                    const combined = [fn, ln].filter(Boolean).join(' ').trim()
+                    return (direct || combined).trim()
+                },
+                measurementtype: s => (s.measurementType || s.sessionMeasurementType || s.measurement_type || ''),
+                filename: s => (s.inputFileName || s.sourceFileName || s.fileName || s.source_file_name || ''),
+                status: s => (s.status || '').toLowerCase(),
+            }
+            const useStructured = tokens.length > 0 && tokens.every(t => fieldExtractors[t.key])
+            if (useStructured) {
+                filteredSessions = sessions.filter(s => {
+                    for (const t of tokens) {
+                        const rawFieldVal = fieldExtractors[t.key](s)
+                        const normField = rawFieldVal.replace(/\s+/g, ' ').trim().toLowerCase()
+                        const normValue = t.value.replace(/\s+/g, ' ').trim().toLowerCase()
+                        if (t.op === '=') {
+                            if (t.key === 'patientname' || t.key === 'status') {
+                                if (!normField.includes(normValue)) return false
+                            } else {
+                                if (normField !== normValue) return false
+                            }
+                        } else {
+                            if (!normField.includes(normValue)) return false
+                        }
+                    }
+                    return true
+                })
+            } else {
+                const q = raw.toLowerCase()
+                filteredSessions = sessions.filter(s => {
+                    const patientId = s.patient?.id
+                    const patientName = s.patient?.name || ''
+                    return (
+                        String(s.sessionId).includes(q) ||
+                        (patientId != null && String(patientId).includes(q)) ||
+                        patientName.toLowerCase().includes(q) ||
+                        (s.measurementType || '').toLowerCase().includes(q) ||
+                        (s.inputFileName || '').toLowerCase().includes(q) ||
+                        (s.status || '').toLowerCase().includes(q)
+                    )
+                })
+            }
+        }
+
+        if (statusSortOrder !== 'none') {
+            const statusOrder = { 'NEW': 1, 'IN_PROGRESS': 2, 'COMPLETED': 3 };
+            filteredSessions.sort((a, b) => {
+                const orderA = statusOrder[a.status] || 0;
+                const orderB = statusOrder[b.status] || 0;
+                if (statusSortOrder === 'asc') {
+                    return orderA - orderB;
+                } else {
+                    return orderB - orderA;
+                }
+            });
+        }
+
+        return filteredSessions;
+    }, [sessions, query, statusSortOrder])
+
+    const toggleStatusSort = () => {
+        setStatusSortOrder(current => {
+            if (current === 'none') return 'asc';
+            if (current === 'asc') return 'desc';
+            return 'none';
+        });
+    };
+
+    const handleOpenSession = (sessionId) => {
+        navigate(`/sessions/${sessionId}`)
+    }
+
+    const total = sessions.length
+    const completed = sessions.filter(s => s.status === "COMPLETED").length
+    const inProgress = sessions.filter(s => s.status === "IN_PROGRESS").length
+    const newlyCreated = sessions.filter(s => s.status === "NEW").length
+
+    const chartData = [
+        { name: "New", value: newlyCreated },
+        { name: "In Progress", value: inProgress },
+        { name: "Completed", value: completed },
+    ]
 
     return (
-        <div className={rootClass}>
-            <div className="workspace-header">
-                <div className="layout-toggle">
-                    <button
-                        className={`toggle-btn ${layoutMode === 'left' ? 'active' : ''}`}
-                        onClick={() => setLayoutMode('left')}
-                        disabled={loading}
-                    >
-                        Left
-                    </button>
-                    <button
-                        className={`toggle-btn ${layoutMode === 'split' ? 'active' : ''}`}
-                        onClick={() => setLayoutMode('split')}
-                        disabled={loading || window.innerWidth < COLLAPSE_BREAKPOINT}
-                    >
-                        Split
-                    </button>
-                    <button
-                        className={`toggle-btn ${layoutMode === 'right' ? 'active' : ''}`}
-                        onClick={() => setLayoutMode('right')}
-                        disabled={loading}
-                    >
-                        Right
-                    </button>
+        <div className="start-page-root">
+            <aside className="start-page-sidebar">
+                <h1>Biosignal Labeling Dashboard</h1>
+                <div className="start-page-sidebar-header">
+                    <div className="start-page-sidebar-title">Sessions</div>
+                    <div className="start-page-sidebar-actions">
+                        <button
+                            className="icon-btn"
+                            title={`Sort by Status (${statusSortOrder === 'asc' ? 'Completed first' :  'New first' })`}
+                            onClick={toggleStatusSort}
+                            style={{ marginRight: '15px' }}
+                        >
+                            <FontAwesomeIcon
+                                icon={statusSortOrder === 'asc' ? faSortUp : statusSortOrder === 'desc' ? faSortDown : faSort}
+                            />
+                        </button>
+                        <button
+                            className="icon-btn"
+                            title="Refresh List"
+                            onClick={(e) => {
+                                e.preventDefault()
+                                loadPage(1)
+                            }}
+                            disabled={loading}
+                        >
+                            <FontAwesomeIcon
+                                icon={faArrowRotateRight}
+                                spin={loading}
+                                size="lg"
+                            />
+                        </button>
+                    </div>
                 </div>
 
-                <div className="header-status">
-                    {loading && <span className="session-loading">Đang tải...</span>}
-                    {error && <span className="session-error">Lỗi tải dữ liệu</span>}
+                <div className="start-page-search-wrap">
+                    <input
+                        className="start-page-search-input"
+                        type="text"
+                        placeholder="Search (e.g. status=NEW, patientname=Nguyen Van A, ...)"
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                    />
                 </div>
-            </div>
 
-            <div
-                className="dashboard-panels"
-                ref={containerRef}
-                style={containerStyle}
-            >
-                {(layoutMode === 'split' || layoutMode === 'left') && (
-                    <div className="panel panel-left">
-                        <LeftPanel
-                            session={session}
-                            sessionId={sessionId}
-                            channels={channels}
-                            channelId={channelId}
-                            defaultSignal={defaultSignal}
-                            onChannelSelected={setChannelId}
+                <div className="start-page-list">
+                    {error && <div className="start-page-error">{error}</div>}
+
+                    {loading && sessions.length === 0 && (
+                        <div className="start-page-placeholder">Loading sessions…</div>
+                    )}
+
+                    {!loading && hasLoaded && sessions.length === 0 && (
+                        <div className="start-page-placeholder">No sessions found.</div>
+                    )}
+
+                    {sortedAndFiltered.map(s => (
+                        <SessionTable
+                            key={s.sessionId}
+                            session={s}
+                            onClick={() => handleOpenSession(s.sessionId)}
                         />
-                    </div>
-                )}
+                    ))}
+                </div>
 
-                {layoutMode === 'split' && (
-                    <div className="panel-resizer" onMouseDown={startResize} />
-                )}
-
-                {(layoutMode === 'split' || layoutMode === 'right') && (
-                    <div className="panel panel-right">
-                        <RightPanel
-                            session={session}
-                            annotations={annotations}
-                            channelId={channelId}
-                            startPosition={startPosition}
-                            onStartPositionChange={setStartPosition}
-                            tableData={tableData}
-                            onDeleteRow={handleDeleteRow}
-                            onAddLabel={handleAddLabel}
-                            onSave={handleSave}
-                            isLabeled={isLabeled}
-                            isDoubleChecked={isDoubleChecked}
-                            onToggleLabeled={setIsLabeled}
-                            onToggleDoubleChecked={setIsDoubleChecked}
-                            onLabelChange={handleLabelChange}
-                        />
+                <div className="start-page-sidebar-footer">
+                    <button
+                        className="load-more-btn"
+                        disabled={!canLoadMore || loading}
+                        onClick={() => loadPage(page.number + 1)}
+                    >
+                        {loading ? "Loading…" : canLoadMore ? "Load more" : "No more"}
+                    </button>
+                    <div className="pagination-info">
+                        Page {page.number} of {Math.max(page.totalPages, 1)}
                     </div>
-                )}
-            </div>
+                </div>
+            </aside>
+
+            <main className="start-page-main">
+                <div className="dashboard-wrapper">
+                    <h2 className="dashboard-header">Project Overview</h2>
+
+                    <div className="dashboard-stats-row">
+                        <div className="dashboard-stat-card">
+                            <h4>Total Sessions</h4>
+                            <p>{total}</p>
+                        </div>
+
+                        <div className="dashboard-stat-card">
+                            <h4>Completed</h4>
+                            <p>{completed}</p>
+                        </div>
+
+                        <div className="dashboard-stat-card">
+                            <h4>In Progress</h4>
+                            <p>{inProgress}</p>
+                        </div>
+
+                        <div className="dashboard-stat-card">
+                            <h4>New</h4>
+                            <p>{newlyCreated}</p>
+                        </div>
+                    </div>
+
+                    <div className="dashboard-chart-block" style={{ width: "100%", height: 260 }}>
+                        <h3>Session Status Breakdown</h3>
+                        <ResponsiveContainer>
+                            <BarChart data={chartData}>
+                                <XAxis dataKey="name" />
+                                <YAxis />
+                                <Tooltip />
+                                <Bar dataKey="value">
+                                    <Cell fill="#ef4444" />
+                                    <Cell fill="#facc15" />
+                                    <Cell fill="#22c55e" />
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+            </main>
         </div>
     )
 }
