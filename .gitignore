@@ -95,7 +95,6 @@ dist/
 # Editor
 .idea/
 .vscode/
-.github/
 
 # Sqlite
 biosignal*

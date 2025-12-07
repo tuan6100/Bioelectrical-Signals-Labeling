@@ -67,14 +67,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-build-${{ matrix.os }}
-          path: |
-            out/**
-            dist/**
-          if-no-files-found: warn
-          retention-days: 7
-
 
