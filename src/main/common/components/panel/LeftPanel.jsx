@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchExportAllLabelInSession } from '../../api/index.js';
+import {fetchExportAllLabelInChannel} from '../../api/index.js';
 import { useSignalViewport } from '../../hooks/useSignalViewport.js';
 import './LeftPanel.css';
 import SignalChart from "../chart/SignalChart.jsx";
-import ChartToolbar from '../chart/ChartToolbar.jsx';
 
 export default function LeftPanel({
    sessionId,
@@ -46,7 +45,7 @@ export default function LeftPanel({
     const handleExport = async () => {
         if (!sessionId) return;
         try {
-            await fetchExportAllLabelInSession(sessionId);
+            await fetchExportAllLabelInChannel(sessionId, channelId, 'xlsx')
         } catch (e) {
             console.error(e);
             alert('Export failed: ' + e.message);
@@ -96,10 +95,10 @@ export default function LeftPanel({
                     onViewportChange={updateViewport}
                     channelId={channelId}
                 />
-                <ChartToolbar
-                    sessionId={sessionId}
-                    channelId={channelId}
-                />
+                {/*<ChartToolbar*/}
+                {/*    sessionId={sessionId}*/}
+                {/*    channelId={channelId}*/}
+                {/*/>*/}
             </div>
         </div>
     );

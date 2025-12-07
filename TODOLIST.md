@@ -24,5 +24,5 @@
 - [x] Đơn vị từng ô chiều x: 1 ô = 5ms, đơn vị theo chiều y: 100μV - 200μV - 500μV - 1000μV. Tối đa 10mV
 - [ ] Lo tràn bộ nhớ nếu có hàng trăm session. Nút clear session để lưu mới hoặc khi gán nhãn xong lưu vào 1 tab History để xem lại nếu cần.
 - [x] Không cần mũi tên lên xuống để zoom, thay bằng nút 4 chiều để zoom như google map (bản cũ)
-- [ ] Bỏ các nút ở thanh công cụ trừ nút lưu file.
-- [ ] Thêm danh sách bệnh vào csdl.
+- [x] Bỏ các nút ở thanh công cụ trừ nút lưu file.
+- [x] Thêm danh sách bệnh vào csdl.

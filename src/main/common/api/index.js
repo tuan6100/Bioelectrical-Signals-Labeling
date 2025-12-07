@@ -1,6 +1,5 @@
 import {
     createAnnotationAppApi,
-    exportToCsvAppApi,
     getAllLabelsAppApi,
     updateLabelAppApi,
     deleteLabelAppApi,
@@ -152,21 +151,6 @@ export async function fetchUpdateLabel(labelId, updateFields) {
 export async function fetchDeleteLabel(labelId) {
     if (isDesktopEnv()) {
         return await deleteLabelAppApi(labelId);
-    } else {
-        // TODO: Implement web version
-    }
-}
-
-/**
- * Exports all labels of a session to a csv file with a given session ID.
- *
- * @async
- * @function fetchExportAllLabelInSession
- * @param {number} sessionId - The ID of the session to export labels for.
- */
-export async function fetchExportAllLabelInSession(sessionId) {
-    if (isDesktopEnv()) {
-        return await exportToCsvAppApi(sessionId);
     } else {
         // TODO: Implement web version
     }
