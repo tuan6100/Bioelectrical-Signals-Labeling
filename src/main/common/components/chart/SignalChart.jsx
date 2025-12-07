@@ -10,15 +10,15 @@ import LabelContextMenu from './LabelContextMenu.jsx';
 import {NavControl} from "../control/NavControl.jsx";
 
 export default function SignalChart({
-                                        samples,
-                                        samplingRateHz,
-                                        durationMs,
-                                        viewport,
-                                        onViewportChange,
-                                        channelId,
-                                        existingLabels,
-                                        minLabelDurationMs
-                                    }) {
+    samples,
+    samplingRateHz,
+    durationMs,
+    viewport,
+    onViewportChange,
+    channelId,
+    existingLabels,
+    minLabelDurationMs
+}) {
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
     const [dimensions, setDimensions] = useState({ width: 800, height: 400 });
@@ -336,11 +336,9 @@ export default function SignalChart({
             const baseName = (label.name || '').trim().toLowerCase();
             const isPending = label.state === 'pending' || baseName === 'pending';
             if (!isPending && !isHovered) return;
-
             const x1 = Math.max(timeToX(label.startTimeMs), MARGIN.left);
             const x2 = Math.min(timeToX(label.endTimeMs), MARGIN.left + chartWidth);
             if (x2 <= x1) return;
-
             const scheme = getColorScheme(label, isHovered);
             ctx.fillStyle = scheme.fill;
             ctx.fillRect(x1, MARGIN.top, x2 - x1, chartHeight);
@@ -367,20 +365,17 @@ export default function SignalChart({
         timeStep = Math.max(timeStep, 1);
         ctx.strokeStyle = '#ddd';
         ctx.lineWidth = 1;
-        const startGridTime = Math.ceil(renderViewport.startMs / timeStep) * timeStep;
         ctx.save();
         ctx.beginPath();
         ctx.rect(MARGIN.left, MARGIN.top, chartWidth, chartHeight);
         ctx.clip();
-
-        for (let t = startGridTime; t <= renderViewport.endMs; t += timeStep) {
-            const x = timeToX(t);
-            if (x >= MARGIN.left && x <= MARGIN.left + chartWidth) {
-                ctx.beginPath();
-                ctx.moveTo(x, MARGIN.top);
-                ctx.lineTo(x, MARGIN.top + chartHeight);
-                ctx.stroke();
-            }
+        const pxPerStep = (timeStep / timeRange) * chartWidth;
+        for (let x = MARGIN.left; x <= MARGIN.left + chartWidth; x += pxPerStep) {
+            ctx.beginPath();
+            const drawX = Math.floor(x) + 0.5;
+            ctx.moveTo(drawX, MARGIN.top);
+            ctx.lineTo(drawX, MARGIN.top + chartHeight);
+            ctx.stroke();
         }
 
         const viewMin = dataRange.min + verticalOffset;
@@ -442,10 +437,15 @@ export default function SignalChart({
         ctx.fillStyle = '#000';
         ctx.font = '11px sans-serif';
         ctx.textAlign = 'center';
-        for (let t = startGridTime; t <= renderViewport.endMs; t += timeStep) {
-            const x = timeToX(t);
-            if (x >= MARGIN.left && x <= MARGIN.left + chartWidth + 1) {
-                const labelText = Number.isInteger(timeStep) ? t.toFixed(0) : t.toFixed(1);
+        for (let x = MARGIN.left; x <= MARGIN.left + chartWidth; x += pxPerStep) {
+            const t = xToTime(x);
+            let labelText;
+            if (timeStep >= 1000) {
+                labelText = (t / 1000).toFixed(1) + 's';
+            } else {
+                labelText = Math.round(t).toString();
+            }
+            if (x <= MARGIN.left + chartWidth + 1) {
                 ctx.fillText(labelText, x, MARGIN.top + chartHeight + 20);
             }
         }
