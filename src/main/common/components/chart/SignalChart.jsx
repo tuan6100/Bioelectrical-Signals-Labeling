@@ -34,6 +34,11 @@ export default function SignalChart({
     const [resizeEdge, setResizeEdge] = useState(null);
     const [hoverSample, setHoverSample] = useState(null);
 
+    const topScrollRef = useRef(null);
+    const topInnerRef = useRef(null);
+    const programmaticScrollRef = useRef(false);
+    const scrollRafRef = useRef(null);
+
     const [contextMenu, setContextMenu] = useState({
         visible: false,
         x: 0,
@@ -184,6 +189,49 @@ export default function SignalChart({
         observer.observe(container);
         return () => observer.disconnect();
     }, []);
+
+    useEffect(() => {
+        const container = topScrollRef.current;
+        const inner = topInnerRef.current;
+        if (!container || !inner) return;
+
+        const viewportSpan = Math.max(1, renderViewport.endMs - renderViewport.startMs);
+        const containerWidth = Math.max(0, container.clientWidth || 0);
+        const innerWidth = Math.max(containerWidth, Math.ceil((effectiveDurationMs / viewportSpan) * containerWidth));
+        inner.style.width = `${innerWidth}px`;
+
+        const maxScroll = Math.max(0, inner.scrollWidth - containerWidth);
+        const maxStart = Math.max(0, effectiveDurationMs - viewportSpan);
+        const proportion = maxStart > 0 ? (viewport.startMs / maxStart) : 0;
+
+        programmaticScrollRef.current = true;
+        try {
+            container.scrollLeft = Math.round(proportion * maxScroll);
+        } finally {
+            window.setTimeout(() => { programmaticScrollRef.current = false; }, 30);
+        }
+    }, [dimensions.width, effectiveDurationMs, renderViewport.startMs, renderViewport.endMs, viewport.startMs]);
+
+    const handleTopScroll = (e) => {
+        if (programmaticScrollRef.current) return;
+
+        if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current);
+        scrollRafRef.current = requestAnimationFrame(() => {
+            const container = topScrollRef.current;
+            const inner = topInnerRef.current;
+            if (!container || !inner) return;
+            const containerWidth = Math.max(0, container.clientWidth || 0);
+            const maxScroll = Math.max(0, inner.scrollWidth - containerWidth);
+            if (maxScroll <= 0) return;
+
+            const proportion = container.scrollLeft / maxScroll;
+            const viewportSpan = Math.max(1, renderViewport.endMs - renderViewport.startMs);
+            const maxStart = Math.max(0, effectiveDurationMs - viewportSpan);
+            const newStart = proportion * maxStart;
+            const newEnd = newStart + viewportSpan;
+            onViewportChange({ startMs: newStart, endMs: newEnd });
+        });
+    };
 
     const timeToX = useCallback((time) => {
         const range = renderViewport.endMs - renderViewport.startMs;
@@ -690,35 +738,44 @@ export default function SignalChart({
                 return;
             }
 
-            const pendingPredicate = (l) => l.state === 'pending' || (l.name || '').toLowerCase() === 'pending';
-            const overlappingPending = labels.filter(l => pendingPredicate(l) && l.endTimeMs > s && l.startTimeMs < e);
-            if (overlappingPending.length) {
-                const mergedStart = Math.min(s, ...overlappingPending.map(l => l.startTimeMs));
-                const mergedEnd = Math.max(e, ...overlappingPending.map(l => l.endTimeMs));
-                setLabels(prev => {
-                    const filtered = prev.filter(l => !overlappingPending.includes(l));
-                    return [
-                        ...filtered,
-                        {
-                            annotationId: Date.now(),
-                            name: 'Pending',
-                            startTimeMs: mergedStart,
-                            endTimeMs: mergedEnd,
-                            state: 'pending'
-                        }
-                    ];
+            // Automatically create annotation with "Unknown" label when dragging
+            try {
+                const created = await fetchCreateAnnotation({
+                    channelId: channelId,
+                    startTime: s,
+                    endTime: e,
+                    name: 'Unknown',
+                    note: ''
                 });
-            } else {
-                setLabels(prev => [
-                    ...prev,
-                    {
-                        annotationId: Date.now(),
-                        name: 'Pending',
-                        startTimeMs: s,
-                        endTimeMs: e,
-                        state: 'pending'
-                    }
-                ]);
+
+                if (created) {
+                    const newAnnotation = {
+                        annotationId: created.annotationId || created.id,
+                        startTimeMs: Number(created.startTimeMs),
+                        endTimeMs: Number(created.endTimeMs),
+                        name: created.labelName || created.name || 'Unknown',
+                        labelName: created.labelName || created.name || 'Unknown',
+                        note: created.note ?? '',
+                        state: 'persisted'
+                    };
+                    const updatedLabels = [...labels, newAnnotation];
+                    dispatchAnnotationsUpdated(updatedLabels);
+                    
+                    setTimeout(() => {
+                        try {
+                            const id = newAnnotation.annotationId;
+                            const selector = `tr[data-annotation-id="${id}"] button[title="Edit annotation"]`;
+                            const btn = document.querySelector(selector);
+                            if (btn && typeof btn.click === 'function') {
+                                btn.click();
+                            } else {
+                                try { window.dispatchEvent(new CustomEvent('annotation-select', { detail: { id, channelId } })); } catch (_) { }
+                            }
+                        } catch (_) { }
+                    }, 10);
+                }
+            } catch (err) {
+                console.error('Failed to create annotation on drag:', err);
             }
             setDragState({ active: false, startTime: null, endTime: null });
         }
@@ -1122,6 +1179,15 @@ export default function SignalChart({
                 onContextMenu={handleContextMenu}
                 style={{ display: 'block' }}
             />
+
+            <div
+                className="chart-bottom-scrollbar"
+                ref={topScrollRef}
+                onScroll={handleTopScroll}
+                style={{ position: 'absolute', bottom: 6, left: `${MARGIN.left}px`, right: `${MARGIN.right}px`, height: 160, overflowX: 'auto', zIndex: 30 }}
+            >
+                <div ref={topInnerRef} style={{ height: 2 }} />
+            </div>
 
             {hoverSample && (
                 <div

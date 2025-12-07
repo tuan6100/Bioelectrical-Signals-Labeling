@@ -438,6 +438,7 @@ const LabelTable = ({ data, channelId }) => {
                                     return (
                                         <tr
                                             key={id}
+                                            data-annotation-id={id}
                                             className={(() => {
                                                 if (id !== selectedId) return ''
                                                 const ln = (labelName || '').toLowerCase()
