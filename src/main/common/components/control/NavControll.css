@@ -1,0 +1,75 @@
+.nav-root {
+    position: absolute;
+    z-index: 100;
+    width: 40px;
+    height: 40px;
+    top: 20px;
+    right: 20px;
+}
+
+.nav-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid #ccc;
+    background: #fff;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    cursor: pointer;
+    font-size: 16px;
+    color: #333;
+    outline: none;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s ease, opacity 0.25s ease;
+}
+
+.nav-btn:hover {
+    background: #f0f0f0;
+    border-color: #999;
+    color: #000;
+}
+
+.main-toggle {
+    cursor: grab;
+    z-index: 10;
+}
+.nav-root.dragging .main-toggle {
+    cursor: grabbing;
+    background: #eef;
+}
+
+.sat-btn {
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, -50%) scale(0.5);
+}
+
+.nav-root.expanded .sat-btn {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+:root {
+    --offset: 55px;
+}
+
+.nav-root.expanded .sat-btn.up {
+    transform: translate(-50%, calc(-50% - var(--offset))) scale(1);
+}
+
+.nav-root.expanded .sat-btn.down {
+    transform: translate(-50%, calc(-50% + var(--offset))) scale(1);
+}
+
+.nav-root.expanded .sat-btn.left {
+    transform: translate(calc(-50% - var(--offset)), -50%) scale(1);
+}
+
+.nav-root.expanded .sat-btn.right {
+    transform: translate(calc(-50% + var(--offset)), -50%) scale(1);
+}

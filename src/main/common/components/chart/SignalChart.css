@@ -4,6 +4,8 @@
     border-radius: 4px;
     overflow: hidden;
     position: relative;
+    width: 100%;
+    height: 100%;
 }
 
 .chart-help {
@@ -21,7 +23,6 @@ canvas {
     overscroll-behavior: contain;
     touch-action: none;
 }
-
 
 .label-modal-backdrop {
     position: fixed;
@@ -105,9 +106,12 @@ canvas {
     height: 2px;
 }
 
+/* Ensure chart-bottom-scrollbar is positioned absolutely but allow inline left/right to control margins */
 .chart-bottom-scrollbar {
-    pointer-events: auto;
-    background: transparent;
+    position: absolute;
+    bottom: 6px;
+    overflow-x: auto;
+    z-index: 30;
 }
 
 .chart-bottom-scrollbar::-webkit-scrollbar {
@@ -125,4 +129,24 @@ canvas {
 
 .chart-bottom-scrollbar > div {
     height: 2px;
+}
+
+.signal-chart-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.hover-tooltip {
+    position: absolute;
+    background: rgba(0,0,0,0.75);
+    color: #fff;
+    padding: 6px 8px;
+    font-size: 12px;
+    border-radius: 6px;
+    pointer-events: none;
+    line-height: 1.3;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    z-index: 10;
+    max-width: 150px;
 }

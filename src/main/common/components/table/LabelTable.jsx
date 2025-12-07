@@ -49,19 +49,15 @@ const LabelTable = ({ data, channelId }) => {
             prevRowsMapRef.current = new Map()
             return
         }
-
         const prevLength = prevLengthRef.current
-        // Defensive check: đảm bảo phần tử tồn tại trước khi truy cập
         const firstRow = data[0];
         const lastRow = data[data.length - 1];
-
         const firstId = firstRow ? (firstRow.annotationId ?? firstRow.id) : null;
         const lastId = lastRow ? (lastRow.annotationId ?? lastRow.id) : null;
         const selectedStillExists = data.some(row => row && (row.annotationId ?? row.id) === selectedId)
-
         const currMap = new Map()
         for (const row of data) {
-            if (!row) continue; // Bỏ qua row lỗi
+            if (!row) continue;
             const id = row.annotationId ?? row.id
             const labelName = row.labelName || row.label?.name || ''
             const note = row.note || ''

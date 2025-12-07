@@ -47,19 +47,6 @@ export function useFetchSession(sessionId) {
         return [];
     };
 
-    const saveSignalToCache = (sId, cId, signalData) => {
-        if (!signalData || !cId) return;
-        try {
-            const cacheKey = `signalCache_${sId}`;
-            const cachedSignals = JSON.parse(sessionStorage.getItem(cacheKey) || '{}');
-            const { annotations, ...signalWithoutAnnotations } = signalData;
-            cachedSignals[cId] = signalWithoutAnnotations;
-            sessionStorage.setItem(cacheKey, JSON.stringify(cachedSignals));
-        } catch (e) {
-            console.error("Failed to write signal to sessionStorage:", e);
-        }
-    };
-
     useEffect(() => {
         if (!sessionId) return;
         setLoading(true);
@@ -71,9 +58,6 @@ export function useFetchSession(sessionId) {
                 setChannels(chs);
                 const sig = data.defaultChannel?.signal || null;
                 const cid = data.defaultChannel?.channelId || (chs.length ? chs[0].channelId : null);
-                if (sig && cid) {
-                    saveSignalToCache(sessionId, cid, sig);
-                }
                 setDefaultSignal(sig || null);
                 setChannelId(cid);
                 setLabels(processAnnotations(sig));
@@ -88,45 +72,10 @@ export function useFetchSession(sessionId) {
     useEffect(() => {
         if (!channelId || !sessionId) return;
         const fetchId = ++fetchIdRef.current;
-        const cacheKey = `signalCache_${sessionId}`;
-
-        let cachedSignal = null;
-        try {
-            const cachedSignals = JSON.parse(sessionStorage.getItem(cacheKey) || '{}');
-            if (cachedSignals[channelId]) {
-                cachedSignal = cachedSignals[channelId];
-            }
-        } catch (e) {
-            console.error("Failed to read from sessionStorage cache:", e);
-        }
-        if (cachedSignal) {
-            setDefaultSignal(cachedSignal);
-            setLoading(true);
-            fetchChannelAnnotations(channelId)
-                .then(annotations => {
-                    if (fetchId === fetchIdRef.current) {
-                        setLabels(formatAnnotations(annotations));
-                    }
-                })
-                .catch(err => {
-                    if (fetchId === fetchIdRef.current) {
-                        console.error("Error fetching annotations for cached signal:", err);
-                    }
-                })
-                .finally(() => {
-                    if (fetchId === fetchIdRef.current) {
-                        setLoading(false);
-                    }
-                });
-            return;
-        }
         setLoading(true);
         fetchChannelSamples(channelId)
             .then(sig => {
                 if (fetchId === fetchIdRef.current) {
-                    if (sig) {
-                        saveSignalToCache(sessionId, channelId, sig);
-                    }
                     setDefaultSignal(sig || null);
                     setLabels(processAnnotations(sig));
                 }
@@ -140,6 +89,17 @@ export function useFetchSession(sessionId) {
             .finally(() => {
                 if (fetchId === fetchIdRef.current) {
                     setLoading(false);
+                }
+            });
+        fetchChannelAnnotations(channelId)
+            .then(annotations => {
+                if (fetchId === fetchIdRef.current) {
+                    setLabels(formatAnnotations(annotations));
+                }
+            })
+            .catch(err => {
+                if (fetchId === fetchIdRef.current) {
+                    console.error("Error fetching annotations:", err);
                 }
             });
 
