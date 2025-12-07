@@ -127,7 +127,8 @@
       "perMachine": false,
       "runAfterFinish": true,
       "include": "installer.nsh",
-      "warningsAsErrors": false
+      "warningsAsErrors": false,
+      "differentialPackage": false
     },
     "mac": {
       "category": "public.app-category.productivity",
