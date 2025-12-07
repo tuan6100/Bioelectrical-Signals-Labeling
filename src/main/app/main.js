@@ -51,7 +51,10 @@ const createWindow = () => {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 app.whenReady().then(async() => {
-    await autoUpdater.checkForUpdatesAndNotify();
+    autoUpdater.autoDownload = true
+    autoUpdater.autoRunAppAfterInstall = true
+    autoUpdater.allowPrerelease = true
+    await autoUpdater.checkForUpdatesAndNotify()
     const win = createWindow()
     try {
         db.initSchema()
