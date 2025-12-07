@@ -1,6 +1,7 @@
 import Database from "better-sqlite3"
 import path from "path";
 import {app} from "electron";
+import pjson from '../../../../../package.json' with { type: "json" };
 
 const env = process.env.NODE_ENV
 let dbFileName
@@ -21,6 +22,9 @@ export const db = new Database(dbFileName, {
 
 db.pragma('journal_mode = WAL')
 db.pragma('foreign_keys = ON')
+const cleanedVersion = pjson.version.replace(/[-+].*$/, '').replace(/\./g, '')
+console.log(`Database user_version: ${cleanedVersion}`);
+db.pragma(`user_version = ${cleanedVersion}`)
 
 const ddl = `
     CREATE TABLE IF NOT EXISTS patients (
