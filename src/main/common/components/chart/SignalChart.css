@@ -81,3 +81,48 @@ canvas {
 }
 
 /* Context menu styles moved to LabelContextMenu.css */
+
+
+.chart-top-scrollbar {
+    pointer-events: auto;
+    background: transparent;
+}
+
+.chart-top-scrollbar::-webkit-scrollbar {
+    height: 10px;
+}
+
+.chart-top-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(120,120,120,0.6);
+    border-radius: 6px;
+}
+
+.chart-top-scrollbar::-webkit-scrollbar-track {
+    background: rgba(0,0,0,0.03);
+}
+
+.chart-top-scrollbar > div {
+    height: 2px;
+}
+
+.chart-bottom-scrollbar {
+    pointer-events: auto;
+    background: transparent;
+}
+
+.chart-bottom-scrollbar::-webkit-scrollbar {
+    height: 10px;
+}
+
+.chart-bottom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(120,120,120,0.6);
+    border-radius: 6px;
+}
+
+.chart-bottom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(0,0,0,0.03);
+}
+
+.chart-bottom-scrollbar > div {
+    height: 2px;
+}
