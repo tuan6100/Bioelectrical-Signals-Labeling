@@ -1,5 +1,5 @@
 // src/main/main.js
-import { app, BrowserWindow, Menu, globalShortcut } from 'electron'
+import {app, BrowserWindow, Menu, globalShortcut, dialog} from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -54,7 +54,11 @@ app.whenReady().then(async() => {
     autoUpdater.autoDownload = true
     autoUpdater.autoRunAppAfterInstall = true
     autoUpdater.allowPrerelease = true
-    await autoUpdater.checkForUpdatesAndNotify()
+    if (process.env.NODE_ENV === 'dev') {
+        autoUpdater.forceDevUpdateConfig = true
+        autoUpdater.updateConfigPath = path.join(__dirname, '..', '..','..', 'dev-app-update.yml')
+    }
+        await autoUpdater.checkForUpdatesAndNotify()
     const win = createWindow()
     try {
         db.initSchema()
@@ -85,5 +89,17 @@ app.on('window-all-closed', () => {
         app.quit()
     }
 })
+
+// Auto Updater Events
+autoUpdater.on('update-downloaded', () => {
+    dialog.showMessageBoxSync({
+        type: 'info',
+        title: 'Update Ready',
+        message: 'A new version has been downloaded. The application will now restart to apply the update.',
+        buttons: ['OK']
+    })
+    autoUpdater.quitAndInstall();
+});
+
 
 
