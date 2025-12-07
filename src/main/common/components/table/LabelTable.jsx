@@ -107,6 +107,19 @@ const LabelTable = ({ data, channelId }) => {
         return () => window.removeEventListener('annotation-select', handleAnnotationSelect)
     }, [data])
 
+    useEffect(() => {
+        if (selectedId) {
+            const rowElement = document.querySelector(`tr[data-annotation-id="${selectedId}"]`);
+            if (rowElement) {
+                rowElement.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center',
+                    inline: 'nearest'
+                });
+            }
+        }
+    }, [selectedId])
+
     function handleRowClick(e, id) {
         if (e && e.target) {
             const t = e.target;
@@ -249,27 +262,17 @@ const LabelTable = ({ data, channelId }) => {
         return () => { cancelled = true }
     }, [])
 
-    // --- LOGIC CHÍNH ĐÃ SỬA ---
     const handleCreate = async () => {
         const sMs = Number(newRow.startTimeMs)
         const eMs = Number(newRow.endTimeMs)
         const name = (newRow.labelName || '').trim()
         const note = (newRow.note || '').trim()
-
-        // Validation phía client (nếu cần thiết, nếu không backend lo)
         if (isNaN(sMs) || isNaN(eMs)) return;
-
         try {
             const created = await fetchCreateAnnotation({ channelId, startTime: sMs, endTime: eMs, name, note })
-
-            // --- KIỂM TRA QUAN TRỌNG ---
-            // Nếu backend trả về null, undefined hoặc object lỗi (không có id)
-            // thì DỪNG LẠI NGAY. Không thêm vào mảng, không clear form.
             if (!created || (created.annotationId == null && created.id == null)) {
-                return; // Giữ nguyên trạng thái render cũ
+                return;
             }
-
-            // Nếu thành công (có ID hợp lệ)
             const createdId = created.annotationId ?? created.id
             const next = [...(Array.isArray(data) ? data : []), created]
             dispatchAnnotationsUpdated(next, createdId)
@@ -277,13 +280,10 @@ const LabelTable = ({ data, channelId }) => {
             if (name && !allLabels.some(l => (l.name || '').toLowerCase() === name.toLowerCase())) {
                 setAllLabels(prev => [...prev, { labelId: created?.labelId ?? Date.now(), name, createdAt: new Date().toISOString() }])
             }
-            // Chỉ clear form khi thành công
             setNewRow({ startTimeMs: '', endTimeMs: '', labelName: '', note: '' })
 
         } catch (err) {
-            // Lỗi mạng hoặc lỗi JS khác
             console.error('Create failed:', err)
-            // Không làm gì cả -> giữ nguyên trạng thái render
         }
     }
 
@@ -423,9 +423,7 @@ const LabelTable = ({ data, channelId }) => {
                                 </tr>
                             ) : (
                                 filteredSortedData.map((row) => {
-                                    // --- DEFENSIVE CHECK: Bỏ qua nếu row không hợp lệ ---
                                     if (!row) return null;
-
                                     const id = row.annotationId ?? row.id
                                     const labelName = row.labelName || row.label?.name || 'Unknown'
                                     const note = row.note || ''
@@ -533,7 +531,7 @@ const LabelTable = ({ data, channelId }) => {
                                                     <>
                                                         <button
                                                             className="icon-btn editing"
-                                                            title="Edit annotation"
+                                                            title="Edit"
                                                             style={{ marginRight: 8 }}
                                                             onClick={(e) => {
                                                                 e.preventDefault()
@@ -552,7 +550,7 @@ const LabelTable = ({ data, channelId }) => {
 
                                                         <button
                                                             className="icon-btn editing"
-                                                            title="Delete annotation"
+                                                            title="Delete"
                                                             onClick={(e) => {
                                                                 e.preventDefault()
                                                                 e.stopPropagation()
