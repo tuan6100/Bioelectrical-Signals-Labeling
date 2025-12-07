@@ -50,6 +50,14 @@ jobs:
         env:
           CI: true
 
+      - name: Setup pnpm cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
       - name: Lint
         if: hashFiles('**/eslint.config.*', '**/.eslintrc*') != ''
         run: pnpm lint
@@ -66,5 +74,6 @@ jobs:
         run: pnpm run publish:app --win --x64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 
 
