@@ -80,6 +80,7 @@
     "files": [
       "dist/**/*",
       "src/main/app/**/*",
+      "!src/main/common/**/*",
       "!*.map",
       "!package.json",
       "!package-lock.json",
