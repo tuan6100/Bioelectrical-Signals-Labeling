@@ -23,7 +23,6 @@ export const db = new Database(dbFileName, {
 db.pragma('journal_mode = WAL')
 db.pragma('foreign_keys = ON')
 const cleanedVersion = pjson.version.replace(/[-+].*$/, '').replace(/\./g, '')
-console.log(`Database user_version: ${cleanedVersion}`);
 db.pragma(`user_version = ${cleanedVersion}`)
 
 const ddl = `
