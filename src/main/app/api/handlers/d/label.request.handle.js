@@ -1,13 +1,13 @@
 import {ipcMain, dialog} from "electron"
 import {
     deleteAnnotation,
-    deleteLabel, exportLabels,
+    deleteLabel,
     createAnnotation,
     updateAnnotation,
     updateLabel, OverlapError
 } from "../../../domain/services/data/command/label.command.js";
 
-import {getAllLabels} from "../../../domain/services/data/query/label.query.js";
+import {exportLabels, getAllLabels} from "../../../domain/services/data/query/label.query.js";
 import {saveLabelsToCSV} from "../../../domain/services/file/writer/csv.writer.js";
 import {saveLabelToExcel} from "../../../domain/services/file/writer/excel.writer.js";
 import {getInputFileName} from "../../../domain/services/data/query/session.query.js";
