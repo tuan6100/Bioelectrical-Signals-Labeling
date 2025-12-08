@@ -1,8 +1,6 @@
 import {
     createAnnotationAppApi,
     getAllLabelsAppApi,
-    updateLabelAppApi,
-    deleteLabelAppApi,
     updateAnnotationAppApi,
     deleteAnnotationAppApi,
     getChannelSamplesAppApi,
@@ -118,39 +116,6 @@ export async function fetchChannelAnnotations(channelId) {
 export async function fetchGetAllLabels() {
     if (isDesktopEnv()) {
         return await getAllLabelsAppApi();
-    } else {
-        // TODO: Implement web version
-    }
-}
-
-/**
- * Updates a label by ID.
- *
- * @async
- * @function fetchUpdateLabel
- * @param {number} labelId - The ID of the label to update.
- * @param {Object} updateFields - Fields to update (e.g., {name: 'newName'}).
- * @returns {Promise<{labelId: number, name: string, createdAt: string}|null>} A promise that resolves to the updated label or null if not found.
- */
-export async function fetchUpdateLabel(labelId, updateFields) {
-    if (isDesktopEnv()) {
-        return await updateLabelAppApi(labelId, updateFields);
-    } else {
-        // TODO: Implement web version
-    }
-}
-
-/**
- * Deletes a label by ID.
- *
- * @async
- * @function fetchDeleteLabel
- * @param {number} labelId - The ID of the label to delete.
- * @returns {Promise<boolean>} A promise that resolves to true if deleted successfully, false otherwise.
- */
-export async function fetchDeleteLabel(labelId) {
-    if (isDesktopEnv()) {
-        return await deleteLabelAppApi(labelId);
     } else {
         // TODO: Implement web version
     }

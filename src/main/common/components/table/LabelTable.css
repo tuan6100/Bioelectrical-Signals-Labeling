@@ -172,3 +172,80 @@ td.action-links {
     background: white;
     outline: none;
 }
+
+/* Container để định vị nút drop và list */
+.custom-select-wrapper {
+    position: relative;
+    width: 100%;
+    display: flex;
+    align-items: center;
+}
+
+/* Input trong wrapper */
+.custom-select-input {
+    width: 100%;
+    padding-right: 24px; /* Chừa chỗ cho nút mũi tên */
+}
+
+/* Nút mũi tên bên phải */
+.custom-select-btn {
+    position: absolute;
+    right: 2px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: #666;
+    cursor: pointer;
+    padding: 4px;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.custom-select-btn:hover {
+    color: #000;
+}
+
+/* Hộp thoại dropdown */
+.custom-dropdown-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    max-height: 150px; /* Giới hạn chiều cao */
+    overflow-y: auto;  /* Cho phép cuộn */
+    background: #fff;  /* Nền trắng */
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15); /* Bóng đổ nhẹ */
+    z-index: 1000;
+    margin-top: 2px;
+}
+
+.dropdown-item {
+    padding: 6px 8px;
+    cursor: pointer;
+    font-size: 13px;
+    color: #333;
+    border-bottom: 1px solid #f0f0f0;
+    text-align: left;
+}
+
+.dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.dropdown-item:hover {
+    background-color: #f5f5f5;
+}
+
+
+.custom-dropdown-list::-webkit-scrollbar {
+    width: 6px;
+}
+.custom-dropdown-list::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 3px;
+}

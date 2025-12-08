@@ -53,9 +53,7 @@ export default function SignalChart({
         targetLabel: null
     });
 
-    const [isCreatingNewLabel, setIsCreatingNewLabel] = useState(false);
     const [isEditingPersisted, setIsEditingPersisted] = useState(false);
-    const [isCreatingNewLabelPersisted, setIsCreatingNewLabelPersisted] = useState(false);
 
     const MARGIN = { top: 20, right: 20, bottom: 80, left: 60 };
 
@@ -89,7 +87,6 @@ export default function SignalChart({
     const dispatchAnnotationsUpdated = useCallback((next) => {
         try {
             const persisted = (next || labels || [])
-                .filter(l => !(l.state === 'pending' || (l.name || '').toLowerCase() === 'pending'))
                 .map(l => ({ annotationId: l.annotationId, startTimeMs: Number(l.startTimeMs), endTimeMs: Number(l.endTimeMs), labelName: l.labelName || l.name || (l.label?.name) || 'Unknown', note: l.note ?? null, label: l.label ?? null }));
             const evt = new CustomEvent('annotations-updated', { detail: { channelId, annotations: persisted } });
             window.dispatchEvent(evt);
@@ -278,10 +275,6 @@ export default function SignalChart({
 
     const getColorScheme = useCallback((label, hovered) => {
         const baseName = (label.name || '').trim().toLowerCase();
-        const pending = label.state === 'pending' || baseName === 'pending';
-        if (pending) {
-            return { fill: hovered ? 'rgba(50,50,50,0.30)' : 'rgba(50,50,50,0.25)', stroke: hovered ? 'rgba(0,0,0,0.95)' : 'rgba(0,0,0,0.85)', line: 'rgba(0,0,0,0.85)' };
-        }
         if (baseName === 'unknown') {
             return { fill: hovered ? 'rgba(0,100,255,0.40)' : 'rgba(0,100,255,0.30)', stroke: hovered ? 'rgba(0,80,200,1.0)' : 'rgba(0,80,200,0.9)', line: 'rgba(0,80,200,0.95)' };
         }
@@ -292,7 +285,6 @@ export default function SignalChart({
         const toleranceMs = tolerance * (renderViewport.endMs - renderViewport.startMs) / chartWidth;
         for (let i = labels.length - 1; i >= 0; i--) {
             const l = labels[i];
-            if (l.state === 'pending' || (l.name || '').toLowerCase() === 'pending') continue;
             if (Math.abs(timeMs - l.startTimeMs) < toleranceMs) { return { label: l, edge: 'left' }; }
             if (Math.abs(timeMs - l.endTimeMs) < toleranceMs) { return { label: l, edge: 'right' }; }
         }
@@ -333,9 +325,7 @@ export default function SignalChart({
             const isHovered = hoveredLabelId === label.annotationId;
             const inView = !(label.endTimeMs < renderViewport.startMs || label.startTimeMs > renderViewport.endMs);
             if (!inView) return;
-            const baseName = (label.name || '').trim().toLowerCase();
-            const isPending = label.state === 'pending' || baseName === 'pending';
-            if (!isPending && !isHovered) return;
+            if (!isHovered) return;
             const x1 = Math.max(timeToX(label.startTimeMs), MARGIN.left);
             const x2 = Math.min(timeToX(label.endTimeMs), MARGIN.left + chartWidth);
             if (x2 <= x1) return;
@@ -345,7 +335,7 @@ export default function SignalChart({
             ctx.strokeStyle = scheme.stroke;
             ctx.lineWidth = isHovered ? 3 : 2;
             ctx.strokeRect(x1, MARGIN.top, x2 - x1, chartHeight);
-            if (isPending || isHovered) {
+            if (isHovered) {
                 ctx.fillStyle = scheme.stroke;
                 ctx.font = isHovered ? 'bold 13px sans-serif' : 'bold 11px sans-serif';
                 ctx.fillText(label.name || 'Pending', x1 + 5, MARGIN.top + 15);
@@ -548,8 +538,7 @@ export default function SignalChart({
             setPanState({ active: true, startX: x, startViewport: { ...viewport } });
         } else {
             const hit = findLabelAtTime(time);
-            const isPending = hit && (hit.state === 'pending' || (hit.name || '').trim().toLowerCase() === 'pending');
-            if (hit && !isPending) {
+            if (hit) {
                 const id = hit.annotationId ?? hit.id;
                 if (id != null) {
                     setHoveredLabelId(hit.annotationId);
@@ -708,49 +697,9 @@ export default function SignalChart({
         const x = e.clientX - rect.left;
         const time = xToTime(x);
         const hits = labels.filter(l => time >= l.startTimeMs && time <= l.endTimeMs);
-        const persisted = hits.find(l => !((l.state === 'pending' || (l.name || '').toLowerCase() === 'pending')));
-        const pending = hits.find(l => (l.state === 'pending' || (l.name || '').toLowerCase() === 'pending'));
-        if(persisted) {
-            setContextMenu({visible: true, x: e.clientX, y: e.clientY, type: 'persisted', targetLabel: persisted});
-            setIsCreatingNewLabel(false);
-            setIsEditingPersisted(false);
-        }
-        else if(pending) {
-            setContextMenu({visible: true, x: e.clientX, y: e.clientY, type: 'pending', targetLabel: pending});
-            setIsCreatingNewLabel(false);
-            setIsEditingPersisted(false);
-        }
-        else {
-            setContextMenu({visible: false, x: 0, y: 0, type: null, targetLabel: null});
-            setIsCreatingNewLabel(false); setIsEditingPersisted(false); }
-    };
-
-    const handleSelectLabel = async (option) => {
-        const label = contextMenu.targetLabel;
-        if (!label) return;
-        const newName = option.value;
-        let savedLabel = label;
-        try {
-            if (newName !== 'Pending') {
-                savedLabel = await fetchCreateAnnotation({ channelId, startTime: label.startTimeMs, endTime: label.endTimeMs, name: newName });
-            }
-            if (savedLabel) {
-                setLabels(prev => {
-                    const next = prev.map(l =>
-                        l.annotationId === label.annotationId ?
-                            { ...l, name: newName, labelName: savedLabel?.labelName || newName, ...savedLabel, state: 'persisted' }
-                            : l
-                    );
-                    dispatchAnnotationsUpdated(next);
-                    return next; });
-            } else {
-                setLabels(prev => prev.filter(l => l.annotationId !== label.annotationId)); }
-        } catch (err) {
-            setLabels(prev => prev.filter(l => l.annotationId !== label.annotationId)); }
-        finally {
-            setContextMenu({ visible: false, x: 0, y: 0, type: null, targetLabel: null });
-            setIsCreatingNewLabel(false);
-        }
+        const persisted = hits.find(l => !(((l.name || '').toLowerCase() === 'pending')));
+        setContextMenu({visible: true, x: e.clientX, y: e.clientY, type: 'persisted', targetLabel: persisted});
+        setIsEditingPersisted(false);
     };
 
     const handlePersistedEditChoose = async (option) => {
@@ -769,14 +718,6 @@ export default function SignalChart({
             setContextMenu({visible: false, x:0, y:0, type:null, targetLabel:null});
             setIsEditingPersisted(false);
         }
-    };
-
-    const handleCreateNewLabelPersisted = async (val) => {
-        const label = contextMenu.targetLabel;
-        if(!label || !val.trim()) return;
-        setIsCreatingNewLabelPersisted(false);
-        await handlePersistedEditChoose({value: val.trim(), label: val.trim()});
-        await refreshLabelCatalog();
     };
 
     const handlePersistedDelete = async () => {
@@ -807,17 +748,6 @@ export default function SignalChart({
         }
     };
 
-    const handleCreateLabelOption = async (val) => {
-        if(!val || !val.trim()) return;
-        const trimmed = val.trim();
-        setAllLabelOptions(prev =>
-            prev.some(o=>o.value.toLowerCase()===trimmed.toLowerCase()) ?
-                prev :
-                [...prev, {value: trimmed, label: trimmed}]
-        );
-        await handleSelectLabel({value: trimmed, label: trimmed});
-    };
-
     const handleCancelContextMenu = () => {
         setContextMenu({
             visible: false,
@@ -826,7 +756,6 @@ export default function SignalChart({
             type: null,
             targetLabel: null
         });
-        setIsCreatingNewLabel(false);
         setIsEditingPersisted(false);
     };
 
@@ -847,7 +776,10 @@ export default function SignalChart({
             name: l.labelName || l.name || l.label?.name || 'Unknown',
             note: l.note??null, state: 'persisted'
         }));
-        setLabels(prev => [...norm, ...prev.filter(x => x.state === 'pending' || x.state === 'temporary')])
+        setLabels(prev => [
+            ...norm,
+            ...prev.filter(x => x.state === 'pending' || x.state === 'temporary')
+        ]);
     }, [existingLabels]);
 
     useEffect(() => {
@@ -891,7 +823,10 @@ export default function SignalChart({
                 note: a.note??null,
                 state:'persisted'
             }));
-            setLabels(prev=>[...norm, ...prev.filter(x=>x.state==='pending'||x.state==='temporary')]);
+            setLabels(prev=>[
+                ...norm,
+                ...prev.filter(x=>x.state==='pending'||x.state==='temporary')
+            ]);
         };
         window.addEventListener('annotations-updated', h);
         return () => window.removeEventListener('annotations-updated', h)
@@ -991,17 +926,17 @@ export default function SignalChart({
 
             {contextMenu.visible && (
                 <LabelContextMenu
-                    x={contextMenu.x} y={contextMenu.y} type={contextMenu.type} allLabelOptions={allLabelOptions}
-                    isCreatingNewLabel={contextMenu.type === 'pending' ? isCreatingNewLabel : false}
+                    x={contextMenu.x}
+                    y={contextMenu.y}
+                    type={contextMenu.type}
+                    allLabelOptions={allLabelOptions}
                     isEditingPersisted={contextMenu.type === 'persisted' ? isEditingPersisted : false}
-                    isCreatingNewLabelPersisted={contextMenu.type === 'persisted' ? isCreatingNewLabelPersisted : false}
-                    onSelectLabel={handleSelectLabel} onAddNewLabelClick={(val) => setIsCreatingNewLabel(val !== false)}
-                    onCancelPendingClick={() => { const pending = contextMenu.targetLabel; if (pending) { setLabels(prev => prev.filter(l => l.annotationId !== pending.annotationId)); } setContextMenu({ visible: false, x: 0, y: 0, type: null, targetLabel: null }); }}
-                    onCreateNewLabelInputSubmit={(value) => handleCreateLabelOption(value)}
-                    onEditPersistedClick={() => setIsEditingPersisted(true)} onDeletePersistedClick={handlePersistedDelete}
-                    onBackPersistedClick={() => { setIsEditingPersisted(false); setIsCreatingNewLabelPersisted(false); }}
-                    onChoosePersistedLabel={handlePersistedEditChoose} onCreateNewPersistedLabelClick={() => setIsCreatingNewLabelPersisted(true)}
-                    onCreateNewPersistedLabelSubmit={(value) => handleCreateNewLabelPersisted(value)}
+                    onEditPersistedClick={() => setIsEditingPersisted(true)}
+                    onDeletePersistedClick={handlePersistedDelete}
+                    onBackPersistedClick={() => {
+                        setIsEditingPersisted(false);
+                    }}
+                    onChoosePersistedLabel={handlePersistedEditChoose}
                 />
             )}
 
