@@ -1,13 +1,12 @@
 import {ipcMain, dialog} from "electron"
 import {
     deleteAnnotation,
-    deleteLabel, exportLabels,
     createAnnotation,
     updateAnnotation,
-    updateLabel, OverlapError
+    OverlapError
 } from "../../../domain/services/data/command/label.command.js";
 
-import {getAllLabels} from "../../../domain/services/data/query/label.query.js";
+import {exportLabels, getAllLabels} from "../../../domain/services/data/query/label.query.js";
 import {saveLabelsToCSV} from "../../../domain/services/file/writer/csv.writer.js";
 import {saveLabelToExcel} from "../../../domain/services/file/writer/excel.writer.js";
 import {getInputFileName} from "../../../domain/services/data/query/session.query.js";
@@ -102,30 +101,10 @@ ipcMain.on('label:exportExcel', async (event, sessionId, channelId) => {
 
 
 ipcMain.removeHandler('label:getAll')
-ipcMain.handle('label:getAll', (event) => {
+ipcMain.handle('label:getAll', () => {
     try {
         return getAllLabels()
     } catch (error) {
         dialog.showErrorBox('Label Retrieval Error', error.message)
     }
-})
-
-ipcMain.removeHandler('label:update')
-ipcMain.handle('label:update', (event, labelId, updateFields) => {
-    try {
-        return updateLabel(labelId, updateFields)
-    } catch (error) {
-        dialog.showErrorBox('Label Update Error', error.message)
-    }
-
-})
-
-ipcMain.removeHandler('label:delete')
-ipcMain.handle('label:delete', (event, labelId) => {
-    try {
-        return deleteLabel(labelId)
-    } catch (error) {
-        dialog.showErrorBox('Label Deletion Error', error.message)
-    }
-
 })

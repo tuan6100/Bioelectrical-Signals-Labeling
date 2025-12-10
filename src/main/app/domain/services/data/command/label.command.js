@@ -7,43 +7,6 @@ import Session from "../../../../persistence/dao/session.dao.js"
 import { confirmOverlap } from "../../../utils/overlapping-warning.util.js"
 import {findNearestTimePoint} from "../../../utils/algorithm.util.js"
 
-
-export function exportLabels(sessionId) {
-    const data = Session.findAllLabelsBySessionId(sessionId)
-    return  data.flatMap(item => {
-        const freqKhz = item.subsampled || item.samplingFrequency
-        const freqHz = (freqKhz || 0) * 1000
-        if (!freqHz || !item.samples || !item.samples.length) return []
-        const dtMs = 1000 / freqHz
-        if (!item.annotation) return []
-        const { startTimeMs, endTimeMs, labelName, note } = item.annotation
-        const startIdx = Math.max(0, Math.floor(startTimeMs / dtMs))
-        const endIdx = Math.min(item.samples.length, Math.ceil(endTimeMs / dtMs))
-        const samplesSlice = item.samples.slice(startIdx, endIdx)
-        return [{
-            labelName,
-            samplesSlice,
-            note
-        }]
-    })
-}
-
-export function updateLabel(labelId, updateFields) {
-    return asTransaction(function (labelId, updateFields) {
-        const updated = Label.update(labelId, updateFields)
-        if (updated) {
-            //TODO: touching all sessions that have annotations with this label would be expensive skipped
-        }
-        return updated
-    })(labelId, updateFields)
-}
-
-export function deleteLabel(labelId) {
-    return asTransaction(function (labelId) {
-        return Label.delete(labelId)
-    })(labelId)
-}
-
 export function createAnnotation(channelId, startTime, endTime, labelName, labelNote = null) {
     return asTransaction(function (channelId, startTime, endTime, labelName) {
         let label = Label.findOneByName(labelName)
@@ -95,18 +58,8 @@ export function createAnnotation(channelId, startTime, endTime, labelName, label
 export function updateAnnotation(annotationId, updates) {
     return asTransaction(function (annotationId, updates) {
         const annotation = Annotation.findOneById(annotationId)
-        if (!annotation) {
-            throw new Error(`Annotation ${annotationId} not found`)
-        }
-        if (updates.labelName) {
-            let label = Label.findOneByName(updates.labelName)
-            if (!label) {
-                label = new Label(null, updates.labelName)
-                label = label.insert()
-            }
-            updates.labelId = label.labelId
-            delete updates.labelName
-        }
+        if (!annotation) throw new Error(`Annotation ${annotationId} not found`)
+        const wasOverlapping = annotation.isOverlappingWithOthers()
         if (updates.startTimeMs !== undefined || updates.endTimeMs !== undefined) {
             const channelId = updates.channelId ?? annotation.channelId
             const newStart = updates.startTimeMs ?? annotation.startTimeMs
@@ -121,9 +74,11 @@ export function updateAnnotation(annotationId, updates) {
             updates.startTimeMs = normalizedStart
             updates.endTimeMs = normalizedEnd
             const tempAnnotation = new Annotation(
-                annotationId, channelId, annotation.labelId, normalizedStart, normalizedEnd, annotation.note
+                annotationId, channelId, annotation.labelId,
+                normalizedStart, normalizedEnd, annotation.note
             )
-            if (tempAnnotation.isOverlappingWithOthers()) {
+            const isNowOverlapping = tempAnnotation.isOverlappingWithOthers()
+            if (!wasOverlapping && isNowOverlapping) {
                 if (!confirmOverlap()) {
                     throw new OverlapError('Operation cancelled by user.')
                 }

@@ -73,35 +73,5 @@ export default class Label {
             row.created_at
         ))
     }
-
-    static update(labelId, updateFields) {
-        const fields = Object.keys(updateFields)
-        if (fields.length === 0) return null
-        const fieldMap = {
-            name: 'name',
-            type: 'type'
-        }
-        const setClause = fields.map(field => {
-            const dbField = fieldMap[field] || field
-            return `${dbField} = ?`
-        }).join(', ')
-        const values = fields.map(field => updateFields[field])
-        const stmt = Label.db.prepare(`
-            UPDATE labels
-            SET ${setClause}
-            WHERE label_id = ?
-        `)
-        const info = stmt.run(...values, labelId)
-        return info.changes > 0 ? this.findOneById(labelId) : null
-    }
-
-    static delete(labelId) {
-        const stmt = Label.db.prepare(`
-            DELETE FROM labels
-            WHERE label_id = ?
-        `)
-        const info = stmt.run(labelId)
-        return info.changes > 0
-    }
 }
 

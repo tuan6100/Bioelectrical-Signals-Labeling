@@ -58,6 +58,7 @@ contextBridge.exposeInMainWorld("biosignalApi", {
             "label:exportCsv",
             sessionId
         ),
+
         exportToExcel: (sessionId, channelId) => ipcRenderer.send(
             "label:exportExcel",
             sessionId, channelId
@@ -84,22 +85,13 @@ contextBridge.exposeInMainWorld("biosignalApi", {
             updateFields
         ),
 
+    },
+
+
+    delete: {
         deleteAnnotation: (annotationId) => ipcRenderer.invoke(
             "annotation:delete",
             annotationId
         ),
-
-        updateLabel: (labelId, updateFields) => ipcRenderer.invoke(
-            "label:update",
-            labelId,
-            updateFields
-        ),
-
-        deleteLabel: (labelId) => ipcRenderer.invoke(
-            "label:delete",
-            labelId
-        ),
-
     }
-
 });
