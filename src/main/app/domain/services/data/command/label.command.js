@@ -7,22 +7,6 @@ import Session from "../../../../persistence/dao/session.dao.js"
 import { confirmOverlap } from "../../../utils/overlapping-warning.util.js"
 import {findNearestTimePoint} from "../../../utils/algorithm.util.js"
 
-export function updateLabel(labelId, updateFields) {
-    return asTransaction(function (labelId, updateFields) {
-        const updated = Label.update(labelId, updateFields)
-        if (updated) {
-            //TODO: touching all sessions that have annotations with this label would be expensive skipped
-        }
-        return updated
-    })(labelId, updateFields)
-}
-
-export function deleteLabel(labelId) {
-    return asTransaction(function (labelId) {
-        return Label.delete(labelId)
-    })(labelId)
-}
-
 export function createAnnotation(channelId, startTime, endTime, labelName, labelNote = null) {
     return asTransaction(function (channelId, startTime, endTime, labelName) {
         let label = Label.findOneByName(labelName)
@@ -73,40 +57,27 @@ export function createAnnotation(channelId, startTime, endTime, labelName, label
 
 export function updateAnnotation(annotationId, updates) {
     return asTransaction(function (annotationId, updates) {
-
         const annotation = Annotation.findOneById(annotationId)
         if (!annotation) throw new Error(`Annotation ${annotationId} not found`)
-
-        // STEP 1: Check existing overlap (old state)
         const wasOverlapping = annotation.isOverlappingWithOthers()
-
         if (updates.startTimeMs !== undefined || updates.endTimeMs !== undefined) {
             const channelId = updates.channelId ?? annotation.channelId
             const newStart = updates.startTimeMs ?? annotation.startTimeMs
             const newEnd = updates.endTimeMs ?? annotation.endTimeMs
-
             const channel = Channel.findOneById(channelId, false)
             const subsampledKhz = channel.subsampledKhz
             const durationMs = channel.durationMs
-
             checkTimeValidity(newStart, newEnd, channelId, durationMs)
-
             const timeSeries = generateTimeSeries(subsampledKhz, durationMs)
             const normalizedStart = findNearestTimePoint(newStart, timeSeries)
             const normalizedEnd = findNearestTimePoint(newEnd, timeSeries)
-
             updates.startTimeMs = normalizedStart
             updates.endTimeMs = normalizedEnd
-
             const tempAnnotation = new Annotation(
                 annotationId, channelId, annotation.labelId,
                 normalizedStart, normalizedEnd, annotation.note
             )
-
-            // STEP 2: Check new overlap (updated state)
             const isNowOverlapping = tempAnnotation.isOverlappingWithOthers()
-
-            // STEP 3: Only warn if overlap is NEW
             if (!wasOverlapping && isNowOverlapping) {
                 if (!confirmOverlap()) {
                     throw new OverlapError('Operation cancelled by user.')
