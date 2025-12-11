@@ -249,3 +249,46 @@
     font-size: 18px;
     font-weight: 600;
 }
+
+/* Sessions table styles */
+.sessions-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: transparent;
+}
+.sessions-table th,
+.sessions-table td {
+    padding: 10px 10px;
+    border: 1px solid #e6e9ee;
+    text-align: left;
+    font-size: 14px;
+}
+.sessions-table thead th {
+    background: #f3f4f6;
+    font-weight: 600;
+}
+.sessions-table tbody tr.session-row:hover td {
+    background: #f1f5f9;
+}
+
+/* Status row colors */
+.session-status-new td {
+    background: #ffeef6; /* light pink */
+}
+.session-status-in_progress td {
+    background: #fff9db; /* light yellow */
+}
+.session-status-completed td {
+    background: #e9fff0; /* light green */
+}
+
+.sessions-table td:first-child {
+    width: 48px;
+    text-align: center;
+    font-weight: 600;
+}
+
+.sessions-table td:nth-child(2) {
+    width: 160px;
+}
+

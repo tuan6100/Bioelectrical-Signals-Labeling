@@ -5,7 +5,7 @@ import "./Dashboard.css"
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome"
 import {faArrowRotateRight, faSort, faSortUp, faSortDown} from "@fortawesome/free-solid-svg-icons"
 import {fetchAllSessions} from "../api/index.js";
-import SessionTable from "../components/table/SessionTable.jsx";
+// render sessions as a simple table in this view
 
 import {
     BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell
@@ -245,13 +245,36 @@ export default function Dashboard() {
                         <div className="start-page-placeholder">No sessions found.</div>
                     )}
 
-                    {sortedAndFiltered.map(s => (
-                        <SessionTable
-                            key={s.sessionId}
-                            session={s}
-                            onClick={() => handleOpenSession(s.sessionId)}
-                        />
-                    ))}
+                    <table className="sessions-table">
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th>Patient ID</th>
+                                <th>Patient Name</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {sortedAndFiltered.map((s, idx) => {
+                                const no = idx + 1
+                                const date = s.startTime || s.updatedAt || '-' 
+                                const statusRaw = (s.status || '').toUpperCase()
+                                const statusLabel = statusRaw === 'IN_PROGRESS' ? 'In Progress' : (statusRaw === 'COMPLETED' ? 'Completed' : 'New')
+                                const patientId = s.patient?.id ?? s.patientId ?? '-'
+                                const patientName = s.patient?.name ?? s.patientName ?? '-'
+                                return (
+                                    <tr key={s.sessionId} className={`session-row session-status-${(s.status||'').toLowerCase()}`} onClick={() => handleOpenSession(s.sessionId)} style={{cursor: 'pointer'}}>
+                                        <td>{no}</td>
+                                        <td>{date}</td>
+                                        <td>{statusLabel}</td>
+                                        <td>{patientId}</td>
+                                        <td>{patientName}</td>
+                                    </tr>
+                                )
+                            })}
+                        </tbody>
+                    </table>
                 </div>
 
                 <div className="start-page-sidebar-footer">
