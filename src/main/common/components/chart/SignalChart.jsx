@@ -445,7 +445,7 @@ export default function SignalChart({
         const zoomPercent = Math.round(zoomLevel);
         ctx.font = '12px sans-serif';
         ctx.fillText(
-            `Total ${durationMs} ms (${zoomPercent}%)`,
+            `Total ${durationMs} ms`,
             MARGIN.left + chartWidth / 2,
             dimensions.height - 10
         );
