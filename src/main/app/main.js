@@ -54,11 +54,13 @@ app.whenReady().then(async() => {
     autoUpdater.autoDownload = true
     autoUpdater.autoRunAppAfterInstall = true
     autoUpdater.allowPrerelease = true
-    // if (process.env.NODE_ENV === 'dev') {
-    //     autoUpdater.forceDevUpdateConfig = true
-    //     autoUpdater.updateConfigPath = path.join(__dirname, '..', '..','..', 'dev-app-update.yml')
-    // }
+    if (process.env.NODE_ENV === 'dev') {
+        autoUpdater.forceDevUpdateConfig = true
+        autoUpdater.updateConfigPath = path.join(__dirname, '..', '..','..', 'dev-app-update.yml')
+    } else {
+        // Only check for updates in production
         await autoUpdater.checkForUpdatesAndNotify()
+    }
     const win = createWindow()
     try {
         db.initSchema()

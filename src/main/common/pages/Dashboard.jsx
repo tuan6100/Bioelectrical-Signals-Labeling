@@ -7,10 +7,6 @@ import {faArrowRotateRight, faSort, faSortUp, faSortDown} from "@fortawesome/fre
 import {fetchAllSessions} from "../api/index.js";
 // render sessions as a simple table in this view
 
-import {
-    BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell
-} from "recharts";
-
 export default function Dashboard() {
     const navigate = useNavigate()
     const [sessions, setSessions] = useState([])
@@ -195,36 +191,9 @@ export default function Dashboard() {
                 <h1>Biosignal Labeling Dashboard</h1>
                 <div className="start-page-sidebar-header">
                     <div className="start-page-sidebar-title">Sessions</div>
-                    <div className="start-page-sidebar-actions">
-                        <button
-                            className="icon-btn"
-                            title={`Sort by Status (${statusSortOrder === 'asc' ? 'Completed first' :  'New first' })`}
-                            onClick={toggleStatusSort}
-                            style={{ marginRight: '15px' }}
-                        >
-                            <FontAwesomeIcon
-                                icon={statusSortOrder === 'asc' ? faSortUp : statusSortOrder === 'desc' ? faSortDown : faSort}
-                            />
-                        </button>
-                        <button
-                            className="icon-btn"
-                            title="Refresh List"
-                            onClick={(e) => {
-                                e.preventDefault()
-                                loadPage(1)
-                            }}
-                            disabled={loading}
-                        >
-                            <FontAwesomeIcon
-                                icon={faArrowRotateRight}
-                                spin={loading}
-                                size="lg"
-                            />
-                        </button>
-                    </div>
                 </div>
 
-                <div className="start-page-search-wrap">
+                {/* <div className="start-page-search-wrap">
                     <input
                         className="start-page-search-input"
                         type="text"
@@ -275,25 +244,16 @@ export default function Dashboard() {
                             })}
                         </tbody>
                     </table>
-                </div>
+                </div> */}
 
                 <div className="start-page-sidebar-footer">
-                    <button
-                        className="load-more-btn"
-                        disabled={!canLoadMore || loading}
-                        onClick={() => loadPage(page.number + 1)}
-                    >
-                        {loading ? "Loading…" : canLoadMore ? "Load more" : "No more"}
-                    </button>
-                    <div className="pagination-info">
-                        Page {page.number} of {Math.max(page.totalPages, 1)}
-                    </div>
                 </div>
+
             </aside>
 
             <main className="start-page-main">
                 <div className="dashboard-wrapper">
-                    <h2 className="dashboard-header">Project Overview</h2>
+                    {/* <h2 className="dashboard-header">Project Overview</h2>
 
                     <div className="dashboard-stats-row">
                         <div className="dashboard-stat-card">
@@ -315,22 +275,97 @@ export default function Dashboard() {
                             <h4>New</h4>
                             <p>{newlyCreated}</p>
                         </div>
-                    </div>
+                    </div> */}
 
-                    <div className="dashboard-chart-block" style={{ width: "100%", height: 260 }}>
-                        <h3>Session Status Breakdown</h3>
-                        <ResponsiveContainer>
-                            <BarChart data={chartData}>
-                                <XAxis dataKey="name" />
-                                <YAxis />
-                                <Tooltip />
-                                <Bar dataKey="value">
-                                    <Cell fill="#ef4444" />
-                                    <Cell fill="#facc15" />
-                                    <Cell fill="#22c55e" />
-                                </Bar>
-                            </BarChart>
-                        </ResponsiveContainer>
+                    <div className="dashboard-sessions-block">
+                        <div className="dashboard-sessions-header">
+                            <h3>Sessions</h3>
+                            <div className="start-page-sidebar-actions">
+                                <button
+                                    className="icon-btn"
+                                    title={`Sort by Status (${statusSortOrder === 'asc' ? 'Completed first' :  'New first' })`}
+                                    onClick={toggleStatusSort}
+                                    style={{ marginRight: '15px' }}
+                                >
+                                    <FontAwesomeIcon
+                                        icon={statusSortOrder === 'asc' ? faSortUp : statusSortOrder === 'desc' ? faSortDown : faSort}
+                                    />
+                                </button>
+                                <button
+                                    className="icon-btn"
+                                    title="Refresh List"
+                                    onClick={(e) => {
+                                        e.preventDefault()
+                                        loadPage(1)
+                                    }}
+                                    disabled={loading}
+                                >
+                                    <FontAwesomeIcon
+                                        icon={faArrowRotateRight}
+                                        spin={loading}
+                                        size="lg"
+                                    />
+                                </button>
+                            </div>
+                        </div>
+                        <div className="start-page-search-wrap">
+                            <input
+                                className="start-page-search-input"
+                                type="text"
+                                placeholder="Search (e.g. status=NEW, patientname=Nguyen Van A, ...)"
+                                value={query}
+                                onChange={(e) => setQuery(e.target.value)}
+                            />
+                        </div>
+                        {error && <div className="start-page-error">{error}</div>}
+                        {loading && sessions.length === 0 && (
+                            <div className="start-page-placeholder">Loading sessions…</div>
+                        )}
+                        {!loading && hasLoaded && sessions.length === 0 && (
+                            <div className="start-page-placeholder">No sessions found.</div>
+                        )}
+                        <table className="sessions-table">
+                            <thead>
+                                <tr>
+                                    <th>No</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                    <th>Patient ID</th>
+                                    <th>Patient Name</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {sortedAndFiltered.map((s, idx) => {
+                                    const no = idx + 1
+                                    const date = s.startTime || s.updatedAt || '-' 
+                                    const statusRaw = (s.status || '').toUpperCase()
+                                    const statusLabel = statusRaw === 'IN_PROGRESS' ? 'In Progress' : (statusRaw === 'COMPLETED' ? 'Completed' : 'New')
+                                    const patientId = s.patient?.id ?? s.patientId ?? '-'
+                                    const patientName = s.patient?.name ?? s.patientName ?? '-'
+                                    return (
+                                        <tr key={s.sessionId} className={`session-row session-status-${(s.status||'').toLowerCase()}`} onClick={() => handleOpenSession(s.sessionId)} style={{cursor: 'pointer'}}>
+                                            <td>{no}</td>
+                                            <td>{date}</td>
+                                            <td>{statusLabel}</td>
+                                            <td>{patientId}</td>
+                                            <td>{patientName}</td>
+                                        </tr>
+                                    )
+                                })}
+                            </tbody>
+                        </table>
+                        <div className="dashboard-sessions-footer" style={{ marginTop: '15px' }}>
+                            <button
+                                className="load-more-btn"
+                                disabled={!canLoadMore || loading}
+                                onClick={() => loadPage(page.number + 1)}
+                            >
+                                {loading ? "Loading…" : canLoadMore ? "Load more" : "No more"}
+                            </button>
+                            <div className="pagination-info">
+                                Page {page.number} of {Math.max(page.totalPages, 1)}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </main>
