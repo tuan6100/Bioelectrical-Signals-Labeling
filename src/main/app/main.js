@@ -16,8 +16,8 @@ const MAIN_WINDOW_VITE_DEV_SERVER_URL = process.env.NODE_ENV === 'dev'? 'http://
 const createWindow = () => {
     // Create the browser window.
     const mainWindow = new BrowserWindow({
-        width: 800,
-        height: 600,
+        width: 1280,
+        height: 720,
         webPreferences: {
             preload: path.join(__dirname, 'preload.cjs'),
             spellcheck: true,
@@ -54,10 +54,10 @@ app.whenReady().then(async() => {
     autoUpdater.autoDownload = true
     autoUpdater.autoRunAppAfterInstall = true
     autoUpdater.allowPrerelease = true
-    if (process.env.NODE_ENV === 'dev') {
-        autoUpdater.forceDevUpdateConfig = true
-        autoUpdater.updateConfigPath = path.join(__dirname, '..', '..','..', 'dev-app-update.yml')
-    }
+    // if (process.env.NODE_ENV === 'dev') {
+    //     autoUpdater.forceDevUpdateConfig = true
+    //     autoUpdater.updateConfigPath = path.join(__dirname, '..', '..','..', 'dev-app-update.yml')
+    // }
         await autoUpdater.checkForUpdatesAndNotify()
     const win = createWindow()
     try {
