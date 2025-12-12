@@ -57,8 +57,10 @@ app.whenReady().then(async() => {
     if (process.env.NODE_ENV === 'dev') {
         autoUpdater.forceDevUpdateConfig = true
         autoUpdater.updateConfigPath = path.join(__dirname, '..', '..','..', 'dev-app-update.yml')
-    }
+    } else {
+        // Only check for updates in production
         await autoUpdater.checkForUpdatesAndNotify()
+    }
     const win = createWindow()
     try {
         db.initSchema()
