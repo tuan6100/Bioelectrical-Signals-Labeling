@@ -34,7 +34,7 @@ export default function LabelContextMenu({
       )}
 
       {type === 'persisted' && isEditingPersisted && (
-        <div>
+        <div className="signal-label-menu__edit-view">
           <div className="signal-label-menu__title">Change Label To:</div>
           <div className="signal-label-menu__list">
             {allLabelOptions.map((opt) => (
@@ -47,13 +47,14 @@ export default function LabelContextMenu({
               </div>
             ))}
           </div>
-          <button
-            className="signal-label-menu__btn"
-            onClick={onBackPersistedClick}
-          >Back</button>
+          <div className="signal-label-menu__footer">
+            <button
+              className="signal-label-menu__btn"
+              onClick={onBackPersistedClick}
+            >Back</button>
+          </div>
         </div>
       )}
     </div>
   );
 }
-

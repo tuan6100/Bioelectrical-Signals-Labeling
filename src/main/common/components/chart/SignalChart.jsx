@@ -631,11 +631,18 @@ export default function SignalChart({
                         startTimeMs: resizedLabel.startTimeMs,
                         endTimeMs: resizedLabel.endTimeMs
                     });
-                    if(updated) dispatchAnnotationsUpdated(labels.map(l => l.annotationId === resizedLabel.annotationId ?
-                        {...l, startTimeMs: updated.startTimeMs, endTimeMs: updated.endTimeMs} :
-                        l
-                    ));
+                    if (updated) {
+                        const nextLabels = labels.map(l => l.annotationId === resizedLabel.annotationId ?
+                            {...l, startTimeMs: updated.startTimeMs, endTimeMs: updated.endTimeMs} :
+                            l
+                        );
+                        setLabels(nextLabels);
+                        dispatchAnnotationsUpdated(nextLabels);
+                    } else {
+                        throw new Error("Annotation update failed on the backend.");
+                    }
                 } catch(e) {
+                    console.error('Failed to update annotation, rolling back UI.', e);
                     setLabels(prev => prev.map(l => l.annotationId === resizeState.label.annotationId ? {...l, startTimeMs: resizeState.originalStart, endTimeMs: resizeState.originalEnd} : l));
                 }
             }
@@ -645,10 +652,10 @@ export default function SignalChart({
         if (interactionStateRef.current.isDragging) {
             interactionStateRef.current.isDragging = false;
             let s = Math.min(dragState.startTime, dragState.endTime);
-            let e = Math.max(dragState.startTime, dragState.endTime);
-            if (e - s > 0) {
+            let eTime = Math.max(dragState.startTime, dragState.endTime);
+            if (eTime - s > 0) {
                 try {
-                    const created = await fetchCreateAnnotation({ channelId, startTime: s, endTime: e, name: 'Unknown', note: '' });
+                    const created = await fetchCreateAnnotation({ channelId, startTime: s, endTime: eTime, name: 'Unknown', note: '' });
                     if (created) {
                         const newAnn = {
                             annotationId: created.annotationId || created.id,
@@ -658,8 +665,19 @@ export default function SignalChart({
                             labelName: created.labelName || 'Unknown',
                             note: created.note ?? '', state: 'persisted' };
                         const updatedLabels = [...labels, newAnn];
+                        setLabels(updatedLabels);
                         dispatchAnnotationsUpdated(updatedLabels);
-                        setTimeout(() => { try { const id = newAnn.annotationId; document.querySelector(`tr[data-annotation-id="${id}"] button[title="Edit annotation"]`)?.click(); } catch(_) {} }, 10);
+
+                        const labelX = timeToX(newAnn.startTimeMs);
+                        const canvasRect = canvasRef.current.getBoundingClientRect();
+                        setContextMenu({
+                            visible: true,
+                            x: canvasRect.left + labelX + 20,
+                            y: canvasRect.top + MARGIN.top + 20,
+                            type: 'persisted',
+                            targetLabel: newAnn
+                        });
+                        setIsEditingPersisted(true);
                     }
                 } catch (err) { console.error(err); }
             }
@@ -700,6 +718,27 @@ export default function SignalChart({
         const persisted = hits.find(l => !(((l.name || '').toLowerCase() === 'pending')));
         setContextMenu({visible: true, x: e.clientX, y: e.clientY, type: 'persisted', targetLabel: persisted});
         setIsEditingPersisted(false);
+    };
+
+    const handleDoubleClick = async (e) => {
+        e.preventDefault();
+        await refreshLabelCatalog();
+        const rect = canvasRef.current.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        if (x < MARGIN.left || x > MARGIN.left + chartWidth || y < MARGIN.top || y > MARGIN.top + chartHeight) { return; }
+        const time = xToTime(x);
+        const hit = findLabelAtTime(time);
+        if (hit) {
+            setContextMenu({
+                visible: true,
+                x: e.clientX,
+                y: e.clientY,
+                type: 'persisted',
+                targetLabel: hit
+            });
+            setIsEditingPersisted(true);
+        }
     };
 
     const handlePersistedEditChoose = async (option) => {
@@ -906,6 +945,7 @@ export default function SignalChart({
                 onMouseUp={handleMouseUp}
                 onMouseLeave={handleMouseLeave}
                 onContextMenu={handleContextMenu}
+                onDoubleClick={handleDoubleClick}
             />
             <div className="chart-bottom-scrollbar"
                  ref={topScrollRef} onScroll={handleTopScroll}
@@ -949,4 +989,3 @@ export default function SignalChart({
         </div>
     );
 }
-
