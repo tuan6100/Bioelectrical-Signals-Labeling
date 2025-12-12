@@ -8,6 +8,7 @@ import { confirmOverlap } from "../../../utils/overlapping-warning.util.js"
 import {findNearestTimePoint} from "../../../utils/algorithm.util.js"
 
 export function createAnnotation(channelId, startTime, endTime, labelName, labelNote = null) {
+    console.log('Creating:')
     return asTransaction(function (channelId, startTime, endTime, labelName) {
         let label = Label.findOneByName(labelName)
         if (label === null) {
@@ -56,12 +57,22 @@ export function createAnnotation(channelId, startTime, endTime, labelName, label
 }
 
 export function updateAnnotation(annotationId, updates) {
+    console.log('Updating:')
     return asTransaction(function (annotationId, updates) {
         const annotation = Annotation.findOneById(annotationId)
         if (!annotation) throw new Error(`Annotation ${annotationId} not found`)
+        if (updates.labelName) {
+            let label = Label.findOneByName(updates.labelName);
+            if (!label) {
+                label = new Label(null, updates.labelName).insert();
+            }
+            updates.labelId = label.labelId;
+            delete updates.labelName;
+        }
+
         const wasOverlapping = annotation.isOverlappingWithOthers()
         if (updates.startTimeMs !== undefined || updates.endTimeMs !== undefined) {
-            const channelId = updates.channelId ?? annotation.channelId
+            const channelId = annotation.channelId
             const newStart = updates.startTimeMs ?? annotation.startTimeMs
             const newEnd = updates.endTimeMs ?? annotation.endTimeMs
             const channel = Channel.findOneById(channelId, false)
@@ -86,7 +97,7 @@ export function updateAnnotation(annotationId, updates) {
         }
         const updated = Annotation.update(annotationId, updates)
         if (!updated) {
-            throw new Error('Failed to update annotation')
+            throw new Error('Failed to update annotation, no changes were made or annotation not found.')
         }
         const sessionId = Channel.findSessionIdByChannelId(updated.channelId)
         if (sessionId) {
@@ -173,4 +184,3 @@ export class OverlapError extends Error {
         super(message)
     }
 }
-

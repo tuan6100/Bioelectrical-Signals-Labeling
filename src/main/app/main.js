@@ -16,8 +16,8 @@ const MAIN_WINDOW_VITE_DEV_SERVER_URL = process.env.NODE_ENV === 'dev'? 'http://
 const createWindow = () => {
     // Create the browser window.
     const mainWindow = new BrowserWindow({
-        width: 800,
-        height: 600,
+        width: 1280,
+        height: 720,
         webPreferences: {
             preload: path.join(__dirname, 'preload.cjs'),
             spellcheck: true,

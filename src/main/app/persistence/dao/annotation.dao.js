@@ -140,6 +140,7 @@ export default class Annotation {
     static update(annotationId, updateFields) {
         const fields = Object.keys(updateFields);
         if (fields.length === 0) return null;
+
         const fieldMap = {
             channelId: 'channel_id',
             labelId: 'label_id',
@@ -147,19 +148,24 @@ export default class Annotation {
             endTimeMs: 'end_time_ms',
             note: 'note'
         };
+
         const validFields = fields.filter(f => fieldMap[f]);
         if (validFields.length === 0) return null;
+
         const assignments = validFields.map(f => `${fieldMap[f]} = ?`).join(', ');
         const updatedAt = new Date().toISOString();
-        const finalSetClause = assignments ? `${assignments}, updated_at = ?` : 'updated_at = ?';
+        const finalSetClause = `${assignments}, updated_at = ?`;
+
         const values = validFields.map(f => updateFields[f]);
-        values.push(updatedAt);
+        values.push(updatedAt, annotationId);
+
         const stmt = Annotation.db.prepare(`
             UPDATE annotations
             SET ${finalSetClause}
             WHERE annotation_id = ?
         `);
-        const info = stmt.run(...values, annotationId);
+
+        const info = stmt.run(...values);
         return info.changes > 0 ? this.findOneById(annotationId) : null;
     }
     static delete(annotationId) {

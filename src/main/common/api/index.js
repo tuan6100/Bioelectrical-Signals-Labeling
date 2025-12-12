@@ -169,12 +169,11 @@ export async function fetchCreateAnnotation(labelDto) {
  * @function fetchUpdateAnnotation
  * @param {number} annotationId - The ID of the annotation to update.
  * @param {Object} updateFields - Fields to update (e.g., {labelName: 'newName', note: 'new note'}).
- * @param {boolean} [force=false] - Whether to force the update even if it overlaps.
  * @returns {Promise<{annotationId: number, channelId: number, labelId: number, labelName: string, startTimeMs: number, endTimeMs: number, note: string|null, timeline: Date}>} A promise that resolves to the updated annotation.
  */
-export async function fetchUpdateAnnotation(annotationId, updateFields, force = false) {
+export async function fetchUpdateAnnotation(annotationId, updateFields) {
     if (isDesktopEnv()) {
-        return await updateAnnotationAppApi(annotationId, updateFields, force);
+        return await updateAnnotationAppApi(annotationId, updateFields);
     } else {
         // TODO: Implement web version
     }
