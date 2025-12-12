@@ -6,8 +6,7 @@ import {
     OverlapError
 } from "../../../domain/services/data/command/label.command.js";
 
-import {exportLabels, getAllLabels} from "../../../domain/services/data/query/label.query.js";
-import {saveLabelsToCSV} from "../../../domain/services/file/writer/csv.writer.js";
+import {getAllLabels} from "../../../domain/services/data/query/label.query.js";
 import {saveLabelToExcel} from "../../../domain/services/file/writer/excel.writer.js";
 import {getInputFileName} from "../../../domain/services/data/query/session.query.js";
 import path from "node:path";
@@ -35,6 +34,7 @@ ipcMain.handle('annotation:create', (event, labelDto) => {
 ipcMain.removeHandler('annotation:update')
 ipcMain.handle('annotation:update', (event, annotationId, updateFields) => {
     try {
+        console.log(`Update field: ${JSON.stringify(updateFields)}`)
         return updateAnnotation(annotationId, updateFields)
     } catch (error) {
         if (!(error instanceof OverlapError)) {
@@ -53,49 +53,48 @@ ipcMain.handle('annotation:delete', (event, annotationId) => {
     }
 })
 
-ipcMain.removeAllListeners('label:exportCsv')
-ipcMain.on('label:export', async (event, sessionId) => {
-    const data = exportLabels(sessionId)
-    const fileManager = await dialog.showSaveDialog({
-        title: 'Export Labels to CSV',
-        defaultPath: `labels_session_${sessionId}.csv`,
-        filters: [
-            { name: 'CSV Files', extensions: ['csv'] }
-        ]
-    })
-    if (!fileManager.canceled && fileManager.filePath) {
-        await saveLabelsToCSV(data, fileManager.filePath)
-    }
-})
-
 ipcMain.removeHandler('label:exportExcel')
 ipcMain.on('label:exportExcel', async (event, sessionId, channelId) => {
+    const inputFileName = getInputFileName(sessionId)
+        .replace(path.extname(getInputFileName(sessionId)), '')
+    const fileManager = await dialog.showSaveDialog({
+        title: 'Export Labels to CSV',
+        defaultPath: `${inputFileName}.xlsx`,
+        filters: [
+            { name: 'Excel Files', extensions: ['xlsx'] }
+        ]
+    })
+    if (fileManager.canceled || !fileManager.filePath) return
+    const chosenPath = fileManager.filePath
+    const baseDir = path.dirname(chosenPath)
+    const baseName = path.basename(chosenPath)
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+    const folderName = `${day}-${month}-${year}`;
+    const targetDir = path.join(baseDir, folderName);
+    await fs.promises.mkdir(targetDir, { recursive: true })
+    const targetPath = path.join(targetDir, baseName)
     try {
-        const inputFileName = getInputFileName(sessionId)
-            .replace(path.extname(getInputFileName(sessionId)), '')
-        const fileManager = await dialog.showSaveDialog({
-            title: 'Export Labels to CSV',
-            defaultPath: `${inputFileName}.xlsx`,
-            filters: [
-                { name: 'Excel Files', extensions: ['xlsx'] }
-            ]
-        })
-        if (fileManager.canceled || !fileManager.filePath) return
-        const chosenPath = fileManager.filePath
-        const baseDir = path.dirname(chosenPath)
-        const baseName = path.basename(chosenPath)
-        const now = new Date();
-        const day = String(now.getDate()).padStart(2, '0');
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const year = now.getFullYear();
-        const folderName = `${day}-${month}-${year}`;
-        const targetDir = path.join(baseDir, folderName);
-        await fs.promises.mkdir(targetDir, { recursive: true })
-        const targetPath = path.join(targetDir, baseName)
         await saveLabelToExcel(channelId, targetPath)
     } catch (error) {
-        dialog.showErrorBox('Export Error', error.message)
-        console.trace(error)
+        if (error.code === 'EBUSY' || error.code === 'EPERM') {
+            const response = await dialog.showMessageBox({
+                type: 'warning',
+                buttons: ['Retry', 'Cancel'],
+                defaultId: 0,
+                title: 'File is opening',
+                message: 'Please close the file before exporting labels.',
+            })
+            if (response.response === 0) {
+                await new Promise(resolve => setTimeout(resolve, 500))
+                return await saveLabelToExcel(channelId, targetPath)
+            }
+        } else {
+            dialog.showErrorBox('Export Error', error.message)
+            console.trace(error)
+        }
     }
 })
 
