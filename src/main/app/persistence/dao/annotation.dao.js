@@ -15,8 +15,6 @@ export default class Annotation {
         this.startTimeMs = startTimeMs
         this.endTimeMs = endTimeMs
         this.note = note
-        this.labeledAt = new Date().toISOString()
-        this.updatedAt = null
     }
 
     static db = sqliteDb
@@ -28,7 +26,7 @@ export default class Annotation {
     insert() {
     const stmt = Annotation.db.prepare(`
         INSERT INTO annotations (
-            annotation_id, channel_id, label_id, start_time_ms, end_time_ms, note, labeled_at, updated_at
+            annotation_id, channel_id, label_id, start_time_ms, end_time_ms, note
         ) 
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `)
@@ -38,9 +36,7 @@ export default class Annotation {
         this.labelId,
         this.startTimeMs,
         this.endTimeMs,
-        this.note,
-        this.labeledAt,
-        this.updatedAt
+        this.note
     )
         this.annotationId = info.lastInsertRowid
     return this
@@ -148,17 +144,9 @@ export default class Annotation {
             endTimeMs: 'end_time_ms',
             note: 'note'
         };
-
         const validFields = fields.filter(f => fieldMap[f]);
         if (validFields.length === 0) return null;
-
-        const assignments = validFields.map(f => `${fieldMap[f]} = ?`).join(', ');
-        const updatedAt = new Date().toISOString();
-        const finalSetClause = `${assignments}, updated_at = ?`;
-
         const values = validFields.map(f => updateFields[f]);
-        values.push(updatedAt, annotationId);
-
         const stmt = Annotation.db.prepare(`
             UPDATE annotations
             SET ${finalSetClause}
