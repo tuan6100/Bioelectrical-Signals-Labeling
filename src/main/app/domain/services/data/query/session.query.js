@@ -65,8 +65,7 @@ export function getChannelSignal(channelId) {
             startTimeMs: r.start_time_ms,
             endTimeMs: r.end_time_ms,
             note: r.note ?? null,
-            label: r.label_id ? { labelId: r.label_id, name: r.label_name } : null,
-            timeline: new Date(r.updated_at?? r.labeled_at).toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' })
+            label: r.label_id ? { labelId: r.label_id, name: r.label_name } : null
         })
         return acc
     }, [])

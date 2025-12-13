@@ -38,7 +38,6 @@ import {
  *         startTimeMs: number,
  *         endTimeMs: number,
  *         note: string|null,
- *         timeline: Date,
  *         label: { labelId: number, name: string }|null
  *       }>|null
  *     }|null
@@ -68,7 +67,6 @@ export async function fetchSessionWorkspace(sessionId) {
  *     startTimeMs: number,
  *     endTimeMs: number,
  *     note: string|null,
- *     timeline: Date
  *     label: {labelId: number, name: string}|null
  *   }|null
  * }>} A promise that resolves to the channel samples with time series data and any associated annotations.

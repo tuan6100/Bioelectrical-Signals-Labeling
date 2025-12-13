@@ -273,13 +273,74 @@ export default function SignalChart({
         return null;
     }, [labelsToRender]);
 
-    const getColorScheme = useCallback((label, hovered) => {
-        const baseName = (label.name || '').trim().toLowerCase();
-        if (baseName === 'unknown') {
-            return { fill: hovered ? 'rgba(0,100,255,0.40)' : 'rgba(0,100,255,0.30)', stroke: hovered ? 'rgba(0,80,200,1.0)' : 'rgba(0,80,200,0.9)', line: 'rgba(0,80,200,0.95)' };
-        }
-        return { fill: hovered ? 'rgba(255,50,50,0.40)' : 'rgba(255,50,50,0.30)', stroke: hovered ? 'rgba(200,0,0,1.0)' : 'rgba(200,0,0,0.9)', line: 'rgba(200,0,0,0.95)' };
+    // const getColorScheme = useCallback((label, hovered) => {
+    //     const baseName = (label.name || '').trim().toLowerCase();
+    //     if (baseName === 'unknown') {
+    //         return { fill: hovered ? 'rgba(0,100,255,0.40)' : 'rgba(0,100,255,0.30)', stroke: hovered ? 'rgba(0,80,200,1.0)' : 'rgba(0,80,200,0.9)', line: 'rgba(0,80,200,0.95)' };
+    //     }
+    //     return { fill: hovered ? 'rgba(255,50,50,0.40)' : 'rgba(255,50,50,0.30)', stroke: hovered ? 'rgba(200,0,0,1.0)' : 'rgba(200,0,0,0.9)', line: 'rgba(200,0,0,0.95)' };
+    // }, []);
+
+    //New color function based on label name
+    const getBaseColor = useCallback((labelName) => {
+        const name = (labelName || '').trim().toLowerCase();
+        if (name === 'unknown') return '#4da3ff';
+        const colors = [
+            '#E41A1C', // red
+            '#377EB8', // blue
+            '#4DAF4A', // green
+            '#984EA3', // purple
+            '#FF7F00', // orange
+            '#FFFF33', // yellow
+            '#A65628', // brown
+            '#F781BF', // pink
+            '#999999', // gray
+
+            '#66C2A5', // teal
+            '#FC8D62', // coral
+            '#8DA0CB', // soft blue
+            '#E78AC3', // magenta
+            '#A6D854', // lime
+            '#FFD92F', // gold
+            '#E5C494', // sand
+            '#B3B3B3', // light gray
+
+            '#1B9E77', // deep teal
+            '#D95F02', // burnt orange
+            '#7570B3', // indigo
+            '#E7298A', // hot pink
+            '#66A61E', // olive green
+            '#E6AB02', // mustard
+            '#A6761D'  // dark tan
+        ];
+
+        const simpleHash = (str) => {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash; // keep 32bit
+            }
+            return Math.abs(hash);
+        };
+        return colors[simpleHash(name) % colors.length];
     }, []);
+
+    const hexToRgba = useCallback((hex, alpha) => {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return `rgba(${r},${g},${b},${alpha})`;
+    }, []);
+
+    const getColorScheme = useCallback((label, hovered) => {
+        const baseColor = getBaseColor(label.name);
+        return {
+            fill: hexToRgba(baseColor, hovered ? 0.4 : 0.3),
+            stroke: hexToRgba(baseColor, hovered ? 1.0 : 0.9),
+            line: hexToRgba(baseColor, 0.95)
+        };
+    }, [getBaseColor, hexToRgba]);
 
     const findLabelEdgeAtTime = useCallback((timeMs, tolerance = 5) => {
         const toleranceMs = tolerance * (renderViewport.endMs - renderViewport.startMs) / chartWidth;
@@ -496,10 +557,18 @@ export default function SignalChart({
 
             const x = timeToX(s.time);
             const y = valueToY(s.value);
-            const label = findLabelAtTime(s.time);
-            const scheme = label ? getColorScheme(label, hoveredLabelId === label.annotationId) : null;
-            const nextColor = scheme ? scheme.line : '#000';
-            const nextWidth = scheme ? 2.0 : 1.25;
+            const overlappingLabels = labelsToRender.filter(l => s.time >= l.startTimeMs && s.time <= l.endTimeMs);
+            let nextColor = '#000';
+            let nextWidth = 1.25;
+            if (overlappingLabels.length > 1) {
+                nextColor = 'rgba(128,0,128,0.95)'; // purple for overlap
+                nextWidth = 3.0;
+            } else if (overlappingLabels.length === 1) {
+                const label = overlappingLabels[0];
+                const sch = getColorScheme(label, hoveredLabelId === label.annotationId);
+                nextColor = sch.line;
+                nextWidth = 2.0;
+            }
 
             const styleChanged = nextColor !== currentColor || nextWidth !== currentWidth;
             if (styleChanged) {

@@ -7,7 +7,6 @@ export default class Label {
     ) {
         this.labelId = labelId
         this.name = name
-        this.createdAt = new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' })
     }
 
     static db = sqliteDb
@@ -29,7 +28,7 @@ export default class Label {
     static findOneById(labelId) {
         const stmt = Label.db.prepare(`
         SELECT 
-            label_id, name, created_at
+            label_id, name
         FROM labels 
         WHERE label_id = ?
     `)
@@ -37,15 +36,14 @@ export default class Label {
         if (!row) return null
         return new Label(
             row.label_id,
-            row.name,
-            row.created_at
+            row.name
         )
 }
 
     static findOneByName(name) {
         const stmt = Label.db.prepare(`
         SELECT 
-            label_id, name, created_at
+            label_id, name
         FROM labels 
         WHERE name = ?
     `)
@@ -54,23 +52,20 @@ export default class Label {
         return new Label(
             row.label_id,
             row.name,
-            row.created_at
         )
 }
 
     static findAll() {
         const stmt = Label.db.prepare(`
             SELECT label_id,
-                   name,
-                   created_at
+                   name
             FROM labels
             ORDER BY name
         `)
         const rows = stmt.all()
         return rows.map(row => new Label(
             row.label_id,
-            row.name,
-            row.created_at
+            row.name
         ))
     }
 }
