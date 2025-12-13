@@ -28,7 +28,7 @@ export default class Annotation {
         INSERT INTO annotations (
             annotation_id, channel_id, label_id, start_time_ms, end_time_ms, note
         ) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?)
     `)
     const info = stmt.run(
         this.annotationId,
@@ -74,7 +74,7 @@ export default class Annotation {
             row.channel_id,
             row.label_id,
             row.start_time_ms,
-            row.end_timeMs,
+            row.end_time_ms,
             row.note
         ))
 }
@@ -107,7 +107,7 @@ export default class Annotation {
             row.channel_id,
             row.label_id,
             row.start_time_ms,
-            row.end_timeMs,
+            row.end_time_ms,
             row.note
         ))
     }
@@ -134,7 +134,7 @@ export default class Annotation {
     }
 
     static update(annotationId, updateFields) {
-        const fields = Object.keys(updateFields);
+        const fields = Object.keys(updateFields)
         if (fields.length === 0) return null;
 
         const fieldMap = {
@@ -144,17 +144,19 @@ export default class Annotation {
             endTimeMs: 'end_time_ms',
             note: 'note'
         };
-        const validFields = fields.filter(f => fieldMap[f]);
+        const validFields = fields.filter(f => fieldMap[f])
+        const clause = validFields.map(f => `${fieldMap[f]} = ?`).join(', ')
         if (validFields.length === 0) return null;
-        const values = validFields.map(f => updateFields[f]);
+        const values = validFields.map(f => updateFields[f])
         const stmt = Annotation.db.prepare(`
             UPDATE annotations
-            SET ${finalSetClause}
+            SET ${clause}
             WHERE annotation_id = ?
         `);
 
-        const info = stmt.run(...values);
-        return info.changes > 0 ? this.findOneById(annotationId) : null;
+        // pass annotationId to match the WHERE clause parameter
+        const info = stmt.run(...values, annotationId);
+        return info.changes > 0 ? this.findOneById(annotationId) : null
     }
     static delete(annotationId) {
         const stmt = Annotation.db.prepare(`
