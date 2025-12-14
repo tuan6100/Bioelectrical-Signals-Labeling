@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { fetchSessionWorkspace, fetchChannelSamples, fetchChannelAnnotations } from "../api/index.js";
+import { useState, useEffect} from 'react';
+import { fetchSessionWorkspace} from "../api/index.js";
 
 export function useFetchSession(sessionId) {
     const [loading, setLoading] = useState(false);
@@ -9,7 +9,6 @@ export function useFetchSession(sessionId) {
     const [channelId, setChannelId] = useState(null);
     const [defaultSignal, setDefaultSignal] = useState(null);
     const [labels, setLabels] = useState([]);
-    const fetchIdRef = useRef(0);
 
     useEffect(() => {
         if (window.biosignalApi?.on?.sessionStatusUpdated) {
@@ -67,42 +66,6 @@ export function useFetchSession(sessionId) {
             })
             .finally(() => setLoading(false));
     }, [sessionId]);
-
-    useEffect(() => {
-        if (!channelId || !sessionId) return;
-        const fetchId = ++fetchIdRef.current;
-        setLoading(true);
-        fetchChannelSamples(channelId)
-            .then(sig => {
-                if (fetchId === fetchIdRef.current) {
-                    setDefaultSignal(sig || null);
-                    setLabels(processAnnotations(sig));
-                }
-            })
-            .catch(err => {
-                if (fetchId === fetchIdRef.current) {
-                    console.error(err);
-                    setError(err);
-                }
-            })
-            .finally(() => {
-                if (fetchId === fetchIdRef.current) {
-                    setLoading(false);
-                }
-            });
-        fetchChannelAnnotations(channelId)
-            .then(annotations => {
-                if (fetchId === fetchIdRef.current) {
-                    setLabels(formatAnnotations(annotations));
-                }
-            })
-            .catch(err => {
-                if (fetchId === fetchIdRef.current) {
-                    console.error("Error fetching annotations:", err);
-                }
-            });
-
-    }, [channelId, sessionId]);
 
     return {
         loading,

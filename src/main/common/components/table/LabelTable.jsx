@@ -38,7 +38,7 @@ const LabelTable = ({ data, channelId }) => {
     const [activeDropdown, setActiveDropdown] = useState(null)
     const dropdownRef = useRef(null)
     const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 })
-    
+
     // New color function based on label name
     const getBaseColor = (labelName) => {
         const name = (labelName || '').trim().toLowerCase();
@@ -247,9 +247,9 @@ const LabelTable = ({ data, channelId }) => {
             if (!updated) return
             const next = (Array.isArray(data) ? data : []).map(row => row && (row.annotationId ?? row.id) === id ?
                 { ...row, ...(updated?.labelName != null ? { labelName: updated.labelName } : {}), ...(updated?.note !== undefined ? {
-                    note: updated.note } : {}), ...(updated?.startTimeMs != null ?
+                        note: updated.note } : {}), ...(updated?.startTimeMs != null ?
                         { startTimeMs: updated.startTimeMs } : {}), ...(updated?.endTimeMs != null ? { endTimeMs: updated.endTimeMs }
-                        : {}
+                            : {}
                     )
                 } : row
             )
@@ -429,7 +429,7 @@ const LabelTable = ({ data, channelId }) => {
                                 <tr>
                                     <td colSpan={5}
                                         style={{height: '15px', color: '#aaa'
-                                    }}>
+                                        }}>
                                         (No data)
                                     </td>
                                 </tr>
@@ -531,10 +531,10 @@ const LabelTable = ({ data, channelId }) => {
                                                 ) : (
                                                     <>
                                                         <button className="icon-btn editing"
-                                                               title="Edit" style={{ marginRight: 8 }}
-                                                               onClick={(e) => handleEditButton(e, row)}
+                                                                title="Edit" style={{ marginRight: 8 }}
+                                                                onClick={(e) => handleEditButton(e, row)}
                                                         >
-                                                        <FontAwesomeIcon icon={faPencil} />
+                                                            <FontAwesomeIcon icon={faPencil} />
                                                         </button>
                                                         <button className="icon-btn editing"
                                                                 title="Delete"
