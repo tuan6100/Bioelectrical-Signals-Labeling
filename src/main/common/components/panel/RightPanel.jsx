@@ -30,8 +30,8 @@ export default function RightPanel({
                     <div className="right-panel-content">
                         <div className="panel-box panel-table">
                             <LabelTable
-                                data={annotations}
                                 channelId={channelId}
+                                annotations={annotations}
                             />
                         </div>
                         <BottomControl

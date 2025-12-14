@@ -19,7 +19,7 @@ import {
     fetchUpdateAnnotation
 } from "../../api/index.js"
 
-const LabelTable = ({ data, channelId }) => {
+const LabelTable = ({ channelId, annotations}) => {
     const [selectedId, setSelectedId] = useState(null)
     const selectedIdRef = useRef(selectedId)
     const prevLengthRef = useRef(null)
@@ -84,28 +84,63 @@ const LabelTable = ({ data, channelId }) => {
         return colors[simpleHash(name) % colors.length];
     }
 
+
+    const overlapGroupColors = ['#FF6B6B', '#4DA3FF', '#FFD166', '#06D6A0', '#8338EC', '#FF006E', '#118AB2', '#073B4C']
+
+    const computeOverlapGroups = (arr) => {
+        const map = new Map()
+        if (!Array.isArray(arr) || arr.length === 0) return map
+        const items = arr.filter(Boolean).map(a => ({
+            id: a.annotationId ?? a.id,
+            start: Number(a.startTimeMs) || 0,
+            end: Number(a.endTimeMs) || 0,
+            labelName: a.labelName || a.label?.name || ''
+        })).sort((a, b) => a.start - b.start)
+        let groups = []
+        let current = null
+        for (const it of items) {
+            if (!current) {
+                current = { id: groups.length, end: it.end, items: [it] }
+                groups.push(current)
+                continue
+            }
+            if (it.start < current.end) {
+                current.items.push(it)
+                if (it.end > current.end) current.end = it.end
+            } else {
+                current = { id: groups.length, end: it.end, items: [it] }
+                groups.push(current)
+            }
+        }
+        for (const g of groups) {
+            if (g.items.length > 1) {
+                for (const it of g.items) map.set(it.id, g.id)
+            }
+        }
+        return map
+    }
+
+    const overlapGroupMap = React.useMemo(() => computeOverlapGroups(annotations), [annotations])
+
     useEffect(() => {
         selectedIdRef.current = selectedId
     }, [selectedId])
 
-    const isAnnotationRow = (row) => row && typeof row === 'object' && ('startTimeMs' in row) && ('endTimeMs' in row) && (('labelName' in row) || (row.label && row.label.name))
-    const allAnnotationMode = Array.isArray(data) && data.length > 0 && data.every(isAnnotationRow)
-
     useEffect(() => {
-        if (!Array.isArray(data) || data.length === 0) {
+        if (!Array.isArray(annotations) || annotations.length === 0) {
             if (selectedId !== null) setSelectedId(null)
-            prevLengthRef.current = data ? data.length : 0
+            prevLengthRef.current = annotations ? annotations.length : 0
             prevRowsMapRef.current = new Map()
             return
         }
         const prevLength = prevLengthRef.current
-        const firstRow = data[0]
-        const lastRow = data[data.length - 1]
+        const firstRow = annotations[0]
+        const lastRow = annotations[annotations.length - 1]
         const firstId = firstRow ? (firstRow.annotationId ?? firstRow.id) : null
         const lastId = lastRow ? (lastRow.annotationId ?? lastRow.id) : null
-        const selectedStillExists = data.some(row => row && (row.annotationId ?? row.id) === selectedId)
+        const selectedStillExists = annotations.some(row => row && (row.annotationId ?? row.id) === selectedId)
         const currMap = new Map()
-        for (const row of data) {
+        for (const row of annotations) {
             if (!row) continue
             const id = row.annotationId ?? row.id
             const labelName = row.labelName || row.label?.name || ''
@@ -114,7 +149,7 @@ const LabelTable = ({ data, channelId }) => {
             currMap.set(id, sig)
         }
         if (prevLength == null) { if (firstId && selectedId !== firstId) setSelectedId(firstId) }
-        else if (data.length > prevLength) { if (lastId && selectedId !== lastId) setSelectedId(lastId) }
+        else if (annotations.length > prevLength) { if (lastId && selectedId !== lastId) setSelectedId(lastId) }
         else {
             if (selectedStillExists) {
                 try {
@@ -132,23 +167,23 @@ const LabelTable = ({ data, channelId }) => {
                 } catch (_) {}
             } else { if (firstId && selectedId !== firstId) setSelectedId(firstId) }
         }
-        prevLengthRef.current = data.length
+        prevLengthRef.current = annotations.length
         prevRowsMapRef.current = currMap
-    }, [data])
+    }, [annotations])
 
     useEffect(() => {
         const handleAnnotationSelect = (e) => {
             const id = e?.detail?.id
             if (id == null) return
-            if (Array.isArray(data)) {
-                const exists = data.some(row => row && (row.annotationId ?? row.id) === id)
+            if (Array.isArray(annotations)) {
+                const exists = annotations.some(row => row && (row.annotationId ?? row.id) === id)
                 if (!exists) return
             }
             setSelectedId(id)
         }
         window.addEventListener('annotation-select', handleAnnotationSelect)
         return () => window.removeEventListener('annotation-select', handleAnnotationSelect)
-    }, [data])
+    }, [annotations])
 
     useEffect(() => {
         if (selectedId) {
@@ -245,7 +280,7 @@ const LabelTable = ({ data, channelId }) => {
         try {
             const updated = await fetchUpdateAnnotation(id, fields)
             if (!updated) return
-            const next = (Array.isArray(data) ? data : []).map(row => row && (row.annotationId ?? row.id) === id ?
+            const next = (Array.isArray(annotations) ? annotations : []).map(row => row && (row.annotationId ?? row.id) === id ?
                 { ...row, ...(updated?.labelName != null ? { labelName: updated.labelName } : {}), ...(updated?.note !== undefined ? {
                         note: updated.note } : {}), ...(updated?.startTimeMs != null ?
                         { startTimeMs: updated.startTimeMs } : {}), ...(updated?.endTimeMs != null ? { endTimeMs: updated.endTimeMs }
@@ -279,8 +314,11 @@ const LabelTable = ({ data, channelId }) => {
         if (!ok) return
         try {
             const success = await fetchDeleteAnnotation(id)
-            if (!success) throw new Error('Delete failed')
-            const next = (Array.isArray(data) ? data : []).filter(row => row && (row.annotationId ?? row.id) !== id)
+            if (!success) {
+                console.error('Delete failed')
+                return
+            }
+            const next = (Array.isArray(annotations) ? annotations : []).filter(row => row && (row.annotationId ?? row.id) !== id)
             dispatchAnnotationsUpdated(next, null)
         } catch (err) {
             console.error('Failed to delete annotation:', err)
@@ -301,8 +339,8 @@ const LabelTable = ({ data, channelId }) => {
         }
     }
     const filteredSortedData = React.useMemo(() => {
-        if (!Array.isArray(data)) return data
-        const safeData = data.filter(r => r !== null && r !== undefined)
+        if (!Array.isArray(annotations)) return annotations
+        const safeData = annotations.filter(r => r !== null && r !== undefined)
         const ft = (filterText || '').trim().toLowerCase()
         const filtered = ft ? safeData.filter(row => {
             const label = (row.labelName || row.label?.name || '').toLowerCase()
@@ -324,7 +362,7 @@ const LabelTable = ({ data, channelId }) => {
             return ((Number(va) || 0) - (Number(vb) || 0)) * sign
         })
         return filtered
-    }, [data, filterText, sort])
+    }, [annotations, filterText, sort])
 
     useEffect(() => {
         let cancelled = false
@@ -359,7 +397,7 @@ const LabelTable = ({ data, channelId }) => {
             })
             if (!created || (created.annotationId == null && created.id == null)) return
             const createdId = created.annotationId ?? created.id
-            const next = [...(Array.isArray(data) ? data : []), created]
+            const next = [...(Array.isArray(annotations) ? annotations : []), created]
             dispatchAnnotationsUpdated(next, createdId)
             if (name && !allLabels.some(l => (l.name || '').toLowerCase() === name.toLowerCase())) {
                 setAllLabels(prev => [...prev, {
@@ -411,7 +449,6 @@ const LabelTable = ({ data, channelId }) => {
             </div>
 
             {(() => {
-                const displayedRowsCount = allAnnotationMode ? (Array.isArray(filteredSortedData) ? filteredSortedData.length : 0) : (Array.isArray(data) ? data.length : 0)
                 return (
                     <div className={'table-viewport'}>
                         <table>
@@ -425,12 +462,12 @@ const LabelTable = ({ data, channelId }) => {
                             </tr>
                             </thead>
                             <tbody>
-                            {!Array.isArray(data) || data.length === 0 ? (
+                            {!Array.isArray(annotations) || annotations.length === 0 ? (
                                 <tr>
                                     <td colSpan={5}
                                         style={{height: '15px', color: '#aaa'
                                         }}>
-                                        (No data)
+                                        (No annotations)
                                     </td>
                                 </tr>
                             ) : (
@@ -440,6 +477,11 @@ const LabelTable = ({ data, channelId }) => {
                                     const labelName = row.labelName || row.label?.name || 'Unknown'
                                     const note = row.note || ''
                                     const isEditing = id === editId
+
+                                    // Determine overlap group and border color for this row
+                                    const groupId = overlapGroupMap.get(id)
+                                    const borderColor = groupId != null ? overlapGroupColors[groupId % overlapGroupColors.length] : undefined
+
                                     return (
                                         <tr key={id}
                                             data-annotation-id={id}
@@ -456,6 +498,7 @@ const LabelTable = ({ data, channelId }) => {
 
                                             <td onDoubleClick={(e) =>
                                                 handleDoubleClick(e, row, 'startTimeMs')}
+                                                style={{ borderLeft: borderColor ? `4px solid ${borderColor}` : undefined }}
                                             >
                                                 {isEditing ? <input type="number" className="edit-input" value={editFields.startTimeMs ?? ''} onChange={(e) => setEditFields(f => ({ ...f, startTimeMs: e.target.value }))} autoFocus={focusedField === 'startTimeMs'} onClick={(e) => e.stopPropagation()} style={{ width: '100%' }} /> : row.startTimeMs}
                                             </td>
@@ -597,13 +640,17 @@ const LabelTable = ({ data, channelId }) => {
             {activeDropdown && (
                 <div ref={dropdownRef} className="custom-dropdown-list" style={{ position: 'fixed', top: dropdownPosition.top, left: dropdownPosition.left, width: dropdownPosition.width, zIndex: 1000 }}>
                     {allLabels.length > 0 ? allLabels.map(l => (
-                        <div key={l.labelId} className="dropdown-item" onClick={(e) => {
-                            e.stopPropagation()
-                            selectLabelFromDropdown(l.name, activeDropdown === 'NEW')
-                        }}>
-                            {l.name}
+                            <div key={l.labelId} className="dropdown-item" onClick={(e) => {
+                                e.stopPropagation()
+                                selectLabelFromDropdown(l.name, activeDropdown === 'NEW')
+                            }}>
+                                {l.name}
+                            </div>
+                        )) :
+                        <div className="dropdown-item" style={{color:'#999', cursor:'default'}}>
+                            No labels found
                         </div>
-                    )) : <div className="dropdown-item" style={{color:'#999', cursor:'default'}}>No labels found</div>}
+                    }
                 </div>
             )}
         </div>
@@ -611,3 +658,4 @@ const LabelTable = ({ data, channelId }) => {
 }
 
 export default LabelTable
+
