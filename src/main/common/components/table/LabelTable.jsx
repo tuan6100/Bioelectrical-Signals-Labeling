@@ -37,6 +37,52 @@ const LabelTable = ({ data, channelId }) => {
 
     const [activeDropdown, setActiveDropdown] = useState(null)
     const dropdownRef = useRef(null)
+    const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 })
+    
+    // New color function based on label name
+    const getBaseColor = (labelName) => {
+        const name = (labelName || '').trim().toLowerCase();
+        if (name === 'unknown') return '#4da3ff';
+        const colors = [
+            '#E41A1C', // red
+            '#377EB8', // blue
+            '#4DAF4A', // green
+            '#984EA3', // purple
+            '#FF7F00', // orange
+            '#FFFF33', // yellow
+            '#A65628', // brown
+            '#F781BF', // pink
+            '#999999', // gray
+
+            '#66C2A5', // teal
+            '#FC8D62', // coral
+            '#8DA0CB', // soft blue
+            '#E78AC3', // magenta
+            '#A6D854', // lime
+            '#FFD92F', // gold
+            '#E5C494', // sand
+            '#B3B3B3', // light gray
+
+            '#1B9E77', // deep teal
+            '#D95F02', // burnt orange
+            '#7570B3', // indigo
+            '#E7298A', // hot pink
+            '#66A61E', // olive green
+            '#E6AB02', // mustard
+            '#A6761D'  // dark tan
+        ];
+
+        const simpleHash = (str) => {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash; // keep 32bit
+            }
+            return Math.abs(hash);
+        };
+        return colors[simpleHash(name) % colors.length];
+    }
 
     useEffect(() => {
         selectedIdRef.current = selectedId
@@ -161,6 +207,16 @@ const LabelTable = ({ data, channelId }) => {
             setActiveDropdown(null)
         } else {
             if(allLabels.length === 0) await handleReload()
+            // Calculate position
+            const wrapper = e.target.closest('.custom-select-wrapper')
+            if (wrapper) {
+                const rect = wrapper.getBoundingClientRect()
+                setDropdownPosition({
+                    top: rect.bottom + window.scrollY,
+                    left: rect.left + window.scrollX,
+                    width: rect.width
+                })
+            }
             setActiveDropdown(id)
         }
     }
@@ -356,9 +412,8 @@ const LabelTable = ({ data, channelId }) => {
 
             {(() => {
                 const displayedRowsCount = allAnnotationMode ? (Array.isArray(filteredSortedData) ? filteredSortedData.length : 0) : (Array.isArray(data) ? data.length : 0)
-                const needScroll = displayedRowsCount > 5
                 return (
-                    <div className={needScroll ? 'table-viewport' : ''}>
+                    <div className={'table-viewport'}>
                         <table>
                             <thead>
                             <tr>
@@ -388,12 +443,15 @@ const LabelTable = ({ data, channelId }) => {
                                     return (
                                         <tr key={id}
                                             data-annotation-id={id}
-                                            className={id === selectedId ? (labelName.toLowerCase() === 'unknown' ? 'highlight-unknown' : 'highlight') : ''}
+                                            className={id === selectedId ? 'highlight' : ''}
+                                            style={{
+                                                ...(id === selectedId ? { backgroundColor: getBaseColor(labelName), color: 'white' } : {}),
+                                                cursor: isEditing ? 'default' : 'pointer'
+                                            }}
                                             onClick={e => {
                                                 if (!isEditing) handleRowClick(e, id)
                                             }}
                                             tabIndex={0}
-                                            style={{ cursor: isEditing ? 'default' : 'pointer' }}
                                         >
 
                                             <td onDoubleClick={(e) =>
@@ -409,7 +467,7 @@ const LabelTable = ({ data, channelId }) => {
 
                                             <td onDoubleClick={(e) => handleDoubleClick(e, row, 'labelName')}>
                                                 {isEditing ? (
-                                                    <div className="custom-select-wrapper" ref={activeDropdown === id ? dropdownRef : null}>
+                                                    <div className="custom-select-wrapper">
                                                         <input
                                                             type="text"
                                                             className="edit-input custom-select-input"
@@ -421,18 +479,6 @@ const LabelTable = ({ data, channelId }) => {
                                                         <button className="custom-select-btn" onClick={(e) => toggleDropdown(e, id)} tabIndex={-1}>
                                                             <FontAwesomeIcon icon={faChevronDown} />
                                                         </button>
-                                                        {activeDropdown === id && (
-                                                            <div className="custom-dropdown-list">
-                                                                {allLabels.length > 0 ? allLabels.map(l => (
-                                                                    <div key={l.labelId} className="dropdown-item" onClick={(e) => {
-                                                                        e.stopPropagation()
-                                                                        selectLabelFromDropdown(l.name, false)
-                                                                    }}>
-                                                                        {l.name}
-                                                                    </div>
-                                                                )) : <div className="dropdown-item" style={{color:'#999', cursor:'default'}}>No labels found</div>}
-                                                            </div>
-                                                        )}
                                                     </div>
                                                 ) : ( <span>{labelName}</span> )}
                                             </td>
@@ -508,7 +554,7 @@ const LabelTable = ({ data, channelId }) => {
                                 <td><input type="number" placeholder="Start" className="input-label-detail" value={newRow.startTimeMs} onChange={(e) => setNewRow(r => ({ ...r, startTimeMs: e.target.value }))} style={{ width: '100%' }} /></td>
                                 <td><input type="number" placeholder="End" className="input-label-detail" value={newRow.endTimeMs} onChange={(e) => setNewRow(r => ({ ...r, endTimeMs: e.target.value }))} style={{ width: '100%' }} /></td>
                                 <td>
-                                    <div className="custom-select-wrapper" ref={activeDropdown === 'NEW' ? dropdownRef : null}>
+                                    <div className="custom-select-wrapper" ref={activeDropdown === 'NEW' ? null : null}>
                                         <input
                                             type="text"
                                             className="input-label-detail custom-select-input"
@@ -520,22 +566,6 @@ const LabelTable = ({ data, channelId }) => {
                                         <button className="custom-select-btn" onClick={(e) => toggleDropdown(e, 'NEW')} tabIndex={-1}>
                                             <FontAwesomeIcon icon={faChevronDown} />
                                         </button>
-                                        {activeDropdown === 'NEW' && (
-                                            <div className="custom-dropdown-list">
-                                                {allLabels.length > 0 ? allLabels.map(l => (
-                                                    <div key={l.labelId} className="dropdown-item" onClick={(e) => {
-                                                        e.stopPropagation()
-                                                        selectLabelFromDropdown(l.name, true)
-                                                    }}>
-                                                        {l.name}
-                                                    </div>
-                                                )) : <div className="dropdown-item"
-                                                          style={{color:'#999', cursor:'default'}}>
-                                                    No labels found
-                                                </div>
-                                                }
-                                            </div>
-                                        )}
                                     </div>
                                 </td>
                                 <td>
@@ -564,6 +594,18 @@ const LabelTable = ({ data, channelId }) => {
                     </div>
                 )
             })()}
+            {activeDropdown && (
+                <div ref={dropdownRef} className="custom-dropdown-list" style={{ position: 'fixed', top: dropdownPosition.top, left: dropdownPosition.left, width: dropdownPosition.width, zIndex: 1000 }}>
+                    {allLabels.length > 0 ? allLabels.map(l => (
+                        <div key={l.labelId} className="dropdown-item" onClick={(e) => {
+                            e.stopPropagation()
+                            selectLabelFromDropdown(l.name, activeDropdown === 'NEW')
+                        }}>
+                            {l.name}
+                        </div>
+                    )) : <div className="dropdown-item" style={{color:'#999', cursor:'default'}}>No labels found</div>}
+                </div>
+            )}
         </div>
     )
 }
