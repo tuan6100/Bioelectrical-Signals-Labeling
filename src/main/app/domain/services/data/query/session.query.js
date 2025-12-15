@@ -69,13 +69,37 @@ export function getChannelSignal(channelId) {
         })
         return acc
     }, [])
+    const overlaps = findOverlappingAnnotations(annotations)
     return {
         samplingRateHz: freqHz || null,
         durationMs: durationMs,
         samples: timeSeries,
-        annotations
+        annotations,
+        overlaps
     }
 }
+
+function findOverlappingAnnotations(annotations) {
+    const overlaps = []
+    const sorted = [...annotations].sort(
+        (a, b) => a.startTimeMs - b.startTimeMs
+    )
+    for (let i = 0; i < sorted.length; i++) {
+        const a = sorted[i]
+        for (let j = i + 1; j < sorted.length; j++) {
+            const b = sorted[j]
+            if (b.startTimeMs >= a.endTimeMs) break
+            if (a.startTimeMs < b.endTimeMs && a.endTimeMs > b.startTimeMs) {
+                overlaps.push({
+                    first: a.annotationId,
+                    second: b.annotationId
+                })
+            }
+        }
+    }
+    return overlaps
+}
+
 
 export function getSessionsByPage(page, size) {
     const pageNumber = Math.max(1, Number(page) || 1)

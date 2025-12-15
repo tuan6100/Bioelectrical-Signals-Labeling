@@ -38,19 +38,9 @@ contextBridge.exposeInMainWorld("biosignalApi", {
             "sessions:getByPatient", patientId
         ),
 
-        channelSamples: (channelId) => ipcRenderer.invoke(
-            "channel:getSamples",
-            channelId
-        ),
-
         allLabels: () => ipcRenderer.invoke(
             "label:getAll"
         ),
-
-        annotationsByChannel: (channelId) => ipcRenderer.invoke(
-            "channel:getAllAnnotations",
-            channelId
-        )
     },
 
     head: {

@@ -3,9 +3,8 @@ import {
     getAllLabelsAppApi,
     updateAnnotationAppApi,
     deleteAnnotationAppApi,
-    getChannelSamplesAppApi,
     getSessionInfoAppApi,
-    isDesktopEnv, getAllSessionsAppApi, getSessionsByPatientIdAppApi, getAnnotationsByChannelAppApi,
+    isDesktopEnv, getAllSessionsAppApi, getSessionsByPatientIdAppApi,
     updateSessionStatusAppApi, exportToExcelAppApi
 } from '../../app/api/provider';
 
@@ -39,7 +38,11 @@ import {
  *         endTimeMs: number,
  *         note: string|null,
  *         label: { labelId: number, name: string }|null
- *       }>|null
+ *       }>|null,
+ *       overlaps: Array<{
+ *           first: number,
+ *           second: number
+ *       }>| null
  *     }|null
  *   }
  * }>} A promise that resolves to the session data including patient info, channels list, and default averaged channel samples.
@@ -68,41 +71,13 @@ export async function fetchSessionWorkspace(sessionId) {
  *     endTimeMs: number,
  *     note: string|null,
  *     label: {labelId: number, name: string}|null
- *   }|null
+ *   }|null,
+ *   overlaps: Array<{
+ *      first: number,
+ *      second: number
+ *  }>| null
  * }>} A promise that resolves to the channel samples with time series data and any associated annotations.
  */
-export async function fetchChannelSamples(channelId) {
-    if (isDesktopEnv()) {
-        return await getChannelSamplesAppApi(channelId);
-    } else {
-        // TODO: Implement web version
-    }
-}
-
-/**
- * Fetches all annotations for a specific channel.
- * @async
- * @function fetchGetChannelAnnotations
- * @param {number} channelId - The ID of the channel to fetch annotations for.
- * @returns {Promise<Array<{
- *     annotationId: number,
- *     startTime: number,
- *     endTime: number,
- *     note: string|null,
- *     label: {
- *         id: number,
- *         name: string
- *     }
- * }>>}
- */
-export async function fetchChannelAnnotations(channelId) {
-    if (isDesktopEnv()) {
-        // previously returned channel samples by mistake; use annotations API
-        return await getAnnotationsByChannelAppApi(channelId);
-    } else {
-        // TODO: Implement web version
-    }
-}
 
 /**
  * Gets all labels from the database.
