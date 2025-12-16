@@ -13,7 +13,7 @@
 ## Meeting on Monday, December 1, 2025
 
 - [x] Arrow up, down for zoom in, out center of the graph
-- [ ] Use different color to highlight overlapped areas
+- [x] Use different color to highlight overlapped areas
 - [x] Use table to display sessions instead
 - [x] Error: Overlap notification upon manually changing area of label on the graph
 
@@ -30,5 +30,15 @@
 ## Meeting on Monday, December 8, 2025
 
 - [x] Bỏ % zoom ở đồ thị.
-- [ ] Sửa dropdown menu.
-- [ ] Set bệnh theo màu.
+- [x] Sửa dropdown menu.
+- [x] Set bệnh theo màu.
+
+## Meeting on Monday, December 15, 2025
+
+- [ ] Sửa dashboard tràn khi số lượng lớn.
+- [ ] Thêm nút sắp xếp ở từng trường cho dashboard.
+- [ ] Bệnh để màu xanh dương, overlap để màu đỏ, unknown để màu da cam.
+- [ ] Bỏ longtrace, average.
+- [ ] Thêm 2 cột checked, doublechecked vào dashboard.
+- [ ] Thêm nút xóa ở dashboard.
+- [ ] Thêm patient ID, thời gian đo vào excel.
