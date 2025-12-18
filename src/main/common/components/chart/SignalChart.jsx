@@ -284,46 +284,8 @@ export default function SignalChart({
     //New color function based on label name
     const getBaseColor = useCallback((labelName) => {
         const name = (labelName || '').trim().toLowerCase();
-        if (name === 'unknown') return '#4da3ff';
-        const colors = [
-            '#E41A1C', // red
-            '#377EB8', // blue
-            '#4DAF4A', // green
-            '#984EA3', // purple
-            '#FF7F00', // orange
-            '#FFFF33', // yellow
-            '#A65628', // brown
-            '#F781BF', // pink
-            '#999999', // gray
-
-            '#66C2A5', // teal
-            '#FC8D62', // coral
-            '#8DA0CB', // soft blue
-            '#E78AC3', // magenta
-            '#A6D854', // lime
-            '#FFD92F', // gold
-            '#E5C494', // sand
-            '#B3B3B3', // light gray
-
-            '#1B9E77', // deep teal
-            '#D95F02', // burnt orange
-            '#7570B3', // indigo
-            '#E7298A', // hot pink
-            '#66A61E', // olive green
-            '#E6AB02', // mustard
-            '#A6761D'  // dark tan
-        ];
-
-        const simpleHash = (str) => {
-            let hash = 0;
-            for (let i = 0; i < str.length; i++) {
-                const char = str.charCodeAt(i);
-                hash = ((hash << 5) - hash) + char;
-                hash = hash & hash; // keep 32bit
-            }
-            return Math.abs(hash);
-        };
-        return colors[simpleHash(name) % colors.length];
+        if (name === 'unknown') return '#FF7F00'; // orange
+        return '#4da3ff'; // default color
     }, []);
 
     const hexToRgba = useCallback((hex, alpha) => {
@@ -561,7 +523,7 @@ export default function SignalChart({
             let nextColor = '#000';
             let nextWidth = 1.25;
             if (overlappingLabels.length > 1) {
-                nextColor = 'rgba(128,0,128,0.95)'; // purple for overlap
+                nextColor = '#E41A1C'; // red for overlap
                 nextWidth = 3.0;
             } else if (overlappingLabels.length === 1) {
                 const label = overlappingLabels[0];
