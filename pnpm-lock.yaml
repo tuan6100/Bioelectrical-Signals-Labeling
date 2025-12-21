@@ -51,6 +51,9 @@ importers:
       concurrently:
         specifier: ^9.2.1
         version: 9.2.1
+      config:
+        specifier: ^4.1.1
+        version: 4.1.1
       cross-env:
         specifier: ^7.0.3
         version: 7.0.3
@@ -1099,6 +1102,10 @@ packages:
 
   config-file-ts@0.2.8-rc1:
     resolution: {integrity: sha512-GtNECbVI82bT4RiDIzBSVuTKoSHufnU7Ce7/42bkWZJZFLjmDF2WBpVsvRkhKCfKBnTBb3qZrBwPpFBU/Myvhg==}
+
+  config@4.1.1:
+    resolution: {integrity: sha512-jljfwqNZ7QHwAW9Z9NDZdJARFiu5pjLqQO0K4ooY22iY/bIY78n0afI4ANEawfgQOxri0K/3oTayX8XIauWcLA==}
+    engines: {node: '>= 20.0.0'}
 
   convert-source-map@1.9.0:
     resolution: {integrity: sha512-ASFBup0Mz1uyiIjANan1jzLQami9z1PoYSZCiiYW2FczPbenXc45FZdBZLzOT+r6+iciuEModtmCti+hjaAk0A==}
@@ -3884,6 +3891,10 @@ snapshots:
     dependencies:
       glob: 10.5.0
       typescript: 5.9.3
+
+  config@4.1.1:
+    dependencies:
+      json5: 2.2.3
 
   convert-source-map@1.9.0: {}
 

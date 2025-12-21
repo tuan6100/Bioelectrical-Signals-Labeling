@@ -1,7 +1,8 @@
 import Database from "better-sqlite3"
 import path from "path";
 import {app} from "electron";
-import pjson from '../../../../../package.json' with { type: "json" };
+import fs from "node:fs";
+import {fileURLToPath, pathToFileURL} from "node:url";
 
 const env = process.env.NODE_ENV
 let dbFileName
@@ -22,16 +23,13 @@ export const db = new Database(dbFileName, {
 
 db.pragma('journal_mode = WAL')
 db.pragma('foreign_keys = ON')
-const cleanedVersion = pjson.version.replace(/[-+].*$/, '').replace(/\./g, '')
-db.pragma(`user_version = ${cleanedVersion}`)
 
 const ddl = `
     CREATE TABLE IF NOT EXISTS patients (
         patient_id TEXT PRIMARY KEY NOT NULL,
-        first_name TEXT NOT NULL,
+        first_name TEXT,
         gender TEXT CHECK (gender IN ('M','F'))
     );
-    CREATE INDEX IF NOT EXISTS patient_name_idx ON patients(first_name);
 
     CREATE TABLE IF NOT EXISTS sessions (
         session_id INTEGER PRIMARY KEY NOT NULL,
@@ -52,7 +50,6 @@ const ddl = `
         channel_id INTEGER PRIMARY KEY NOT NULL,
         session_id INTEGER NOT NULL,
         channel_number INTEGER NOT NULL,
-        data_kind TEXT NOT NULL,
         raw_samples_uv TEXT NOT NULL,
         sampling_frequency_khz REAL,
         subsampled_khz REAL,
@@ -60,7 +57,7 @@ const ddl = `
         exported INTEGER DEFAULT 0 CHECK (exported IN (0,1)),
         FOREIGN KEY (session_id) REFERENCES sessions(session_id) ON DELETE CASCADE
     );
-    CREATE INDEX IF NOT EXISTS channel_data_kind_sweep_idx ON channels(session_id, data_kind);
+    CREATE INDEX IF NOT EXISTS channel_session_channel_number_idx ON channels(session_id, channel_number);
 
     CREATE TABLE IF NOT EXISTS labels (
         label_id INTEGER PRIMARY KEY NOT NULL,
@@ -82,7 +79,9 @@ const ddl = `
 
 `
 
-db.initSchema = function() {
+db.init = function() {
+    const cleanedVersion = app.getVersion().replace(/[-+].*$/, '').replace(/\./g, '')
+    db.pragma(`user_version = ${cleanedVersion}`)
     db.exec(ddl)
     const stmt = db.prepare('INSERT OR IGNORE INTO labels (name) VALUES (?)')
     const labelList = [
@@ -113,5 +112,57 @@ db.initSchema = function() {
         "Unknown"
     ]
     labelList.forEach(label => stmt.run(label))
+}
+
+db.migrate = async function migrate(latestVersion) {
+    const current = db.pragma('user_version', { simple: true })
+    const targetVersion = parseInt(latestVersion.replace(/[-+].*$/, '').replace(/\./g, ''))
+    console.log(`Current DB version: ${current}, Target app version: ${targetVersion}`)
+    if (current === targetVersion) return
+    if (current > targetVersion) {
+        throw new Error(`DB version ${current} > app version ${targetVersion}`)
+    }
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    const migrationsDir = path.join(__dirname, '..', 'migrations')
+    console.log(`Migrations directory: ${migrationsDir}`)
+    let v = current
+    while (v < targetVersion) {
+        const next = findNextVersion(migrationsDir, v)
+        if (!next) {
+            throw new Error(`Missing migration from version ${v}`)
+        }
+        const file = `${v}-to-${next}.js`
+        const filePath = path.join(migrationsDir, file)
+        console.log(`Running migration: ${file}`)
+
+        // Chuyển đường dẫn Windows thành file:// URL
+        const fileUrl = pathToFileURL(filePath).href
+
+        const module = await import(fileUrl)
+        const migrateFn = module[`migrate${v}to${next}`]
+        if (!migrateFn) {
+            throw new Error(`Migration function not found in ${file}`)
+        }
+        migrateFn(db)
+        v = next
+    }
+    console.log(`Migration completed. DB is now at version ${db.pragma('user_version', { simple: true })}`)
+}
+
+function findNextVersion(dir, current) {
+    const files = fs.readdirSync(dir)  // Bỏ parentDir
+    console.log(`Looking for migration from ${current}, found files:`, files)
+    const candidates = files
+        .map(f => {
+            const m = f.match(/^(\d+)-to-(\d+)\.js$/)
+            if (!m) return null
+            return { from: +m[1], to: +m[2] }
+        })
+        .filter(Boolean)
+        .filter(m => m.from === current)
+        .sort((a, b) => a.to - b.to)
+    console.log(`Candidates for migration from ${current}:`, candidates)
+    return candidates.length ? candidates[0].to : null
 }
 
