@@ -35,11 +35,11 @@
 
 ## Meeting on Monday, December 15, 2025
 
-- [ ] Sửa dashboard tràn khi số lượng lớn.
+- [x] Sửa dashboard tràn khi số lượng lớn.
 - [ ] Thêm nút sắp xếp ở từng trường cho dashboard.
 - [x] Bệnh để màu xanh dương, overlap để màu đỏ, unknown để màu da cam.
 - [x] Bỏ longtrace, average.
-- [ ] Thêm 2 cột checked, doublechecked vào dashboard.
+- [x] Thêm 2 cột checked, doublechecked vào dashboard.
 - [ ] Thêm nút xóa ở dashboard.
 - [ ] Thêm patient ID, thời gian đo vào excel.
 - [ ] Kiểm tra nhập trùng theo tên file
