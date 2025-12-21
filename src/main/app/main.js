@@ -7,6 +7,7 @@ import './api/handlers/index.js'
 import {db} from "./persistence/connection/sqlite.connection.js";
 import pkg from 'electron-updater';
 import {setMenuTemplate} from "./presentation/menu.js";
+import {initSchema, migrateSchema} from "./domain/utils/version-management.util.js";
 const { autoUpdater } = pkg;
 
 
@@ -58,15 +59,11 @@ app.whenReady().then(async() => {
         // autoUpdater.forceDevUpdateConfig = true
         // autoUpdater.updateConfigPath = path.join(__dirname, '..', '..','..', 'dev-app-update.yml')
         await autoUpdater.checkForUpdatesAndNotify()
+    } else {
+        await migrateSchema()
     }
+    initSchema()
     const win = createWindow()
-    try {
-        db.initSchema()
-        win.webContents.send('db-status', {ok: true})
-    } catch (e) {
-        console.error(e)
-        win.webContents.send('db-status', {ok: false, message: e.message})
-    }
     // Toggle full screen
     globalShortcut.register('F11', () => {
         win.setFullScreen(!win.isFullScreen())
@@ -78,8 +75,6 @@ app.whenReady().then(async() => {
             win.webContents.toggleDevTools()
         })
     }
-
-
 })
 
 // Quit when all windows are closed, except on macOS.
@@ -98,7 +93,9 @@ autoUpdater.on('update-downloaded', () => {
         message: 'A new version has been downloaded. The application will now restart to apply the update.',
         buttons: ['OK']
     })
-    autoUpdater.quitAndInstall();
+    migrateSchema().finally(() => {
+        autoUpdater.quitAndInstall();
+    })
 });
 
 

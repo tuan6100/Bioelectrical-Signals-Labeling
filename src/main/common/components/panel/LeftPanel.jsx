@@ -74,7 +74,7 @@ export default function LeftPanel({
                             >
                                 {channels.map(ch => (
                                     <option key={ch.channelId} value={ch.channelId}>
-                                        #{ch.channelNumber} {ch.dataKind}
+                                        {ch.channelNumber}
                                     </option>
                                 ))}
                             </select>

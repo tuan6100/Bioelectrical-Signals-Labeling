@@ -3,7 +3,7 @@ import Session from "../../../../persistence/dao/session.dao.js";
 
 export function getSessionInfo(sessionId) {
     const sessionInfo =  Session.findAllRelatedById(sessionId)
-    const defaultChannelId = Channel.findByDataKind(sessionId, 'trace')
+    const defaultChannelId = Channel.findChannelIdBySessionIdAndChanelNumber(sessionId, 1)
     const defaultChannelSignal = defaultChannelId ? getChannelSignal(defaultChannelId) : null
     return {
         session: sessionInfo,

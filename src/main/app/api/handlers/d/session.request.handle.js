@@ -12,7 +12,7 @@ ipcMain.handle('session:getInfo', (event, sessionId) => {
     try {
         return getSessionInfo(sessionId)
     } catch (error) {
-        dialog.showErrorBox('Session Info Error', error.message || String(error))
+        dialog.showErrorBox('Error when loading workspace data of the session', error.message || String(error))
     }
 })
 
