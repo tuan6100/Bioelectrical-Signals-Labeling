@@ -97,3 +97,25 @@ export function updateSessionStatus(sessionId, status) {
         }
     })();
 }
+
+export function updateSessionDoubleChecked(sessionId, isDoubleChecked) {
+    asTransaction(() => {
+        const currentSession = Session.findOneById(sessionId)
+        if (!currentSession) {
+            throw new Error(`Session with ID ${sessionId} not found`)
+        }
+        Session.updateDoubleChecked(sessionId, isDoubleChecked);
+
+        const updatedSession = Session.findOneById(sessionId);
+        if (updatedSession) {
+            BrowserWindow.getAllWindows().forEach(win => {
+                win.webContents.send('session:double-checked-updated', {
+                    sessionId: updatedSession.sessionId,
+                    isDoubleChecked: updatedSession.isDoubleChecked,
+                    updatedAt: updatedSession.updatedAt
+                });
+                win.webContents.send('sessions:updated'); // Refresh the dashboard list
+            });
+        }
+    })();
+}

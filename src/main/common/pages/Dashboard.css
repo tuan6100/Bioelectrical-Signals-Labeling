@@ -121,7 +121,7 @@
     flex: 1 1 auto;
     min-height: 0;
     overflow: auto;
-    display: flex;
+    display: block;
     align-items: center;
     justify-content: center;
 }
@@ -196,8 +196,9 @@
 
 .dashboard-wrapper {
     width: 100%;
-    max-width: 900px;
+    max-width: none;
     padding: 20px 30px;
+    box-sizing: border-box;
 }
 
 .dashboard-header {
@@ -255,6 +256,7 @@
     width: 100%;
     border-collapse: collapse;
     background: transparent;
+    table-layout: auto;
 }
 .sessions-table th,
 .sessions-table td {
@@ -328,3 +330,27 @@
     margin: 0;
 }
 
+.sessions-table th:first-child,
+.sessions-table td:first-child {
+    width: 50px;
+    text-align: center;
+}
+
+.sessions-table td:nth-child(5) {
+    width: auto;
+}
+
+.sessions-table th:nth-child(6), 
+.sessions-table td:nth-child(6),
+.sessions-table th:nth-child(7),
+.sessions-table td:nth-child(7) {
+    text-align: center;
+    width: 120px;
+}
+
+.sessions-table td:nth-child(6),
+.sessions-table td:nth-child(7) {
+    font-weight: bold;
+    color: #059669;
+    font-size: 16px;
+}

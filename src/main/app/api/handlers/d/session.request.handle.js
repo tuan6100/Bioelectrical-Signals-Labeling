@@ -4,8 +4,7 @@ import {
     getSessionsByPage,
     getSessionsByPatientId
 } from "../../../domain/services/data/query/session.query.js";
-import {updateSessionStatus} from "../../../domain/services/data/command/session.command.js";
-
+import {updateSessionStatus, updateSessionDoubleChecked} from "../../../domain/services/data/command/session.command.js";
 
 ipcMain.removeHandler('session:getInfo')
 ipcMain.handle('session:getInfo', (event, sessionId) => {
@@ -42,3 +41,16 @@ ipcMain.handle('session:updateStatus', (event, sessionId, newStatus) => {
         dialog.showErrorBox('Update Session Status Error', error.message || String(error))
     }
 })
+
+ipcMain.handle('session:updateDoubleChecked', async (event, sessionId, isDoubleChecked) => {
+    try {
+        updateSessionDoubleChecked(sessionId, isDoubleChecked);
+        return true;
+    } catch (error) {
+        dialog.showErrorBox(
+            'Update Session Double-Checked Error',
+            error.message || String(error)
+        );
+        throw error;
+    }
+});

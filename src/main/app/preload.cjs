@@ -21,6 +21,12 @@ contextBridge.exposeInMainWorld("biosignalApi", {
             const listener = (_event, args) => callback(args);
             ipcRenderer.on('session:status-updated', listener);
             return () => ipcRenderer.removeListener('session:status-updated', listener);
+        },
+        // ADD THIS NEW LISTENER
+        sessionDoubleCheckedUpdated: (callback) => {
+            const listener = (_event, args) => callback(args);
+            ipcRenderer.on('session:double-checked-updated', listener);
+            return () => ipcRenderer.removeListener('session:double-checked-updated', listener);
         }
     },
 
@@ -67,6 +73,12 @@ contextBridge.exposeInMainWorld("biosignalApi", {
             "session:updateStatus",
             sessionId,
             newStatus
+        ),
+        // ADD THIS NEW FUNCTION
+        updateSessionDoubleChecked: (sessionId, isDoubleChecked) => ipcRenderer.invoke(
+            "session:updateDoubleChecked",
+            sessionId,
+            isDoubleChecked
         ),
 
         updateAnnotation: (annotationId, updateFields) => ipcRenderer.invoke(
