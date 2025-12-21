@@ -23,7 +23,7 @@ import {
  *     sessionStartTime: string,
  *     sessionEndTime: string,
  *     sessionStatus: string,
- *     channels: Array<{ channelId: number, channelNumber: number, dataKind: string }>
+ *     channels: Array<{ channelId: number, channelNumber: number }>
  *   },
  *   defaultChannel: {
  *     channelId: number|null,

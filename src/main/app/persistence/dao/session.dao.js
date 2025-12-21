@@ -113,7 +113,7 @@ export default class Session {
             p.patient_id, p.first_name AS patient_first_name, p.gender AS patient_gender,
             s.start_time AS session_start_time, s.end_time AS session_end_time,
             s.status, s.updated_at AS session_updated_at,
-            c.channel_id, c.channel_number, c.data_kind AS channel_data_kind
+            c.channel_id, c.channel_number
         FROM sessions AS s
         INNER JOIN patients AS p ON s.patient_id = p.patient_id
         INNER JOIN channels AS c ON s.session_id = c.session_id
@@ -137,50 +137,10 @@ export default class Session {
         for (const row of rows) {
             result.channels.push({
                 channelId: row.channel_id,
-                channelNumber: row.channel_number,
-                dataKind: row.channel_data_kind
+                channelNumber: row.channel_number
             })
         }
         return result
-    }
-
-    static findAllLabelsBySessionId(sessionId) {
-        const stmt = Session.db.prepare(`
-            SELECT
-                c.channel_id,
-                c.channel_number,
-                c.raw_samples_uv              AS samples,
-                c.sampling_frequency_khz   AS sampling_frequency,
-                c.subsampled_khz           AS subsampled,
-                a.annotation_id,
-                a.start_time_ms,
-                a.end_time_ms,
-                a.note,
-                l.label_id,
-                l.name                     AS label_name
-            FROM sessions s
-            INNER JOIN channels c ON s.session_id = c.session_id
-            LEFT JOIN annotations a ON a.channel_id = c.channel_id
-            LEFT JOIN labels l ON l.label_id = a.label_id
-            WHERE s.session_id = ? AND l.label_id IS NOT NULL
-            ORDER BY c.channel_id, a.start_time_ms;
-        `)
-        const rows = stmt.all(sessionId)
-        return rows.map(row => ({
-            channelId: row.channel_id,
-            channelNumber: row.channel_number,
-            samples: JSON.parse(row.samples || '[]'),
-            samplingFrequency: +row.sampling_frequency || null,
-            subsampled: +row.subsampled || null,
-            annotation: row.annotation_id ? {
-                id: row.annotation_id,
-                labelId: row.label_id,
-                labelName: row.label_name,
-                startTimeMs: +row.start_time_ms,
-                endTimeMs: +row.end_time_ms,
-                note: row.note
-            } : null
-        }));
     }
 
     static findByPatientId(patientId) {

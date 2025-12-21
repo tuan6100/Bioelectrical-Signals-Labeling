@@ -21,7 +21,7 @@ export async function readFile(inputPath, outputPath) {
         throw new Error("Not Natus data")
     }
     const inputFileName = path.basename(inputPath)
-    const result = checkFileImported(content)
+    const result = checkFileImported(inputFileName, content)
     if (result.imported) {
         return {
             inputFileName: null,
