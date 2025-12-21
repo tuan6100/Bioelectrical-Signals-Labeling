@@ -192,60 +192,6 @@ export default function Dashboard() {
                 <div className="start-page-sidebar-header">
                     <div className="start-page-sidebar-title">Sessions</div>
                 </div>
-
-                {/* <div className="start-page-search-wrap">
-                    <input
-                        className="start-page-search-input"
-                        type="text"
-                        placeholder="Search (e.g. status=NEW, patientname=Nguyen Van A, ...)"
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                    />
-                </div>
-
-                <div className="start-page-list">
-                    {error && <div className="start-page-error">{error}</div>}
-
-                    {loading && sessions.length === 0 && (
-                        <div className="start-page-placeholder">Loading sessions…</div>
-                    )}
-
-                    {!loading && hasLoaded && sessions.length === 0 && (
-                        <div className="start-page-placeholder">No sessions found.</div>
-                    )}
-
-                    <table className="sessions-table">
-                        <thead>
-                            <tr>
-                                <th>No</th>
-                                <th>Date</th>
-                                <th>Status</th>
-                                <th>Patient ID</th>
-                                <th>Patient Name</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {sortedAndFiltered.map((s, idx) => {
-                                const no = idx + 1
-                                const date = s.startTime || s.updatedAt || '-' 
-                                const statusRaw = (s.status || '').toUpperCase()
-                                const statusLabel = statusRaw === 'IN_PROGRESS' ? 'In Progress' : (statusRaw === 'COMPLETED' ? 'Completed' : 'New')
-                                const patientId = s.patient?.id ?? s.patientId ?? '-'
-                                const patientName = s.patient?.name ?? s.patientName ?? '-'
-                                return (
-                                    <tr key={s.sessionId} className={`session-row session-status-${(s.status||'').toLowerCase()}`} onClick={() => handleOpenSession(s.sessionId)} style={{cursor: 'pointer'}}>
-                                        <td>{no}</td>
-                                        <td>{date}</td>
-                                        <td>{statusLabel}</td>
-                                        <td>{patientId}</td>
-                                        <td>{patientName}</td>
-                                    </tr>
-                                )
-                            })}
-                        </tbody>
-                    </table>
-                </div> */}
-
                 <div className="start-page-sidebar-footer">
                 </div>
 
@@ -253,29 +199,6 @@ export default function Dashboard() {
 
             <main className="start-page-main">
                 <div className="dashboard-wrapper">
-                    {/* <h2 className="dashboard-header">Project Overview</h2>
-
-                    <div className="dashboard-stats-row">
-                        <div className="dashboard-stat-card">
-                            <h4>Total Sessions</h4>
-                            <p>{total}</p>
-                        </div>
-
-                        <div className="dashboard-stat-card">
-                            <h4>Completed</h4>
-                            <p>{completed}</p>
-                        </div>
-
-                        <div className="dashboard-stat-card">
-                            <h4>In Progress</h4>
-                            <p>{inProgress}</p>
-                        </div>
-
-                        <div className="dashboard-stat-card">
-                            <h4>New</h4>
-                            <p>{newlyCreated}</p>
-                        </div>
-                    </div> */}
 
                     <div className="dashboard-sessions-block">
                         <div className="dashboard-sessions-header">
