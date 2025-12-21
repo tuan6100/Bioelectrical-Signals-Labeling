@@ -10,7 +10,7 @@ import {fetchAllSessions} from "../api/index.js";
 export default function Dashboard() {
     const navigate = useNavigate()
     const [sessions, setSessions] = useState([])
-    const [page, setPage] = useState({ number: 1, size: 5, totalPages: 1, totalElements: 0 })
+    const [page, setPage] = useState({ number: 1, size: 20, totalPages: 1, totalElements: 0 })
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState("")
     const [query, setQuery] = useState("")
