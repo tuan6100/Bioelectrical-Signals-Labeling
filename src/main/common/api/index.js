@@ -225,3 +225,10 @@ export async function fetchUpdateSessionStatus(sessionId, newStatus) {
         // TODO: Implement web version
     }
 }
+
+export const fetchUpdateDoubleChecked = async (sessionId, isDoubleChecked) => {
+    return await window.biosignalApi.put.updateSessionDoubleChecked(
+        sessionId,
+        isDoubleChecked
+    );
+};

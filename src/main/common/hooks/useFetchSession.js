@@ -25,6 +25,21 @@ export function useFetchSession(sessionId) {
         }
     }, [sessionId]);
 
+    useEffect(() => {
+        if (window.biosignalApi?.on?.sessionDoubleCheckedUpdated) {
+            const unsubscribe = window.biosignalApi.on.sessionDoubleCheckedUpdated(updatedSession => {
+                if (updatedSession.sessionId === sessionId) {
+                    setSession(prev => ({
+                        ...prev,
+                        isDoubleChecked: updatedSession.isDoubleChecked,
+                        updatedAt: updatedSession.updatedAt
+                    }));
+                }
+            });
+            return () => unsubscribe();
+        }
+    }, [sessionId]);
+
     const formatAnnotations = (list) => {
         if (!Array.isArray(list)) return [];
         return list.map(a => ({

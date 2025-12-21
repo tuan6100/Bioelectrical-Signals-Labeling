@@ -255,6 +255,8 @@ export default function Dashboard() {
                                     <th>Status</th>
                                     <th>Patient ID</th>
                                     <th>Patient Name</th>
+                                    <th>Checked</th>
+                                    <th>Double-checked</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -265,6 +267,8 @@ export default function Dashboard() {
                                     const statusLabel = statusRaw === 'IN_PROGRESS' ? 'In Progress' : (statusRaw === 'COMPLETED' ? 'Completed' : 'New')
                                     const patientId = s.patient?.id ?? s.patientId ?? '-'
                                     const patientName = s.patient?.name ?? s.patientName ?? '-'
+                                    const isChecked = statusRaw === 'COMPLETED'
+                                    const isDoubleChecked = s.isDoubleChecked || false
                                     return (
                                         <tr key={s.sessionId} className={`session-row session-status-${(s.status||'').toLowerCase()}`} onClick={() => handleOpenSession(s.sessionId)} style={{cursor: 'pointer'}}>
                                             <td>{no}</td>
@@ -272,6 +276,8 @@ export default function Dashboard() {
                                             <td>{statusLabel}</td>
                                             <td>{patientId}</td>
                                             <td>{patientName}</td>
+                                            <td>{isChecked ? '✓' : ''}</td>
+                                            <td>{isDoubleChecked ? '✓' : ''}</td>
                                         </tr>
                                     )
                                 })}
