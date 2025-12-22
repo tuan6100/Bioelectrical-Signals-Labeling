@@ -1,10 +1,15 @@
 import {ipcMain, dialog} from "electron";
 import {
+    getAllSessions,
     getSessionInfo,
     getSessionsByPage,
     getSessionsByPatientId
 } from "../../../domain/services/data/query/session.query.js";
-import {updateSessionStatus, updateSessionDoubleChecked} from "../../../domain/services/data/command/session.command.js";
+import {
+    updateSessionStatus,
+    setChannelDoubleChecked,
+    enableDoubleCheckMode
+} from "../../../domain/services/data/command/session.command.js";
 
 ipcMain.removeHandler('session:getInfo')
 ipcMain.handle('session:getInfo', (event, sessionId) => {
@@ -16,9 +21,9 @@ ipcMain.handle('session:getInfo', (event, sessionId) => {
 })
 
 ipcMain.removeHandler('sessions:getPage')
-ipcMain.handle('sessions:getPage', (event, page, size) => {
+ipcMain.handle('sessions:getPage', (event) => {
     try {
-        return getSessionsByPage(page, size)
+        return getAllSessions()
     } catch (error) {
         dialog.showErrorBox('Sessions Page Error', error.message || String(error))
     }
@@ -39,18 +44,28 @@ ipcMain.handle('session:updateStatus', (event, sessionId, newStatus) => {
         updateSessionStatus(sessionId, newStatus)
     } catch (error) {
         dialog.showErrorBox('Update Session Status Error', error.message || String(error))
+        throw error
     }
 })
 
-ipcMain.handle('session:updateDoubleChecked', async (event, sessionId, isDoubleChecked) => {
+ipcMain.removeHandler('session:enableDoubleCheck')
+ipcMain.handle('session:enableDoubleCheck', (event, sessionId) => {
     try {
-        updateSessionDoubleChecked(sessionId, isDoubleChecked);
+        enableDoubleCheckMode(sessionId);
         return true;
     } catch (error) {
-        dialog.showErrorBox(
-            'Update Session Double-Checked Error',
-            error.message || String(error)
-        );
+        dialog.showErrorBox('Enable Double Check Error', error.message || String(error));
+        throw error;
+    }
+});
+
+ipcMain.removeHandler('channel:setDoubleChecked')
+ipcMain.handle('channel:setDoubleChecked', (event, sessionId, channelId, isChecked) => {
+    try {
+        setChannelDoubleChecked(sessionId, channelId, isChecked);
+        return true;
+    } catch (error) {
+        console.error('Set Channel Double Checked Error', error);
         throw error;
     }
 });

@@ -1,5 +1,9 @@
 {
   "migration": {
+    "enable": true,
     "require": true
+  },
+  "update": {
+    "force": false
   }
 }

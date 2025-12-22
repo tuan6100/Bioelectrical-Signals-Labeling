@@ -13,3 +13,11 @@ export async function getSessionsByPatientIdAppApi(patientId) {
 export async function updateSessionStatusAppApi(sessionId, newStatus) {
     return window.biosignalApi.put.updateSessionStatus(sessionId, newStatus)
 }
+
+export async function enableDoubleCheckAppApi(sessionId) {
+    return window.biosignalApi.put.enableDoubleCheck(sessionId)
+}
+
+export async function setChannelDoubleCheckedAppApi(sessionId, channelId, isDoubleChecked) {
+    return window.biosignalApi.put.setChannelDoubleChecked(sessionId, channelId, isDoubleChecked)
+}

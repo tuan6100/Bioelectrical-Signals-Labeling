@@ -8,6 +8,7 @@ import {db} from "./persistence/connection/sqlite.connection.js";
 import pkg from 'electron-updater';
 import {setMenuTemplate} from "./presentation/menu.js";
 import {initSchema, migrateSchema} from "./domain/utils/version-management.util.js";
+import config from "config";
 const { autoUpdater } = pkg;
 
 
@@ -55,14 +56,17 @@ app.whenReady().then(async() => {
     autoUpdater.autoDownload = true
     autoUpdater.autoRunAppAfterInstall = true
     autoUpdater.allowPrerelease = true
-    if (process.env.NODE_ENV !== 'dev') {
-        // autoUpdater.forceDevUpdateConfig = true
-        // autoUpdater.updateConfigPath = path.join(__dirname, '..', '..','..', 'dev-app-update.yml')
-        await autoUpdater.checkForUpdatesAndNotify()
-    } else {
+    // const updateForDevEnv = Boolean(config.get('update.force'))
+    // if (updateForDevEnv) {
+    //     autoUpdater.forceDevUpdateConfig = updateForDevEnv
+    //     autoUpdater.updateConfigPath = path.join(__dirname, '..', '..','..', 'dev-app-update.yml')
+    // }
+    await autoUpdater.checkForUpdatesAndNotify()
+    if (Boolean(config.get('migration.enable'))) {
         await migrateSchema()
+    } else {
+        initSchema()
     }
-    initSchema()
     const win = createWindow()
     // Toggle full screen
     globalShortcut.register('F11', () => {

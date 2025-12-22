@@ -8,7 +8,8 @@ export default class Channel {
         rawSamplesUv,
         samplingFrequencyKhz,
         subsampledKhz ,
-        durationMs ,
+        durationMs,
+        doubleChecked
     ) {
         this.channelId = channelId
         this.sessionId = sessionId
@@ -17,6 +18,7 @@ export default class Channel {
         this.samplingFrequencyKhz = samplingFrequencyKhz
         this.subsampledKhz = subsampledKhz
         this.durationMs = durationMs
+        this.doubleChecked = doubleChecked
     }
 
     static db = sqliteDb
@@ -60,7 +62,6 @@ export default class Channel {
                     channel.channelId,
                     channel.sessionId,
                     channel.channelNumber,
-                    channel.dataKind,
                     JSON.stringify(channel.rawSamplesUv),
                     channel.samplingFrequencyKhz,
                     channel.subsampledKhz,
@@ -110,12 +111,13 @@ export default class Channel {
         return row ? row.channel_id : null
     }
 
-    static findAll() {
+    static findBySessionId(sessionId) {
         const stmt  = Channel.db.prepare(`
             SELECT 
                 channel_id, session_id, channel_number,
-                sampling_frequency_khz, subsampled_khz, duration_ms
+                sampling_frequency_khz, subsampled_khz, duration_ms, double_checked
             FROM channels 
+            WHERE session_id = ?
             ORDER BY channel_number
         `)
         const rows = stmt.all()
@@ -127,6 +129,7 @@ export default class Channel {
                 row.sampling_frequency_khz,
                 row.subsampled_khz,
                 row.duration_ms,
+                row.double_checked
             )
             channel.channelId = row.channel_id
             return channel
@@ -197,5 +200,35 @@ export default class Channel {
         const stmt = Channel.db.prepare(`SELECT session_id FROM channels WHERE channel_id = ?`)
         const row = stmt.get(channelId)
         return row ? row.session_id : null
+    }
+
+    static updateDoubleChecked(channelId, isDoubleChecked) {
+        const stmt = Channel.db.prepare(`
+            UPDATE channels 
+            SET double_checked = ?
+            WHERE channel_id = ?
+        `)
+        const info = stmt.run(isDoubleChecked? 1: 0, channelId)
+        return info.changes > 0
+    }
+
+    static resetDoubleCheckedBySessionId(sessionId) {
+        const stmt = Channel.db.prepare(`
+            UPDATE channels 
+            SET double_checked = 0 
+            WHERE session_id = ?
+        `)
+        const info = stmt.run(sessionId)
+        return info.changes
+    }
+
+    static countPendingDoubleCheck(sessionId) {
+        const stmt = Channel.db.prepare(`
+            SELECT COUNT(*) as count
+            FROM channels 
+            WHERE session_id = ? AND (double_checked = 0 OR double_checked IS NULL)
+        `)
+        const row = stmt.get(sessionId)
+        return row ? row.count : 0
     }
 }

@@ -5,12 +5,10 @@ import "./Dashboard.css"
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome"
 import {faArrowRotateRight, faSort, faSortUp, faSortDown} from "@fortawesome/free-solid-svg-icons"
 import {fetchAllSessions} from "../api/index.js";
-// render sessions as a simple table in this view
 
 export default function Dashboard() {
     const navigate = useNavigate()
     const [sessions, setSessions] = useState([])
-    const [page, setPage] = useState({ number: 1, size: 5, totalPages: 1, totalElements: 0 })
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState("")
     const [query, setQuery] = useState("")
@@ -25,20 +23,16 @@ export default function Dashboard() {
         }
     }, [])
 
-    const loadPage = useCallback(async (nextPage) => {
+    const fetchSessions = useCallback(async () => {
         if (loading) return
         try {
             setLoading(true)
             setError("")
-            const res = await fetchAllSessions(nextPage, page.size)
-            const incoming = Array.isArray(res?.contents) ? res.contents : []
+            const res = await fetchAllSessions()
+            const allSessions = Array.isArray(res) ? res : (Array.isArray(res?.contents) ? res.contents : [])
+
             if (!mountedRef.current) return
-            setSessions(prev => nextPage === 1 ? incoming : [...prev, ...incoming])
-            if (res?.page) {
-                setPage(res.page)
-            } else {
-                setPage(p => ({ number: nextPage, size: p.size, totalPages: 0, totalElements: 0 }))
-            }
+            setSessions(allSessions)
         } catch (e) {
             console.error(e)
             if (mountedRef.current) setError("Failed to load sessions.")
@@ -48,23 +42,25 @@ export default function Dashboard() {
                 setHasLoaded(true)
             }
         }
-    }, [page.size, loading])
+    }, [loading])
 
     useEffect(() => {
-        loadPage(1)
+        fetchSessions()
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     useEffect(() => {
-        if (window.biosignalApi?.on?.sessionsUpdated) {
-            const unsubscribe = window.biosignalApi.on.sessionsUpdated(() => {
-                loadPage(1);
+        if (window.biosignalApi?.on?.sessionStatusUpdated) {
+            const unsubscribe = window.biosignalApi.on.sessionStatusUpdated(updatedSession => {
+                setSessions(prevSessions => prevSessions.map(s =>
+                    s.sessionId === updatedSession.sessionId
+                        ? { ...s, status: updatedSession.status, updatedAt: updatedSession.updatedAt }
+                        : s
+                ));
             });
             return () => unsubscribe();
         }
-    }, [loadPage]);
-
-    const canLoadMore = page.number < page.totalPages
+    }, []);
 
     const sortedAndFiltered = useMemo(() => {
         const raw = query.trim()
@@ -174,35 +170,20 @@ export default function Dashboard() {
         navigate(`/sessions/${sessionId}`)
     }
 
-    const total = sessions.length
-    const completed = sessions.filter(s => s.status === "COMPLETED").length
-    const inProgress = sessions.filter(s => s.status === "IN_PROGRESS").length
-    const newlyCreated = sessions.filter(s => s.status === "NEW").length
-
-    const chartData = [
-        { name: "New", value: newlyCreated },
-        { name: "In Progress", value: inProgress },
-        { name: "Completed", value: completed },
-    ]
-
     return (
-        <div className="start-page-root">
-            <aside className="start-page-sidebar">
-                <h1>Biosignal Labeling Dashboard</h1>
-                <div className="start-page-sidebar-header">
-                    <div className="start-page-sidebar-title">Sessions</div>
-                </div>
-                <div className="start-page-sidebar-footer">
-                </div>
+        <div className="start-page-root" style={{ display: 'flex', justifyContent: 'center', width: '100%', backgroundColor: '#f5f5f5' }}>
 
-            </aside>
+            <main className="start-page-main" style={{ width: '100%', maxWidth: '1400px', padding: '20px' }}>
+                <div className="dashboard-wrapper" style={{ display: 'flex', flexDirection: 'column', height: '100%', backgroundColor: '#fff', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
 
-            <main className="start-page-main">
-                <div className="dashboard-wrapper">
+                    <div style={{ padding: '20px 20px 0 20px' }}>
+                        <h1 style={{ margin: 0, fontSize: '1.5rem', color: '#333' }}>Biosignal Labeling Dashboard</h1>
+                    </div>
 
-                    <div className="dashboard-sessions-block">
-                        <div className="dashboard-sessions-header">
-                            <h3>Sessions</h3>
+                    <div className="dashboard-sessions-block" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', padding: '20px' }}>
+
+                        <div className="dashboard-sessions-header" style={{ flexShrink: 0, marginBottom: '15px' }}>
+                            <h3>Sessions ({sortedAndFiltered.length})</h3>
                             <div className="start-page-sidebar-actions">
                                 <button
                                     className="icon-btn"
@@ -219,7 +200,7 @@ export default function Dashboard() {
                                     title="Refresh List"
                                     onClick={(e) => {
                                         e.preventDefault()
-                                        loadPage(1)
+                                        fetchSessions()
                                     }}
                                     disabled={loading}
                                 >
@@ -231,15 +212,18 @@ export default function Dashboard() {
                                 </button>
                             </div>
                         </div>
-                        <div className="start-page-search-wrap">
+
+                        <div className="start-page-search-wrap" style={{ flexShrink: 0, marginBottom: '15px' }}>
                             <input
                                 className="start-page-search-input"
                                 type="text"
                                 placeholder="Search (e.g. status=NEW, patientname=Nguyen Van A, ...)"
                                 value={query}
                                 onChange={(e) => setQuery(e.target.value)}
+                                style={{ width: '100%' }}
                             />
                         </div>
+
                         {error && <div className="start-page-error">{error}</div>}
                         {loading && sessions.length === 0 && (
                             <div className="start-page-placeholder">Loading sessions…</div>
@@ -247,53 +231,63 @@ export default function Dashboard() {
                         {!loading && hasLoaded && sessions.length === 0 && (
                             <div className="start-page-placeholder">No sessions found.</div>
                         )}
-                        <table className="sessions-table">
-                            <thead>
+
+                        <div style={{ flex: 1, overflowY: 'auto', border: '1px solid #eee', borderRadius: '4px' }}>
+                            <table className="sessions-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                <thead style={{ position: 'sticky', top: 0, backgroundColor: '#f8f9fa', zIndex: 1, boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
                                 <tr>
-                                    <th>No</th>
-                                    <th>Date</th>
-                                    <th>Status</th>
-                                    <th>Patient ID</th>
-                                    <th>Patient Name</th>
-                                    <th>Checked</th>
-                                    <th>Double-checked</th>
+                                    <th style={{ padding: '12px', textAlign: 'left' }}>No</th>
+                                    <th style={{ padding: '12px', textAlign: 'left' }}>Start Time</th>
+                                    <th style={{ padding: '12px', textAlign: 'left' }}>End Time</th>
+                                    <th style={{ padding: '12px', textAlign: 'left' }}>Type</th>
+                                    <th style={{ padding: '12px', textAlign: 'left' }}>Status</th>
+                                    <th style={{ padding: '12px', textAlign: 'left' }}>Patient ID</th>
+                                    <th style={{ padding: '12px', textAlign: 'left' }}>Patient Name</th>
+                                    <th style={{ padding: '12px', textAlign: 'left' }}>File Name</th>
+                                    <th style={{ padding: '12px', textAlign: 'center' }}>Checked</th>
+                                    <th style={{ padding: '12px', textAlign: 'center' }}>Double-checked</th>
                                 </tr>
-                            </thead>
-                            <tbody>
+                                </thead>
+                                <tbody>
                                 {sortedAndFiltered.map((s, idx) => {
                                     const no = idx + 1
-                                    const date = s.startTime || s.updatedAt || '-' 
                                     const statusRaw = (s.status || '').toUpperCase()
-                                    const statusLabel = statusRaw === 'IN_PROGRESS' ? 'In Progress' : (statusRaw === 'COMPLETED' ? 'Completed' : 'New')
+                                    const statusObj = {
+                                        'NEW': 'New',
+                                        'IN_PROGRESS': 'In Progress',
+                                        'REQUEST_DOUBLE_CHECK': 'Request Double Check',
+                                        'WAIT_FOR_DOUBLE_CHECK': 'Wait for Double Check',
+                                        'COMPLETED': 'Completed'
+                                    }
+                                    const statusLabel = statusObj[statusRaw] || statusRaw || '-'
                                     const patientId = s.patient?.id ?? s.patientId ?? '-'
                                     const patientName = s.patient?.name ?? s.patientName ?? '-'
                                     const isChecked = statusRaw === 'COMPLETED'
                                     const isDoubleChecked = s.isDoubleChecked || false
+
                                     return (
-                                        <tr key={s.sessionId} className={`session-row session-status-${(s.status||'').toLowerCase()}`} onClick={() => handleOpenSession(s.sessionId)} style={{cursor: 'pointer'}}>
-                                            <td>{no}</td>
-                                            <td>{date}</td>
-                                            <td>{statusLabel}</td>
-                                            <td>{patientId}</td>
-                                            <td>{patientName}</td>
-                                            <td>{isChecked ? '✓' : ''}</td>
-                                            <td>{isDoubleChecked ? '✓' : ''}</td>
+                                        <tr key={s.sessionId} className={`session-row session-status-${(s.status||'').toLowerCase()}`} onClick={() => handleOpenSession(s.sessionId)} style={{cursor: 'pointer', borderBottom: '1px solid #eee'}}>
+                                            <td style={{ padding: '10px' }}>{no}</td>
+                                            <td style={{ padding: '10px' }}>{s.startTime || '-'}</td>
+                                            <td style={{ padding: '10px' }}>{s.endTime || '-'}</td>
+                                            <td style={{ padding: '10px' }}>{s.measurementType || '-'}</td>
+                                            <td style={{ padding: '10px' }}>
+                                                <span className={`badge status-${statusRaw.toLowerCase()}`}>{statusLabel}</span>
+                                            </td>
+                                            <td style={{ padding: '10px' }}>{patientId}</td>
+                                            <td style={{ padding: '10px' }}>{patientName}</td>
+                                            <td style={{ padding: '10px' }}>{s.inputFileName || '-'}</td>
+                                            <td style={{ padding: '10px', textAlign: 'center' }}>{isChecked ? '✓' : ''}</td>
+                                            <td style={{ padding: '10px', textAlign: 'center' }}>{isDoubleChecked ? '✓' : ''}</td>
                                         </tr>
                                     )
                                 })}
-                            </tbody>
-                        </table>
-                        <div className="dashboard-sessions-footer" style={{ marginTop: '15px' }}>
-                            <button
-                                className="load-more-btn"
-                                disabled={!canLoadMore || loading}
-                                onClick={() => loadPage(page.number + 1)}
-                            >
-                                {loading ? "Loading…" : canLoadMore ? "Load more" : "No more"}
-                            </button>
-                            <div className="pagination-info">
-                                Page {page.number} of {Math.max(page.totalPages, 1)}
-                            </div>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div className="dashboard-sessions-footer" style={{ marginTop: '10px', flexShrink: 0, textAlign: 'right', fontSize: '0.85rem', color: '#666' }}>
+                            Showing {sortedAndFiltered.length} session(s)
                         </div>
                     </div>
                 </div>

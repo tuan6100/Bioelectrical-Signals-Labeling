@@ -11,6 +11,9 @@ importers:
       better-sqlite3:
         specifier: ^12.4.1
         version: 12.4.6
+      config:
+        specifier: ^4.1.1
+        version: 4.1.1
       crc-32:
         specifier: ^1.2.2
         version: 1.2.2
@@ -51,9 +54,6 @@ importers:
       concurrently:
         specifier: ^9.2.1
         version: 9.2.1
-      config:
-        specifier: ^4.1.1
-        version: 4.1.1
       cross-env:
         specifier: ^7.0.3
         version: 7.0.3

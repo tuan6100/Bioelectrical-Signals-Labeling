@@ -2,10 +2,11 @@ import {app, dialog} from "electron"
 import path from "node:path"
 import fs from "node:fs"
 import {readFile} from "../domain/services/file/reader/txt.reader.js"
-import {processAndPersistData} from "../domain/services/data/command/session.command.js"
+import {persistExcelData, processAndPersistData} from "../domain/services/data/command/session.command.js"
 import Store from "electron-store"
+import {readExcelSession} from "../domain/services/file/reader/excel.reader.js";
 
-const processFiles = async (mainWindow, filePaths) => {
+const processTxtFiles = async (mainWindow, filePaths) => {
     if (!filePaths || filePaths.length === 0) {
         return
     }
@@ -22,9 +23,7 @@ const processFiles = async (mainWindow, filePaths) => {
                     fs.promises.rm(tempOutputPath, { force: true }).catch(console.error)
                 })
         })
-
         const results = await Promise.allSettled(fileReadPromises)
-
         const errors = []
         results.forEach((result, index) => {
             if (result.status === 'fulfilled') {
@@ -53,25 +52,70 @@ const processFiles = async (mainWindow, filePaths) => {
     }
 }
 
+const processExcelFiles = async (mainWindow, filePaths) => {
+    if (!filePaths || filePaths.length === 0) return
+    let successCount = 0;
+    const errors = [];
+    for (const filePath of filePaths) {
+        try {
+            const excelData = await readExcelSession(filePath);
+            persistExcelData(excelData);
+            successCount++;
+        } catch (err) {
+            console.error(`Error processing Excel ${filePath}:`, err);
+            errors.push({ file: path.basename(filePath), reason: err.message });
+        }
+    }
+    mainWindow.webContents.send("sessions:updated", { refresh: Date.now() });
+    if (errors.length > 0) {
+        dialog.showErrorBox('Import Excel Error', `Failed files:\n${errors.map(e => `${e.file}: ${e.reason}`).join('\n')}`);
+    } else if (successCount > 0) {
+        await dialog.showMessageBox(mainWindow, {
+            type: 'info',
+            title: 'Import Successful',
+            message: `Successfully updated ${successCount} session(s) from Excel.`
+        });
+    }
+}
 
-const openFileSubmenu = (mainWindow, defaultDir) => {
+const importRawSubmenu = (mainWindow, defaultDir) => {
     const store = new Store()
-    let lastOpenedDir = store.get('userPreferences.lastOpenedDir')?? defaultDir
+    let lastOpenedDir = store.get('userPreferences.lastRawDir') ?? defaultDir
     return {
-        label: 'Open File(s)',
-        accelerator: 'CmdOrCtrl+N',
+        label: 'Import Raw Data (.txt)',
+        accelerator: 'CmdOrCtrl+I',
         click: async () => {
             const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
-                title: 'Open Text File(s)',
+                title: 'Import Raw Signal Files',
                 defaultPath: lastOpenedDir,
                 properties: ['openFile', 'multiSelections'],
                 filters: [{ name: 'Text Files', extensions: ['txt'] }],
             })
 
             if (canceled || filePaths.length === 0) return
-            lastOpenedDir = path.dirname(filePaths[0])
-            store.set('userPreferences.lastOpenedDir', lastOpenedDir)
-            await processFiles(mainWindow, filePaths)
+            store.set('userPreferences.lastRawDir', path.dirname(filePaths[0]))
+            await processTxtFiles(mainWindow, filePaths)
+        },
+    }
+}
+
+const importReviewedSubmenu = (mainWindow, defaultDir) => {
+    const store = new Store()
+    let lastOpenedDir = store.get('userPreferences.lastExcelDir') ?? defaultDir
+    return {
+        label: 'Import Reviewed Data (.xlsx)',
+        accelerator: 'CmdOrCtrl+Shift+I',
+        click: async () => {
+            const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
+                title: 'Import Reviewed Excel Files',
+                defaultPath: lastOpenedDir,
+                properties: ['openFile', 'multiSelections'],
+                filters: [{ name: 'Excel Files', extensions: ['xlsx'] }],
+            })
+
+            if (canceled || filePaths.length === 0) return
+            store.set('userPreferences.lastExcelDir', path.dirname(filePaths[0]))
+            await processExcelFiles(mainWindow, filePaths)
         },
     }
 }
@@ -130,7 +174,8 @@ export function setMenuTemplate(mainWindow, defaultDir) {
         {
             label: 'File',
             submenu: [
-                openFileSubmenu(mainWindow, defaultDir),
+                importRawSubmenu(mainWindow, defaultDir),
+                importReviewedSubmenu(mainWindow, defaultDir),
                 openFolderSubmenu(mainWindow, defaultDir),
                 { type: 'separator' },
                 {
