@@ -2,9 +2,16 @@ import CRC32 from 'crc-32';
 import Session from "../../persistence/dao/session.dao.js";
 
 
-export function checkFileImported(content) {
+export function checkFileImported(inputFileName, content) {
+    let existingSession = Session.findSessionIdByInputFileName(inputFileName)
+    if (existingSession) {
+        return {
+            imported: true,
+            metadata: existingSession
+        }
+    }
     const hash = calculateCRC32(content);
-    const existingSession = Session.findSessionIdByContentHash(hash);
+    existingSession = Session.findSessionIdByContentHash(hash);
     return existingSession? {
         imported: true,
         metadata: existingSession

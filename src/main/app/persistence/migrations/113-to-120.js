@@ -12,7 +12,31 @@ const migrateTablePatients = `
     DROP TABLE patients_old;
 `
 
-const migrateTableSessions = null
+const migrateTableSessions = `
+    ALTER TABLE sessions RENAME TO sessions_old;
+
+    CREATE TABLE IF NOT EXISTS sessions (
+        session_id INTEGER PRIMARY KEY NOT NULL,
+        patient_id TEXT NOT NULL,
+        measurement_type TEXT DEFAULT 'UNKNOWN' CHECK (measurement_type IN ('ECG','EEG','EMG', 'UNKNOWN')),
+        start_time TEXT NOT NULL,
+        end_time TEXT NOT NULL,
+        status TEXT DEFAULT 'NEW' CHECK (status IN ('NEW','IN_PROGRESS', 'REQUEST_DOUBLE_CHECK', 'WAIT_FOR_DOUBLE_CHECK','COMPLETED')),
+        input_file_name TEXT,
+        content_hash TEXT UNIQUE,
+        updated_at TEXT,
+        FOREIGN KEY (patient_id) REFERENCES patients(patient_id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS session_time_idx ON sessions(start_time, end_time);
+    CREATE INDEX IF NOT EXISTS session_content_hash_idx ON sessions(content_hash);
+    INSERT INTO sessions 
+    SELECT session_id, patient_id, measurement_type, start_time, end_time,
+           status, input_file_name, content_hash, updated_at
+    FROM sessions_old;
+
+    DROP TABLE sessions_old;
+    
+`
 
 const migrateTableChannels = `
     ALTER TABLE channels RENAME TO channels_old;
@@ -25,14 +49,15 @@ const migrateTableChannels = `
         sampling_frequency_khz REAL,
         subsampled_khz REAL,
         duration_ms REAL,
+        double_checked BOOLEAN,
         FOREIGN KEY (session_id) REFERENCES sessions(session_id) ON DELETE CASCADE
     );
     INSERT INTO channels
     SELECT channel_id, session_id, channel_number,
            raw_samples_uv, sampling_frequency_khz,
-           subsampled_khz, duration_ms
-    FROM channels_old
-    WHERE data_kind = 'trace';
+           subsampled_khz, duration_ms, null
+    FROM channels_old;
+--     WHERE data_kind = 'trace';
     CREATE INDEX IF NOT EXISTS channel_session_channel_number_idx ON channels(session_id, channel_number);
 
     DROP TABLE channels_old;
@@ -81,6 +106,8 @@ export function migrate113to120(db) {
         })();
     } finally {
         db.pragma('foreign_keys = ON')
+        db.exec('PRAGMA wal_checkpoint(TRUNCATE)')
+        db.exec('VACUUM')
     }
 
 }

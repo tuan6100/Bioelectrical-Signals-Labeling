@@ -100,6 +100,22 @@ function findOverlappingAnnotations(annotations) {
     return overlaps
 }
 
+export function getAllSessions() {
+    const rows =  Session.findAll()
+    return rows.map(r => ({
+        sessionId: r.session_id,
+        patient: {
+            id: r.patient_id,
+            name: r.patient_name
+        },
+        measurementType: r.measurement_type,
+        startTime: r.start_time,
+        endTime: r.end_time,
+        status: r.status,
+        inputFileName: r.input_file_name,
+        updatedAt: new Date(r.updated_at).toLocaleString('en-US', {timeZone: 'Asia/Ho_Chi_Minh'})
+    }))
+}
 
 export function getSessionsByPage(page, size) {
     const pageNumber = Math.max(1, Number(page) || 1)

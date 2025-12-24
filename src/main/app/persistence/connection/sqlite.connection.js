@@ -37,7 +37,7 @@ const ddl = `
         measurement_type TEXT DEFAULT 'UNKNOWN' CHECK (measurement_type IN ('ECG','EEG','EMG', 'UNKNOWN')),
         start_time TEXT NOT NULL,
         end_time TEXT NOT NULL,
-        status TEXT DEFAULT 'NEW' CHECK (status IN ('NEW','IN_PROGRESS','COMPLETED')),
+        status TEXT DEFAULT 'NEW' CHECK (status IN ('NEW','IN_PROGRESS', 'REQUEST_DOUBLE_CHECK', 'WAIT_FOR_DOUBLE_CHECK','COMPLETED')),
         input_file_name TEXT,
         content_hash TEXT UNIQUE,
         updated_at TEXT,
@@ -54,7 +54,7 @@ const ddl = `
         sampling_frequency_khz REAL,
         subsampled_khz REAL,
         duration_ms REAL,
-        exported INTEGER DEFAULT 0 CHECK (exported IN (0,1)),
+        double_checked BOOLEAN, 
         FOREIGN KEY (session_id) REFERENCES sessions(session_id) ON DELETE CASCADE
     );
     CREATE INDEX IF NOT EXISTS channel_session_channel_number_idx ON channels(session_id, channel_number);
@@ -135,10 +135,7 @@ db.migrate = async function migrate(latestVersion) {
         const file = `${v}-to-${next}.js`
         const filePath = path.join(migrationsDir, file)
         console.log(`Running migration: ${file}`)
-
-        // Chuyển đường dẫn Windows thành file:// URL
         const fileUrl = pathToFileURL(filePath).href
-
         const module = await import(fileUrl)
         const migrateFn = module[`migrate${v}to${next}`]
         if (!migrateFn) {
@@ -151,7 +148,7 @@ db.migrate = async function migrate(latestVersion) {
 }
 
 function findNextVersion(dir, current) {
-    const files = fs.readdirSync(dir)  // Bỏ parentDir
+    const files = fs.readdirSync(dir)
     console.log(`Looking for migration from ${current}, found files:`, files)
     const candidates = files
         .map(f => {

@@ -29,8 +29,6 @@ export default class Session {
         Session.db = dbInstance
     }
 
-
-
     insert() {
         const now = this.updatedAt?? new Date().toISOString()
         const stmt = Session.db.prepare(`
@@ -91,6 +89,27 @@ export default class Session {
             row.input_file_name,
             row.updated_at
         )
+    }
+
+    static findSessionIdByInputFileName(inputFileName) {
+        const stmt = Session.db.prepare(`
+            SELECT session_id
+            FROM sessions
+            WHERE input_file_name = ?
+        `)
+        const row = stmt.get(inputFileName)
+        return row ? row.session_id : null
+    }
+
+    static findAll() {
+        const stmt = Session.db.prepare(`
+            SELECT s.session_id, s.patient_id, s.measurement_type, s.start_time, s.end_time, s.status, s.input_file_name, s.updated_at,
+                   a.first_name AS patient_name, a.gender AS patient_gender
+            FROM sessions s
+            INNER JOIN patients a ON s.patient_id = a.patient_id
+            ORDER BY datetime(s.updated_at) DESC
+        `)
+        return stmt.all()
     }
 
     static findAllWithPagination(page, size) {

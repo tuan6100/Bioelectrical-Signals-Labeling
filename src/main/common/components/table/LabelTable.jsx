@@ -48,7 +48,7 @@ const LabelTable = ({ channelId, annotations}) => {
     }
 
 
-    const overlapGroupColors = ['#FF6B6B', '#4DA3FF', '#FFD166', '#06D6A0', '#8338EC', '#FF006E', '#118AB2', '#073B4C']
+    const overlapGroupColors = ['#FF6B6B']
 
     const computeOverlapGroups = (arr) => {
         const map = new Map()

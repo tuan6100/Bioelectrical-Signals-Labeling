@@ -340,7 +340,7 @@
     width: auto;
 }
 
-.sessions-table th:nth-child(6), 
+.sessions-table th:nth-child(6),
 .sessions-table td:nth-child(6),
 .sessions-table th:nth-child(7),
 .sessions-table td:nth-child(7) {
@@ -349,8 +349,7 @@
 }
 
 .sessions-table td:nth-child(6),
+
 .sessions-table td:nth-child(7) {
-    font-weight: bold;
-    color: #059669;
     font-size: 16px;
 }

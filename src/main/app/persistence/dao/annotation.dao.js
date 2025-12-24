@@ -209,4 +209,13 @@ export default class Annotation {
         const rows = stmt.all(this.channelId , this.annotationId, this.startTimeMs, this.endTimeMs);
         return rows.length > 0;
     }
+
+    static deleteByChannelId(channelId) {
+        const stmt = Annotation.db.prepare(`
+        DELETE FROM annotations 
+        WHERE channel_id = ?
+    `)
+        const info = stmt.run(channelId)
+        return info.changes
+    }
 }

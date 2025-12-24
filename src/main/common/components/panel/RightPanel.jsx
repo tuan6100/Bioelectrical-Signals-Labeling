@@ -1,22 +1,19 @@
-import React, {useEffect} from 'react';
 import LabelTable from '../table/LabelTable.jsx';
 import BottomControl from '../control/BottomControl.jsx';
 import './RightPanel.css';
 import TopControl from "../control/TopControl.jsx";
 
 export default function RightPanel({
-   session,
-   annotations,
-   channelId
+    session,
+    annotations,
+    channelId,
+    currentChannel
 }) {
-
     return (
         <div className="right-panel-root">
             {session ? (
                 <>
-                    <TopControl
-                        sessionId={session.sessionId}
-                    />
+                    <TopControl sessionId={session.sessionId} />
 
                     <div className="panel-box">
                         <div className="patient-grid">
@@ -24,6 +21,8 @@ export default function RightPanel({
                             <div><strong>Gender:</strong> {session.patientGender === 'M' ? 'Male' : 'Female'}</div>
                             <div><strong>Start time:</strong> {session.sessionStartTime}</div>
                             <div><strong>End time:</strong> {session.sessionEndTime}</div>
+                            {/* Hiển thị status để dễ debug */}
+                            <div><strong>Status:</strong> {session.sessionStatus}</div>
                         </div>
                     </div>
 
@@ -36,6 +35,8 @@ export default function RightPanel({
                         </div>
                         <BottomControl
                             session={session}
+                            channelId={channelId}
+                            channelDoubleChecked={currentChannel ? currentChannel.doubleChecked : false}
                         />
                     </div>
                 </>

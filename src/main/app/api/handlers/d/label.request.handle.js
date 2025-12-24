@@ -7,7 +7,7 @@ import {
 } from "../../../domain/services/data/command/label.command.js";
 
 import {getAllLabels} from "../../../domain/services/data/query/label.query.js";
-import {saveLabelToExcel} from "../../../domain/services/file/writer/excel.writer.js";
+import {saveSessionToExcel} from "../../../domain/services/file/writer/excel.writer.js";
 import {getInputFileName} from "../../../domain/services/data/query/session.query.js";
 import path from "node:path";
 import fs from "node:fs";
@@ -54,7 +54,7 @@ ipcMain.handle('annotation:delete', (event, annotationId) => {
 })
 
 ipcMain.removeHandler('label:exportExcel')
-ipcMain.on('label:exportExcel', async (event, sessionId, channelId) => {
+ipcMain.on('label:exportExcel', async (event, sessionId) => {
     const inputFileName = getInputFileName(sessionId)
         .replace(path.extname(getInputFileName(sessionId)), '')
     const fileManager = await dialog.showSaveDialog({
@@ -77,7 +77,7 @@ ipcMain.on('label:exportExcel', async (event, sessionId, channelId) => {
     await fs.promises.mkdir(targetDir, { recursive: true })
     const targetPath = path.join(targetDir, baseName)
     try {
-        await saveLabelToExcel(channelId, targetPath)
+        await saveSessionToExcel(sessionId, targetPath)
     } catch (error) {
         if (error.code === 'EBUSY' || error.code === 'EPERM') {
             const response = await dialog.showMessageBox({
@@ -88,8 +88,8 @@ ipcMain.on('label:exportExcel', async (event, sessionId, channelId) => {
                 message: 'Please close the file before exporting labels.',
             })
             if (response.response === 0) {
-                await new Promise(resolve => setTimeout(resolve, 500))
-                return await saveLabelToExcel(channelId, targetPath)
+                await new Promise(resolve => setTimeout(resolve, 1000))
+                return await saveSessionToExcel(sessionId, targetPath)
             }
         } else {
             dialog.showErrorBox('Export Error', error.message)

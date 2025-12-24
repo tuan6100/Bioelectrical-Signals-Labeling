@@ -5,7 +5,7 @@ import {
     deleteAnnotationAppApi,
     getSessionInfoAppApi,
     isDesktopEnv, getAllSessionsAppApi, getSessionsByPatientIdAppApi,
-    updateSessionStatusAppApi, exportToExcelAppApi
+    updateSessionStatusAppApi, exportToExcelAppApi, enableDoubleCheckAppApi, setChannelDoubleCheckedAppApi
 } from '../../app/api/provider';
 
 /**
@@ -173,13 +173,11 @@ export async function fetchDeleteAnnotation(annotationId) {
  * Each item contains session metadata and nested patient info.
  * @async
  * @function fetchAllSessions
- * @param {number} [page=1] - 1-based page index.
- * @param {number} [size=10] - Items per page.
  * @returns {Promise<{contents: Array<{sessionId: number, patient: {id: number, name: string, gender: string}, measurementType: string, startTime: string, endTime: string, inputFileName: string, updatedAt: string}>, page: {size: number, number: number, totalElements: number, totalPages: number}}>} Paginated sessions payload.
  */
-export async function fetchAllSessions(page = 1, size = 10) {
+export async function fetchAllSessions() {
     if (isDesktopEnv()) {
-        return await getAllSessionsAppApi(page, size);
+        return await getAllSessionsAppApi();
     } else {
         // TODO: Implement web version
     }
@@ -226,9 +224,25 @@ export async function fetchUpdateSessionStatus(sessionId, newStatus) {
     }
 }
 
-export const fetchUpdateDoubleChecked = async (sessionId, isDoubleChecked) => {
-    return await window.biosignalApi.put.updateSessionDoubleChecked(
-        sessionId,
-        isDoubleChecked
-    );
+/**
+ * Enables double check mode for a session (Student side).
+ * Sets session status to REQUEST_DOUBLE_CHECK and resets all channels.
+ */
+export const fetchEnableDoubleCheck = async (sessionId) => {
+    if (isDesktopEnv()) {
+        return await enableDoubleCheckAppApi(sessionId);
+    } else {
+        // TODO: Implement web version
+    }
+};
+
+/**
+ * Updates the double-checked status of a specific channel (Doctor side).
+ */
+export const fetchSetChannelDoubleChecked = async (sessionId, channelId, isDoubleChecked) => {
+    if (isDesktopEnv()) {
+        return await setChannelDoubleCheckedAppApi(sessionId, channelId, isDoubleChecked);
+    } else {
+        // TODO: Implement web version
+    }
 };

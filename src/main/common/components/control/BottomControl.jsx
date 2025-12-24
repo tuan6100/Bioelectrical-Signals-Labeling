@@ -1,34 +1,58 @@
-import { useState, useEffect } from 'react';
+    import { useState, useEffect } from 'react'
 import './BottomControl.css'
-import {fetchUpdateSessionStatus, fetchUpdateDoubleChecked} from "../../api/index.js";
+import {
+    fetchUpdateSessionStatus,
+    fetchEnableDoubleCheck,
+    fetchSetChannelDoubleChecked
+} from "../../api/index.js"
 
-export default function BottomControl({ session }) {
-    const { sessionId, sessionStatus } = session;
-    const [isLabeled, setIsLabeled] = useState(false);
-    const [isDoubleChecked, setIsDoubleChecked] = useState(false);
+export default function BottomControl({ session, channelId, channelDoubleChecked }) {
+    const { sessionId, sessionStatus } = session
+    const [isCompleted, setIsCompleted] = useState(false)
+    const [isChannelChecked, setIsChannelChecked] = useState(false)
+
+    const isDoctorMode = sessionStatus === 'WAIT_FOR_DOUBLE_CHECK'
+    const isStudentWaiting = sessionStatus === 'REQUEST_DOUBLE_CHECK'
 
     useEffect(() => {
-        setIsLabeled(sessionStatus === 'COMPLETED');
-    }, [sessionStatus]);
+        setIsCompleted(sessionStatus === 'COMPLETED')
+    }, [sessionStatus])
 
     useEffect(() => {
-        setIsDoubleChecked(!!session.isDoubleChecked);
-    }, [session.isDoubleChecked]);
+        setIsChannelChecked(!!channelDoubleChecked)
+    }, [channelDoubleChecked, channelId])
 
-    const onToggleLabeled = async (checked) => {
-        const newStatus = checked ? 'COMPLETED' : 'IN_PROGRESS';
-        await fetchUpdateSessionStatus(sessionId, newStatus);
-        setIsLabeled(checked);
-    };
-
-    const onToggleDoubleChecked = async (checked) => {
+    const onToggleCompleted = async (checked) => {
         try {
-            await fetchUpdateDoubleChecked(sessionId, checked);
-            setIsDoubleChecked(checked);
-        } catch (err) {
-            console.error(err);
+            const newStatus = checked ? 'COMPLETED' : 'IN_PROGRESS'
+            await fetchUpdateSessionStatus(sessionId, newStatus)
+            setIsCompleted(checked)
+        } catch (error) {
+            console.error("Failed to update status:", error)
+            alert(error.message || "Cannot complete session yet.")
+            setIsCompleted(!checked)
         }
-    };
+    }
+
+    const handleDoubleCheckAction = async (checked) => {
+        try {
+            if (isDoctorMode) {
+                await fetchSetChannelDoubleChecked(sessionId, channelId, checked)
+                setIsChannelChecked(checked)
+            } else if (!isStudentWaiting && checked) {
+                await fetchEnableDoubleCheck(sessionId)
+            } else if (isStudentWaiting && !checked) {
+                await fetchUpdateSessionStatus(sessionId, 'IN_PROGRESS')
+            }
+        } catch (err) {
+            console.error(err)
+            setIsChannelChecked(prev => prev)
+        }
+    }
+
+    let doubleCheckLabel = "Enable double check"
+    if (isDoctorMode) doubleCheckLabel = "Mark as double-checked"
+    if (isStudentWaiting) doubleCheckLabel = "Waiting for double check"
 
     return (
         <div className="bottom-controls">
@@ -36,16 +60,19 @@ export default function BottomControl({ session }) {
                 <label>Mark as completed</label>
                 <input
                     type="checkbox"
-                    checked={isLabeled}
-                    onChange={(e) => onToggleLabeled(e.target.checked)}
+                    checked={isCompleted}
+                    onChange={(e) => onToggleCompleted(e.target.checked)}
+                    disabled={isStudentWaiting}
                 />
-                <label>Mark as double-checked</label>
+            </div>
+            <div className="toggle">
+                <label>{doubleCheckLabel}</label>
                 <input
                     type="checkbox"
-                    checked={isDoubleChecked}
-                    onChange={(e) => onToggleDoubleChecked(e.target.checked)}
+                    checked={isDoctorMode ? isChannelChecked : isStudentWaiting}
+                    onChange={(e) => handleDoubleCheckAction(e.target.checked)}
                 />
             </div>
         </div>
-    );
-};
+    )
+}
