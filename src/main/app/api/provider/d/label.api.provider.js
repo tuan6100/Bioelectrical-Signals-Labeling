@@ -11,7 +11,7 @@ export async function updateAnnotationAppApi(annotationId, updateFields) {
 }
 
 export async function deleteAnnotationAppApi(annotationId) {
-    return window.biosignalApi.delete.deleteAnnotation(annotationId)
+    return window.biosignalApi.delete.annotation(annotationId)
 }
 
 export async function exportToCsvAppApi(sessionId) {

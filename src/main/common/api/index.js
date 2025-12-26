@@ -6,7 +6,7 @@ import {
     getSessionInfoAppApi,
     isDesktopEnv, getAllSessionsAppApi, getSessionsByPatientIdAppApi,
     updateSessionStatusAppApi, exportToExcelAppApi, enableDoubleCheckAppApi, setChannelDoubleCheckedAppApi,
-    deleteSessionAppApi
+    deleteSessionAppApi, disableDoubleCheckAppApi
 } from '../../app/api/provider';
 
 /**
@@ -227,11 +227,23 @@ export async function fetchUpdateSessionStatus(sessionId, newStatus) {
 
 /**
  * Enables double check mode for a session (Student side).
- * Sets session status to REQUEST_DOUBLE_CHECK and resets all channels.
+ * Sets session status to REQUEST_DOUBLE_CHECK
  */
-export const fetchEnableDoubleCheck = async (sessionId) => {
+export const fetchEnableDoubleCheck = async (channelId) => {
     if (isDesktopEnv()) {
-        return await enableDoubleCheckAppApi(sessionId);
+        return await enableDoubleCheckAppApi(channelId);
+    } else {
+        // TODO: Implement web version
+    }
+};
+
+/**
+ * Disable double check mode for a session (Student side).
+ * Sets session status to IN_PROGRESS
+ */
+export const fetchDisableDoubleCheck = async (channelId) => {
+    if (isDesktopEnv()) {
+        return await disableDoubleCheckAppApi(channelId);
     } else {
         // TODO: Implement web version
     }

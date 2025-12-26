@@ -91,7 +91,11 @@ export function updateSessionStatus(sessionId, status) {
         if (['IN_PROGRESS', 'COMPLETED'].includes(currentSession.status) && status === 'NEW') {
             throw new Error(`Cannot change status of a completed session to ${status}`)
         }
-        Session.update(sessionId, {status: status});
+        let isUpdated
+        if (currentSession.status === 'REQUEST_DOUBLE_CHECK' && status === 'IN_PROGRESS' && currentSession) {
+        }
+        Session.update(sessionId, {status: status})
+
         notifySessionUpdate(sessionId);
     })();
 }
@@ -104,7 +108,7 @@ export function persistExcelData(data) {
         if (existingSession) {
             Session.update(sessionId, {
                 status: session.status,
-                updatedAt: session.updated_at
+                updated_at: session.updated_at
             });
         } else {
             let patient = Patient.findOneById(session.patient_id);
@@ -186,17 +190,32 @@ export function persistExcelData(data) {
     })();
 }
 
-export function enableDoubleCheckMode(sessionId) {
+export function enableDoubleCheckMode(channelId) {
+    console.log("Enabling double check mode for channel:", channelId);
     asTransaction(() => {
+        const sessionId = Channel.findSessionIdByChannelId(channelId)
         Session.update(sessionId, { status: 'REQUEST_DOUBLE_CHECK' });
-        Channel.resetDoubleCheckedBySessionId(sessionId);
+        Channel.updateDoubleChecked(channelId, 0);
+        notifySessionUpdate(sessionId);
+    })();
+}
+
+export function disableDoubleCheckMode(channelId) {
+    console.log("Disabling double check mode for channel:", channelId);
+    asTransaction(() => {
+        const sessionId = Channel.findSessionIdByChannelId(channelId)
+        Session.update(sessionId, { status: 'IN_PROGRESS' });
+        Channel.updateDoubleChecked(channelId, null);
         notifySessionUpdate(sessionId);
     })();
 }
 
 export function setChannelDoubleChecked(sessionId, channelId, isChecked) {
     asTransaction(() => {
-        Channel.updateDoubleChecked(channelId, isChecked);
+        Channel.updateDoubleChecked(channelId, isChecked? 1 : 0);
+        if (isChecked && Channel.countPendingDoubleCheck(sessionId) === 0) {
+            Session.update(sessionId, { status: 'COMPLETED' })
+        }
         notifySessionUpdate(sessionId);
     })();
 }

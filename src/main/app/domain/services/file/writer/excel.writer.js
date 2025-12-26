@@ -1,7 +1,6 @@
 import ExcelJS from "exceljs"
-import { shell } from "electron"
-import { exportSessionData } from "../../data/query/label.query.js"
-import Session from "../../../../persistence/dao/session.dao.js";
+import {shell} from "electron"
+import {exportSessionData} from "../../data/query/label.query.js"
 
 export async function saveSessionToExcel(sessionId, filePath) {
     const data = exportSessionData(sessionId)
@@ -11,12 +10,11 @@ export async function saveSessionToExcel(sessionId, filePath) {
     }
     let { session, channelsData } = data
     if (session.status === 'REQUEST_DOUBLE_CHECK') {
-        const newStatus = 'WAIT_FOR_DOUBLE_CHECK'
-        Session.update(session.sessionId, { status: newStatus })
-        session.status = newStatus
+        session.status = 'WAIT_FOR_DOUBLE_CHECK'
     }
     const workbook = new ExcelJS.Workbook()
     const sessionSheet = workbook.addWorksheet('Session Info')
+
     sessionSheet.columns = [
         { header: 'session_id', key: 'session_id', width: 15 },
         { header: 'patient_id', key: 'patient_id', width: 20 },
@@ -24,7 +22,7 @@ export async function saveSessionToExcel(sessionId, filePath) {
         { header: 'start_time', key: 'start_time', width: 25 },
         { header: 'end_time', key: 'end_time', width: 25 },
         { header: 'status', key: 'status', width: 25 },
-        { header: 'input_file_name', key: 'input_file_name', width: 30 },
+        { header: 'input_file_name', key: 'input_file_name', width: 30, style: { alignment: { wrapText: true, vertical: 'top' } } },
         { header: 'updated_at', key: 'updated_at', width: 25 }
     ]
     sessionSheet.addRow({
@@ -38,15 +36,17 @@ export async function saveSessionToExcel(sessionId, filePath) {
         updated_at: session.updatedAt
     })
     sessionSheet.getRow(1).font = { bold: true }
+
     for (const item of channelsData) {
         const { channel, samplesArray, annotations } = item
         const chNum = channel.channelNumber
         const sheetNameChannel = `Channel_${chNum}`
         const sheetNameLabel = `Labels_${chNum}`
         const channelSheet = workbook.addWorksheet(sheetNameChannel)
+
         channelSheet.columns = [
             { header: 'data_kind', key: 'dataKind', width: 15 },
-            { header: 'raw_samples', key: 'rawSamples', width: 20 },
+            { header: 'raw_samples', key: 'rawSamples', width: 20, style: { alignment: { wrapText: true } } },
             { header: 'raw_sample_unit', key: 'rawSampleUnit', width: 15 },
             { header: 'sampling_frequency', key: 'samplingFrequency', width: 20 },
             { header: 'subsampled', key: 'subsampled', width: 15 },
@@ -56,6 +56,7 @@ export async function saveSessionToExcel(sessionId, filePath) {
             { header: 'channel_id', key: 'channelId', width: 10 },
             { header: 'channel_number', key: 'channelNumber', width: 10 }
         ]
+
         if (samplesArray.length > 0) {
             for (let i = 0; i < samplesArray.length; i++) {
                 channelSheet.addRow({
@@ -83,15 +84,17 @@ export async function saveSessionToExcel(sessionId, filePath) {
         }
 
         const labelSheet = workbook.addWorksheet(sheetNameLabel)
+
         labelSheet.columns = [
-            { header: 'label_name', key: 'labelName', width: 20 },
+            { header: 'label_name', key: 'labelName', width: 20, style: { alignment: { wrapText: true, vertical: 'top' } } },
             { header: 'start_time', key: 'startTime', width: 15 },
             { header: 'end_time', key: 'endTime', width: 15 },
             { header: 'time_unit', key: 'timeUnit', width: 10 },
             { header: 'start_index', key: 'startIndex', width: 15 },
             { header: 'end_index', key: 'endIndex', width: 15 },
-            { header: 'note', key: 'note', width: 30 },
+            { header: 'note', key: 'note', width: 30, style: { alignment: { wrapText: true, vertical: 'top' } } },
         ]
+
         if (annotations && annotations.length > 0) {
             annotations.forEach(ann => {
                 const row = labelSheet.addRow({

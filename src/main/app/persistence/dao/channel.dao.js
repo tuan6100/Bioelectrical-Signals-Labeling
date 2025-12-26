@@ -202,31 +202,21 @@ export default class Channel {
         return row ? row.session_id : null
     }
 
-    static updateDoubleChecked(channelId, isDoubleChecked) {
+    static updateDoubleChecked(channelId, checkedValue) {
         const stmt = Channel.db.prepare(`
             UPDATE channels 
             SET double_checked = ?
             WHERE channel_id = ?
         `)
-        const info = stmt.run(isDoubleChecked? 1: 0, channelId)
+        const info = stmt.run(checkedValue, channelId)
         return info.changes > 0
-    }
-
-    static resetDoubleCheckedBySessionId(sessionId) {
-        const stmt = Channel.db.prepare(`
-            UPDATE channels 
-            SET double_checked = 0 
-            WHERE session_id = ?
-        `)
-        const info = stmt.run(sessionId)
-        return info.changes
     }
 
     static countPendingDoubleCheck(sessionId) {
         const stmt = Channel.db.prepare(`
             SELECT COUNT(*) as count
             FROM channels 
-            WHERE session_id = ? AND (double_checked = 0 OR double_checked IS NULL)
+            WHERE session_id = ? AND (double_checked = 0)
         `)
         const row = stmt.get(sessionId)
         return row ? row.count : 0

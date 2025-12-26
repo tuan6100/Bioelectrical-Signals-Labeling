@@ -7,7 +7,7 @@ import {
 import {
     updateSessionStatus,
     setChannelDoubleChecked,
-    enableDoubleCheckMode, deleteSession
+    enableDoubleCheckMode, deleteSession, disableDoubleCheckMode
 } from "../../../domain/services/data/command/session.command.js";
 import Store from "electron-store";
 import path from "node:path";
@@ -52,13 +52,24 @@ ipcMain.handle('session:updateStatus', (event, sessionId, newStatus) => {
     }
 })
 
-ipcMain.removeHandler('session:enableDoubleCheck')
-ipcMain.handle('session:enableDoubleCheck', (event, sessionId) => {
+ipcMain.removeHandler('channel:enableDoubleCheck')
+ipcMain.handle('channel:enableDoubleCheck', (event, channelId) => {
     try {
-        enableDoubleCheckMode(sessionId);
+        enableDoubleCheckMode(channelId);
         return true;
     } catch (error) {
         dialog.showErrorBox('Enable Double Check Error', error.message || String(error));
+        throw error;
+    }
+});
+
+ipcMain.removeHandler('channel:disableDoubleCheck')
+ipcMain.handle('channel:disableDoubleCheck', (event, channelId) => {
+    try {
+        disableDoubleCheckMode(channelId);
+        return true;
+    } catch (error) {
+        dialog.showErrorBox('Disable Double Check Error', error.message || String(error));
         throw error;
     }
 });
