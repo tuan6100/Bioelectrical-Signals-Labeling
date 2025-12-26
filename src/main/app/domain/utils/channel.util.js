@@ -100,7 +100,7 @@ export function extractChannelsFromJson(jsonData, sessionId) {
             if (!value || typeof value !== "object") continue
             if ("Trace Data" in value) {
                 const data = value["Trace Data"]
-                const channelNumber = parseInt(data["Channel Number"]) || lastChannelNumber || 0
+                const channelNumber = parseInt(findDataKey(data, 'Channel number')) || lastChannelNumber || 1
                 lastChannelNumber = channelNumber
                 const found = findDataKey(data, "Sweep  Data")
                 const scale = deriveScale(found?.key || null, data, value)
