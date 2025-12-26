@@ -1,6 +1,6 @@
 // See the Electron documentation for details on how to use preload scripts:
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
-const { contextBridge, ipcRenderer } = require("electron");
+const { contextBridge, ipcRenderer, shell } = require("electron");
 
 // Use window.IN_DESKTOP_ENV to detect desktop app environment
 contextBridge.exposeInMainWorld("IN_DESKTOP_ENV", true);
@@ -92,5 +92,9 @@ contextBridge.exposeInMainWorld("biosignalApi", {
             "annotation:delete",
             annotationId
         ),
+    },
+
+    openExternal: function(url) {
+        return shell.openExternal(url);
     }
 });

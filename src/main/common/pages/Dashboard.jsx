@@ -3,8 +3,9 @@ import {useNavigate} from 'react-router-dom'
 
 import "./Dashboard.css"
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome"
-import {faArrowRotateRight, faSort, faSortUp, faSortDown} from "@fortawesome/free-solid-svg-icons"
+import {faArrowRotateRight, faSort, faSortUp, faSortDown, faEnvelope } from "@fortawesome/free-solid-svg-icons"
 import {fetchAllSessions} from "../api/index.js";
+import ibmeLogo from "../../../ibme-logo.png";
 
 export default function Dashboard() {
     const navigate = useNavigate()
@@ -176,14 +177,47 @@ export default function Dashboard() {
             <main className="start-page-main" style={{ width: '100%', maxWidth: '1400px', padding: '20px' }}>
                 <div className="dashboard-wrapper" style={{ display: 'flex', flexDirection: 'column', height: '100%', backgroundColor: '#fff', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
 
-                    <div style={{ padding: '20px 20px 0 20px' }}>
-                        <h1 style={{ margin: 0, fontSize: '1.5rem', color: '#333' }}>Biosignal Labeling Dashboard</h1>
+                    <div className="dashboard-top-nav" style={{ 
+                        padding: '20px 20px 0 20px', 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'flex-end'
+                    }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                            <img 
+                                src={ibmeLogo} 
+                                alt="iBME Logo" 
+                                style={{ height: '100px', width: 'auto', marginBottom: '8px' }} 
+                            />
+                            <h1 style={{ margin: 0, fontSize: '1.5rem', color: '#333' }}>
+                                EMG Biosignal Labeling Dashboard
+                            </h1>
+                        </div>
+                        <div className="header-actions" style={{ marginBottom: '5px' }}>
+                            <a 
+                                href="https://lab.ibme.edu.vn/"
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="contact-link"
+                                style={{ 
+                                    textDecoration: 'none', 
+                                    color: '#007bff', 
+                                    fontWeight: '500',
+                                    fontSize: '0.9rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '5px'
+                                }}
+                            >
+                                <FontAwesomeIcon icon={faEnvelope} />Contact Us
+                            </a>
+                        </div>
                     </div>
 
                     <div className="dashboard-sessions-block" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', padding: '20px' }}>
 
                         <div className="dashboard-sessions-header" style={{ flexShrink: 0, marginBottom: '15px' }}>
-                            <h3>Sessions ({sortedAndFiltered.length})</h3>
+                            {/* <h3>Sessions ({sortedAndFiltered.length})</h3> */}
                             <div className="start-page-sidebar-actions">
                                 <button
                                     className="icon-btn"
@@ -236,16 +270,16 @@ export default function Dashboard() {
                             <table className="sessions-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                                 <thead style={{ position: 'sticky', top: 0, backgroundColor: '#f8f9fa', zIndex: 1, boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
                                 <tr>
-                                    <th style={{ padding: '12px', textAlign: 'left' }}>No</th>
-                                    <th style={{ padding: '12px', textAlign: 'left' }}>Start Time</th>
-                                    <th style={{ padding: '12px', textAlign: 'left' }}>End Time</th>
-                                    <th style={{ padding: '12px', textAlign: 'left' }}>Type</th>
-                                    <th style={{ padding: '12px', textAlign: 'left' }}>Status</th>
-                                    <th style={{ padding: '12px', textAlign: 'left' }}>Patient ID</th>
-                                    <th style={{ padding: '12px', textAlign: 'left' }}>Patient Name</th>
-                                    <th style={{ padding: '12px', textAlign: 'left' }}>File Name</th>
+                                    <th style={{ padding: '12px', textAlign: 'center' }}>No</th>
+                                    <th style={{ padding: '12px', textAlign: 'center' }}>Patient Name</th>
+                                    <th style={{ padding: '12px', textAlign: 'center' }}>Patient ID</th>
+                                    <th style={{ padding: '12px', textAlign: 'center' }}>Start Time</th>
+                                    {/* <th style={{ padding: '12px', textAlign: 'left' }}>End Time</th> */}
+                                    {/* <th style={{ padding: '12px', textAlign: 'left' }}>Type</th> */}
+                                    <th style={{ padding: '12px', textAlign: 'center' }}>File Name</th>
                                     <th style={{ padding: '12px', textAlign: 'center' }}>Checked</th>
                                     <th style={{ padding: '12px', textAlign: 'center' }}>Double-checked</th>
+                                    <th style={{ padding: '12px', textAlign: 'center' }}>Status</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -268,17 +302,17 @@ export default function Dashboard() {
                                     return (
                                         <tr key={s.sessionId} className={`session-row session-status-${(s.status||'').toLowerCase()}`} onClick={() => handleOpenSession(s.sessionId)} style={{cursor: 'pointer', borderBottom: '1px solid #eee'}}>
                                             <td style={{ padding: '10px' }}>{no}</td>
-                                            <td style={{ padding: '10px' }}>{s.startTime || '-'}</td>
-                                            <td style={{ padding: '10px' }}>{s.endTime || '-'}</td>
-                                            <td style={{ padding: '10px' }}>{s.measurementType || '-'}</td>
-                                            <td style={{ padding: '10px' }}>
-                                                <span className={`badge status-${statusRaw.toLowerCase()}`}>{statusLabel}</span>
-                                            </td>
-                                            <td style={{ padding: '10px' }}>{patientId}</td>
                                             <td style={{ padding: '10px' }}>{patientName}</td>
+                                            <td style={{ padding: '10px' }}>{patientId}</td>
+                                            <td style={{ padding: '10px' }}>{s.startTime || '-'}</td>
+                                            {/* <td style={{ padding: '10px' }}>{s.endTime || '-'}</td> */}
+                                            {/* <td style={{ padding: '10px' }}>{s.measurementType || '-'}</td> */}
                                             <td style={{ padding: '10px' }}>{s.inputFileName || '-'}</td>
                                             <td style={{ padding: '10px', textAlign: 'center' }}>{isChecked ? '✓' : ''}</td>
                                             <td style={{ padding: '10px', textAlign: 'center' }}>{isDoubleChecked ? '✓' : ''}</td>
+                                            <td style={{ padding: '10px' }}>
+                                                <span className={`badge status-${statusRaw.toLowerCase()}`}>{statusLabel}</span>
+                                            </td>
                                         </tr>
                                     )
                                 })}
@@ -289,6 +323,25 @@ export default function Dashboard() {
                         <div className="dashboard-sessions-footer" style={{ marginTop: '10px', flexShrink: 0, textAlign: 'right', fontSize: '0.85rem', color: '#666' }}>
                             Showing {sortedAndFiltered.length} session(s)
                         </div>
+                        <div className="dashboard-toolbar" style={{ display: 'flex', gap: '10px', marginBottom: '15px', justifyContent: 'flex-end'}}>
+                            <button
+                                className="primary-btn"
+                            >
+                                Import Raw Data
+                            </button>
+
+                            <button
+                                className="primary-btn"
+                            >
+                                Import Reviewed Data
+                            </button>
+
+                            <button
+                                className="secondary-btn"
+                            >
+                                Open Folder
+                            </button>
+                            </div>
                     </div>
                 </div>
             </main>
