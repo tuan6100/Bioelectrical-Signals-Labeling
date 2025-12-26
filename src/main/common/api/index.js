@@ -5,7 +5,8 @@ import {
     deleteAnnotationAppApi,
     getSessionInfoAppApi,
     isDesktopEnv, getAllSessionsAppApi, getSessionsByPatientIdAppApi,
-    updateSessionStatusAppApi, exportToExcelAppApi, enableDoubleCheckAppApi, setChannelDoubleCheckedAppApi
+    updateSessionStatusAppApi, exportToExcelAppApi, enableDoubleCheckAppApi, setChannelDoubleCheckedAppApi,
+    deleteSessionAppApi
 } from '../../app/api/provider';
 
 /**
@@ -246,3 +247,19 @@ export const fetchSetChannelDoubleChecked = async (sessionId, channelId, isDoubl
         // TODO: Implement web version
     }
 };
+
+/**
+ * Delete session by ID.
+ *
+ * @async
+ * @function fetchDeleteSession
+ * @param {number} sessionId - The ID of the session to delete.
+ * @returns {Promise<number>} A promise that resolves to the sessionId of the deleted session.
+ */
+export async function fetchDeleteSession(sessionId) {
+    if (isDesktopEnv()) {
+        return await deleteSessionAppApi(sessionId)
+    } else {
+        // TODO: Implement web version
+    }
+}

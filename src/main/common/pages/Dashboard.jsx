@@ -5,7 +5,6 @@ import "./Dashboard.css"
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome"
 import {faArrowRotateRight, faSort, faSortUp, faSortDown, faEnvelope } from "@fortawesome/free-solid-svg-icons"
 import {fetchAllSessions} from "../api/index.js";
-import ibmeLogo from "../../../ibme-logo.png";
 
 export default function Dashboard() {
     const navigate = useNavigate()
@@ -14,7 +13,6 @@ export default function Dashboard() {
     const [error, setError] = useState("")
     const [query, setQuery] = useState("")
     const [hasLoaded, setHasLoaded] = useState(false)
-    const [statusSortOrder, setStatusSortOrder] = useState('none');
     const mountedRef = useRef(true)
 
     useEffect(() => {
@@ -63,7 +61,16 @@ export default function Dashboard() {
         }
     }, []);
 
-    const sortedAndFiltered = useMemo(() => {
+    useEffect(() => {
+        if (window.biosignalApi?.on?.sessionsUpdated) {
+            const unsubscribe = window.biosignalApi.on.sessionsUpdated(() => {
+                fetchSessions();
+            });
+            return () => unsubscribe();
+        }
+    }, []);
+
+    const Filtered = useMemo(() => {
         const raw = query.trim()
         let filteredSessions = sessions;
 
@@ -143,65 +150,52 @@ export default function Dashboard() {
             }
         }
 
-        if (statusSortOrder !== 'none') {
-            const statusOrder = { 'NEW': 1, 'IN_PROGRESS': 2, 'COMPLETED': 3 };
-            filteredSessions.sort((a, b) => {
-                const orderA = statusOrder[a.status] || 0;
-                const orderB = statusOrder[b.status] || 0;
-                if (statusSortOrder === 'asc') {
-                    return orderA - orderB;
-                } else {
-                    return orderB - orderA;
-                }
-            });
-        }
-
         return filteredSessions;
-    }, [sessions, query, statusSortOrder])
-
-    const toggleStatusSort = () => {
-        setStatusSortOrder(current => {
-            if (current === 'none') return 'asc';
-            if (current === 'asc') return 'desc';
-            return 'none';
-        });
-    };
+    }, [sessions, query])
 
     const handleOpenSession = (sessionId) => {
         navigate(`/sessions/${sessionId}`)
     }
 
+    const handleFileAction = async (apiCall) => {
+        if (loading) return;
+        setLoading(true);
+        try {
+            await apiCall;
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
-        <div className="start-page-root" style={{ display: 'flex', justifyContent: 'center', width: '100%', backgroundColor: '#f5f5f5' }}>
+        <div className="start-page-root" style={{ display: 'flex', flexDirection: 'column', width: '100vw', height: '100vh', backgroundColor: '#f5f5f5', overflow: 'hidden' }}>
 
-            <main className="start-page-main" style={{ width: '100%', maxWidth: '1400px', padding: '20px' }}>
-                <div className="dashboard-wrapper" style={{ display: 'flex', flexDirection: 'column', height: '100%', backgroundColor: '#fff', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+            <main className="start-page-main" style={{ flex: 1, display: 'flex', flexDirection: 'column', width: '100%', padding: '20px', boxSizing: 'border-box', overflow: 'hidden' }}>
+                <div className="dashboard-wrapper" style={{ display: 'flex', flexDirection: 'column', flex: 1, backgroundColor: '#fff', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
 
-                    <div className="dashboard-top-nav" style={{ 
-                        padding: '20px 20px 0 20px', 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
+                    <div className="dashboard-top-nav" style={{
+                        padding: '20px 20px 0 20px',
+                        display: 'flex',
+                        justifyContent: 'space-between',
                         alignItems: 'flex-end'
                     }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                            <img 
-                                src={ibmeLogo} 
-                                alt="iBME Logo" 
-                                style={{ height: '100px', width: 'auto', marginBottom: '8px' }} 
-                            />
-                            <h1 style={{ margin: 0, fontSize: '1.5rem', color: '#333' }}>
-                                EMG Biosignal Labeling Dashboard
-                            </h1>
-                        </div>
+                        <img
+                            src="/logo/ibme-logo.png"
+                            alt="iBME Logo"
+                            style={{ height: '100px', width: 'auto', marginBottom: '8px' }}
+                        />
+                        <h1 style={{ textAlign: "center", margin: 0, fontSize: '2rem', color: '#333', fontFamily: 'Open Sans, sans-serif' }}>
+                            EMG Biosignal Labeling Dashboard
+                        </h1>
                         <div className="header-actions" style={{ marginBottom: '5px' }}>
-                            <a 
+                            <a
                                 href="https://lab.ibme.edu.vn/"
-                                target="_blank" 
+                                target="_blank"
                                 rel="noopener noreferrer"
                                 className="contact-link"
-                                style={{ 
-                                    textDecoration: 'none', 
-                                    color: '#007bff', 
+                                style={{
+                                    textDecoration: 'none',
+                                    color: '#007bff',
                                     fontWeight: '500',
                                     fontSize: '0.9rem',
                                     display: 'flex',
@@ -217,20 +211,17 @@ export default function Dashboard() {
                     <div className="dashboard-sessions-block" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', padding: '20px' }}>
 
                         <div className="dashboard-sessions-header" style={{ flexShrink: 0, marginBottom: '15px' }}>
-                            {/* <h3>Sessions ({sortedAndFiltered.length})</h3> */}
-                            <div className="start-page-sidebar-actions">
+                            <div className="start-page-search-wrap start-page-search-wrap--with-action" style={{ flexShrink: 0, marginBottom: 0 }}>
+                                <input
+                                    className="start-page-search-input start-page-search-input--with-action"
+                                    type="text"
+                                    placeholder="Search (e.g. status=NEW, patientname=Nguyen Van A, ...)"
+                                    value={query}
+                                    onChange={(e) => setQuery(e.target.value)}
+                                />
+
                                 <button
-                                    className="icon-btn"
-                                    title={`Sort by Status (${statusSortOrder === 'asc' ? 'Completed first' :  'New first' })`}
-                                    onClick={toggleStatusSort}
-                                    style={{ marginRight: '15px' }}
-                                >
-                                    <FontAwesomeIcon
-                                        icon={statusSortOrder === 'asc' ? faSortUp : statusSortOrder === 'desc' ? faSortDown : faSort}
-                                    />
-                                </button>
-                                <button
-                                    className="icon-btn"
+                                    className="icon-btn start-page-search-action"
                                     title="Refresh List"
                                     onClick={(e) => {
                                         e.preventDefault()
@@ -245,17 +236,6 @@ export default function Dashboard() {
                                     />
                                 </button>
                             </div>
-                        </div>
-
-                        <div className="start-page-search-wrap" style={{ flexShrink: 0, marginBottom: '15px' }}>
-                            <input
-                                className="start-page-search-input"
-                                type="text"
-                                placeholder="Search (e.g. status=NEW, patientname=Nguyen Van A, ...)"
-                                value={query}
-                                onChange={(e) => setQuery(e.target.value)}
-                                style={{ width: '100%' }}
-                            />
                         </div>
 
                         {error && <div className="start-page-error">{error}</div>}
@@ -274,8 +254,6 @@ export default function Dashboard() {
                                     <th style={{ padding: '12px', textAlign: 'center' }}>Patient Name</th>
                                     <th style={{ padding: '12px', textAlign: 'center' }}>Patient ID</th>
                                     <th style={{ padding: '12px', textAlign: 'center' }}>Start Time</th>
-                                    {/* <th style={{ padding: '12px', textAlign: 'left' }}>End Time</th> */}
-                                    {/* <th style={{ padding: '12px', textAlign: 'left' }}>Type</th> */}
                                     <th style={{ padding: '12px', textAlign: 'center' }}>File Name</th>
                                     <th style={{ padding: '12px', textAlign: 'center' }}>Checked</th>
                                     <th style={{ padding: '12px', textAlign: 'center' }}>Double-checked</th>
@@ -283,7 +261,7 @@ export default function Dashboard() {
                                 </tr>
                                 </thead>
                                 <tbody>
-                                {sortedAndFiltered.map((s, idx) => {
+                                {Filtered.map((s, idx) => {
                                     const no = idx + 1
                                     const statusRaw = (s.status || '').toUpperCase()
                                     const statusObj = {
@@ -321,23 +299,26 @@ export default function Dashboard() {
                         </div>
 
                         <div className="dashboard-sessions-footer" style={{ marginTop: '10px', flexShrink: 0, textAlign: 'right', fontSize: '0.85rem', color: '#666' }}>
-                            Showing {sortedAndFiltered.length} session(s)
+                            Total {Filtered.length} file(s)
                         </div>
                         <div className="dashboard-toolbar" style={{ display: 'flex', gap: '10px', marginBottom: '15px', justifyContent: 'flex-end'}}>
                             <button
                                 className="primary-btn"
+                                onClick={() => handleFileAction(window.biosignalApi.head.importRaw())}
                             >
                                 Import Raw Data
                             </button>
 
                             <button
                                 className="primary-btn"
+                                onClick={() => handleFileAction(window.biosignalApi.head.importReviewed())}
                             >
                                 Import Reviewed Data
                             </button>
 
                             <button
                                 className="secondary-btn"
+                                onClick={() => handleFileAction(window.biosignalApi.head.openFolder())}
                             >
                                 Open Folder
                             </button>

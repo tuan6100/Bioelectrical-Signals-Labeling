@@ -214,3 +214,13 @@ function notifySessionUpdate(sessionId) {
         });
     }
 }
+
+export function deleteSession(sessionId) {
+    return asTransaction(function (sessionId) {
+        const channels = Channel.findBySessionId(sessionId);
+        channels.forEach(channel => Annotation.deleteByChannelId(channel.channelId));
+        Channel.deleteBySessionId(sessionId)
+        Session.delete(sessionId)
+        return sessionId
+    })(sessionId)
+}

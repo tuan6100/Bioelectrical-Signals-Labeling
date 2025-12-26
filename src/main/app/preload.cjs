@@ -7,11 +7,6 @@ contextBridge.exposeInMainWorld("IN_DESKTOP_ENV", true);
 
 contextBridge.exposeInMainWorld("biosignalApi", {
     on: {
-        sessionId: (callback) => {
-            const listener = (_event, sessionId) => callback(sessionId)
-            ipcRenderer.on("send:session-id", listener)
-            return () => ipcRenderer.removeListener("send:session-id", listener)
-        },
         sessionsUpdated: (callback) => {
             const listener = (_event, args) => callback(args);
             ipcRenderer.on("sessions:updated", listener);
@@ -41,6 +36,7 @@ contextBridge.exposeInMainWorld("biosignalApi", {
         allLabels: () => ipcRenderer.invoke(
             "label:getAll"
         ),
+
     },
 
     head: {
@@ -53,6 +49,9 @@ contextBridge.exposeInMainWorld("biosignalApi", {
             "label:exportExcel",
             sessionId, channelId
         ),
+        importRaw: () => ipcRenderer.invoke("file:importRaw"),
+        importReviewed: () => ipcRenderer.invoke("file:importReviewed"),
+        openFolder: () => ipcRenderer.invoke("file:openFolder"),
     },
 
     post: {
@@ -88,13 +87,14 @@ contextBridge.exposeInMainWorld("biosignalApi", {
 
 
     delete: {
+        deleteSession: (sessionId) => ipcRenderer.invoke(
+            "session:delete",
+            sessionId
+        ),
+
         deleteAnnotation: (annotationId) => ipcRenderer.invoke(
             "annotation:delete",
             annotationId
         ),
     },
-
-    openExternal: function(url) {
-        return shell.openExternal(url);
-    }
 });

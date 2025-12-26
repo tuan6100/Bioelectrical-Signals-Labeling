@@ -21,3 +21,7 @@ export async function enableDoubleCheckAppApi(sessionId) {
 export async function setChannelDoubleCheckedAppApi(sessionId, channelId, isDoubleChecked) {
     return window.biosignalApi.put.setChannelDoubleChecked(sessionId, channelId, isDoubleChecked)
 }
+
+export async function deleteSessionAppApi(sessionId) {
+    return window.biosignalApi.delete.session(sessionId)
+}
