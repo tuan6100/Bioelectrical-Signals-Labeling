@@ -62,9 +62,10 @@ export function exportLabels(channelId) {
 }
 
 export function exportSessionData(sessionId) {
-    const session = Session.findOneById(sessionId)
-    if (!session) return null
     const relatedInfo = Session.findAllRelatedById(sessionId)
+    if (!relatedInfo) {
+        throw new Error("Session not found")
+    }
     const channelsData = []
     if (relatedInfo && relatedInfo.channels) {
         for (const chRef of relatedInfo.channels) {
@@ -74,6 +75,17 @@ export function exportSessionData(sessionId) {
             }
         }
     }
+    const session = new Session(
+        relatedInfo.sessionId,
+        relatedInfo.patientId,
+        relatedInfo.sessionMeasurementType,
+        relatedInfo.sessionStartTime,
+        relatedInfo.sessionEndTime,
+        relatedInfo.sessionStatus,
+        relatedInfo.inputFileName,
+        null,
+        relatedInfo.sessionUpdatedAt
+    )
     return {
         session,
         channelsData: channelsData.sort((a, b) => a.channel.channelNumber - b.channel.channelNumber)

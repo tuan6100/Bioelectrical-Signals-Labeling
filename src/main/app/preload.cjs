@@ -67,9 +67,13 @@ contextBridge.exposeInMainWorld("biosignalApi", {
             sessionId,
             newStatus
         ),
-        enableDoubleCheck: (sessionId) => ipcRenderer.invoke(
-            "session:enableDoubleCheck",
-            sessionId
+        enableDoubleCheck: (channelId) => ipcRenderer.invoke(
+            "channel:enableDoubleCheck",
+            channelId
+        ),
+        disableDoubleCheck: (channelId) => ipcRenderer.invoke(
+            "channel:disableDoubleCheck",
+            channelId
         ),
         setChannelDoubleChecked: (sessionId, channelId, isDoubleChecked) => ipcRenderer.invoke(
             "channel:setDoubleChecked",
@@ -87,12 +91,11 @@ contextBridge.exposeInMainWorld("biosignalApi", {
 
 
     delete: {
-        deleteSession: (sessionId) => ipcRenderer.invoke(
+        session: (sessionId) => ipcRenderer.invoke(
             "session:delete",
             sessionId
         ),
-
-        deleteAnnotation: (annotationId) => ipcRenderer.invoke(
+        annotation: (annotationId) => ipcRenderer.invoke(
             "annotation:delete",
             annotationId
         ),

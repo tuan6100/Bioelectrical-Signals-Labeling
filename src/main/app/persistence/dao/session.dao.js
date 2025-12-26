@@ -130,8 +130,8 @@ export default class Session {
         const stmt = Session.db.prepare(`
         SELECT
             p.patient_id, p.first_name AS patient_first_name, p.gender AS patient_gender,
-            s.start_time AS session_start_time, s.end_time AS session_end_time,
-            s.status, s.updated_at AS session_updated_at,
+            s.start_time AS session_start_time, s.end_time AS session_end_time, s.measurement_type,
+            s.status, s.updated_at AS session_updated_at, s.input_file_name,
             c.channel_id, c.channel_number
         FROM sessions AS s
         INNER JOIN patients AS p ON s.patient_id = p.patient_id
@@ -149,8 +149,11 @@ export default class Session {
             patientGender: rows[0].patient_gender,
             sessionStartTime: rows[0].session_start_time,
             sessionEndTime: rows[0].session_end_time,
+            sessionMeasurementType: rows[0].measurement_type,
             sessionStatus: rows[0].status,
-            sessionUpdatedAt: new Date(rows[0].session_updated_at).toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }),
+            inputFileName: rows[0].input_file_name,
+            sessionUpdatedAt: new Date(rows[0].session_updated_at)
+                .toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }),
             channels: []
         }
         for (const row of rows) {
@@ -202,7 +205,7 @@ export default class Session {
             SET ${setClause}, updated_at = ?
             WHERE session_id = ?
         `)
-        stmt.run(...values, now, sessionId)
+        return stmt.run(...values, now, sessionId)
     }
 
     static delete(sessionId) {

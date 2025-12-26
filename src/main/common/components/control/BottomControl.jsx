@@ -1,52 +1,84 @@
-    import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import './BottomControl.css'
 import {
     fetchUpdateSessionStatus,
     fetchEnableDoubleCheck,
-    fetchSetChannelDoubleChecked
+    fetchSetChannelDoubleChecked, fetchDisableDoubleCheck
 } from "../../api/index.js"
 
 export default function BottomControl({ session, channelId, channelDoubleChecked }) {
-    const { sessionId, sessionStatus } = session
+    const { sessionId } = session
+    const [currentStatus, setCurrentStatus] = useState(session.sessionStatus)
     const [isCompleted, setIsCompleted] = useState(false)
     const [isChannelChecked, setIsChannelChecked] = useState(false)
+    const [isProcessing, setIsProcessing] = useState(false)
 
-    const isDoctorMode = sessionStatus === 'WAIT_FOR_DOUBLE_CHECK'
-    const isStudentWaiting = sessionStatus === 'REQUEST_DOUBLE_CHECK'
+    const isDoctorMode = currentStatus === 'WAIT_FOR_DOUBLE_CHECK' || currentStatus === 'COMPLETED'
+    const isStudentWaiting = currentStatus === 'REQUEST_DOUBLE_CHECK'
 
     useEffect(() => {
-        setIsCompleted(sessionStatus === 'COMPLETED')
-    }, [sessionStatus])
+        setCurrentStatus(session.sessionStatus)
+    }, [session.sessionStatus])
+
+    useEffect(() => {
+        if (window.biosignalApi?.on?.sessionStatusUpdated) {
+            const unsubscribe = window.biosignalApi.on.sessionStatusUpdated((updatedSession) => {
+                if (updatedSession.sessionId === sessionId) {
+                    console.log("Event received: Status updated to", updatedSession.status);
+                    setCurrentStatus(updatedSession.status);
+                    setIsProcessing(false);
+                }
+            });
+            return () => unsubscribe();
+        }
+    }, [sessionId]);
+
+    useEffect(() => {
+        setIsCompleted(currentStatus === 'COMPLETED')
+    }, [currentStatus])
 
     useEffect(() => {
         setIsChannelChecked(!!channelDoubleChecked)
     }, [channelDoubleChecked, channelId])
 
     const onToggleCompleted = async (checked) => {
+        if (isProcessing) return;
+        setIsProcessing(true);
         try {
-            const newStatus = checked ? 'COMPLETED' : 'IN_PROGRESS'
+            const newStatus = checked ? 'COMPLETED' : (isDoctorMode ? 'WAIT_FOR_DOUBLE_CHECK' : 'IN_PROGRESS')
             await fetchUpdateSessionStatus(sessionId, newStatus)
             setIsCompleted(checked)
+            setCurrentStatus(newStatus)
         } catch (error) {
-            console.error("Failed to update status:", error)
-            alert(error.message || "Cannot complete session yet.")
             setIsCompleted(!checked)
+            console.error(error)
+        } finally {
+            setIsProcessing(false);
         }
     }
 
-    const handleDoubleCheckAction = async (checked) => {
+    const onToggleDoubleCheck = async (checked) => {
+        if (isProcessing) return;
+        setIsProcessing(true);
         try {
             if (isDoctorMode) {
                 await fetchSetChannelDoubleChecked(sessionId, channelId, checked)
                 setIsChannelChecked(checked)
+                if (!checked && currentStatus === 'COMPLETED') {
+                    const revertStatus = 'WAIT_FOR_DOUBLE_CHECK'
+                    await fetchUpdateSessionStatus(sessionId, revertStatus)
+                    setCurrentStatus(revertStatus)
+                    setIsCompleted(false)
+                }
             } else if (!isStudentWaiting && checked) {
-                await fetchEnableDoubleCheck(sessionId)
+                await fetchEnableDoubleCheck(channelId)
             } else if (isStudentWaiting && !checked) {
-                await fetchUpdateSessionStatus(sessionId, 'IN_PROGRESS')
+                await fetchDisableDoubleCheck(channelId)
             }
         } catch (err) {
-            console.error(err)
-            setIsChannelChecked(prev => prev)
+            console.error(err);
+        } finally {
+            setIsProcessing(false);
         }
     }
 
@@ -62,7 +94,7 @@ export default function BottomControl({ session, channelId, channelDoubleChecked
                     type="checkbox"
                     checked={isCompleted}
                     onChange={(e) => onToggleCompleted(e.target.checked)}
-                    disabled={isStudentWaiting}
+                    disabled={isProcessing || (isDoctorMode && !isChannelChecked)}
                 />
             </div>
             <div className="toggle">
@@ -70,7 +102,9 @@ export default function BottomControl({ session, channelId, channelDoubleChecked
                 <input
                     type="checkbox"
                     checked={isDoctorMode ? isChannelChecked : isStudentWaiting}
-                    onChange={(e) => handleDoubleCheckAction(e.target.checked)}
+                    onChange={(e) => onToggleDoubleCheck(e.target.checked)}
+                    disabled={isProcessing}
+                    style={{ cursor: isProcessing ? 'wait' : 'pointer' }}
                 />
             </div>
         </div>
