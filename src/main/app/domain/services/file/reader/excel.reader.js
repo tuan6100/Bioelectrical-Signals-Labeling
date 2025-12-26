@@ -1,4 +1,7 @@
 import ExcelJS from "exceljs";
+import {persistExcelData} from "../../data/command/session.command.js";
+import {dialog} from "electron";
+import path from "node:path";
 
 export async function readExcelSession(filePath) {
     const workbook = new ExcelJS.Workbook();
@@ -87,4 +90,30 @@ export async function readExcelSession(filePath) {
         annotations: annotations,
         channels: channels
     };
+}
+
+export async function processExcelFiles(window, filePaths) {
+    if (!filePaths || filePaths.length === 0) return
+    let successCount = 0;
+    const errors = [];
+    for (const filePath of filePaths) {
+        try {
+            const excelData = await readExcelSession(filePath);
+            persistExcelData(excelData);
+            successCount++;
+        } catch (err) {
+            console.error(`Error processing Excel ${filePath}:`, err);
+            errors.push({ file: path.basename(filePath), reason: err.message });
+        }
+    }
+    window.webContents.send("sessions:updated", { refresh: Date.now() });
+    if (errors.length > 0) {
+        dialog.showErrorBox('Import Excel Error', `Failed files:\n${errors.map(e => `${e.file}: ${e.reason}`).join('\n')}`);
+    } else if (successCount > 0) {
+        await dialog.showMessageBox(window, {
+            type: 'info',
+            title: 'Import Successful',
+            message: `Successfully updated ${successCount} session(s) from Excel.`
+        });
+    }
 }

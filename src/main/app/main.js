@@ -6,7 +6,6 @@ import { fileURLToPath } from 'node:url'
 import './api/handlers/index.js'
 import {db} from "./persistence/connection/sqlite.connection.js";
 import pkg from 'electron-updater';
-import {setMenuTemplate} from "./presentation/menu.js";
 import {initSchema, migrateSchema} from "./domain/utils/version-management.util.js";
 import config from "config";
 const { autoUpdater } = pkg;
@@ -33,16 +32,14 @@ const createWindow = () => {
         titleBarStyle: 'customButtonsOnHover'
     })
 
-    const defaultDir = app.getPath('documents')
-    const menu = Menu.buildFromTemplate(setMenuTemplate(mainWindow, defaultDir))
-    Menu.setApplicationMenu(menu)
-
     // and load the index.html of the app.
     if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
         mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL)
     } else {
         mainWindow.loadFile(path.join(__dirname, '..', '..', '..', 'dist', 'index.html'))
     }
+
+    mainWindow.setMenu(null)
 
     //spell checker
     mainWindow.webContents.session.setSpellCheckerLanguages(['en-US', 'vi', 'fr',])
