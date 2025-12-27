@@ -59,7 +59,6 @@ ipcMain.removeHandler('label:exportExcel')
 ipcMain.on('label:exportExcel', async (event, sessionId) => {
     const inputFileName = getInputFileName(sessionId)
         .replace(path.extname(getInputFileName(sessionId)), '')
-
     const lastExportDir = store.get('lastExportDir');
     let defaultPath = `${inputFileName}.xlsx`;
     if (lastExportDir) {

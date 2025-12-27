@@ -30,7 +30,6 @@
   "license": "Apache-2.0",
   "dependencies": {
     "better-sqlite3": "^12.4.1",
-    "config": "^4.1.1",
     "crc-32": "^1.2.2",
     "electron-log": "^5.4.3",
     "electron-store": "^11.0.2",
@@ -52,11 +51,9 @@
     "electron-builder": "^26.0.12",
     "mocha": "^11.7.5",
     "react": "^19.2.0",
-    "react-chartjs-2": "^5.3.1",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.9.5",
     "react-select": "^5.10.2",
-    "recharts": "^3.5.1",
     "scheduler": "^0.27.0",
     "sinon": "^21.0.0",
     "vite": "^5.4.21",
@@ -69,7 +66,7 @@
       "better-sqlite3"
     ]
   },
-    "build": {
+  "build": {
     "appId": "vn.edu.hust.ibme.biosignal",
     "productName": "Biosignal Labeling",
     "artifactName": "biosignal-labeling-${version}-${os}-${arch}.${ext}",
@@ -81,7 +78,7 @@
     "files": [
       "dist/**/*",
       "src/main/app/**/*",
-      "config/**/*",
+      "config/**/production.json",
       "!src/main/common/**/*",
       "!*.map",
       "!package.json",
@@ -109,6 +106,12 @@
       "!**/{appveyor.yml,.travis.yml,circle.yml}",
       "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
     ],
+    "extraResources": [
+      {
+        "from": "config",
+        "to": "config"
+      }
+    ],
     "win": {
       "icon": "public/favicon/biosignal.ico",
       "target": [
@@ -134,11 +137,35 @@
       "differentialPackage": false
     },
     "mac": {
-      "category": "public.app-category.productivity",
-      "target": [
-        "zip"
+      "target": "dmg",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": true,
+      "extendInfo": {
+        "NSAppleEventsUsageDescription": "Let me use Apple Events.",
+        "NSCameraUsageDescription": "Let me use the camera.",
+        "NSScreenCaptureDescription": "Let me take screenshots."
+      }
+    },
+    "dmg": {
+      "background": "public/favicon/biosignal.ico",
+      "iconSize": 100,
+      "contents": [
+        {
+          "x": 255,
+          "y": 85,
+          "type": "file"
+        },
+        {
+          "x": 253,
+          "y": 325,
+          "type": "link",
+          "path": "/Applications"
+        }
       ],
-      "icon": "public/favicon/biosignal.ico"
+      "window": {
+        "width": 500,
+        "height": 500
+      }
     },
     "publish": [
       {

@@ -16,8 +16,7 @@ import { useSessionFilter } from "../hooks/useSessionFilter";
 export default function Dashboard() {
     const navigate = useNavigate();
     const [query, setQuery] = useState("");
-
-    const { sessions, loading, error, hasLoaded, fetchSessions } = useSessions();
+    const { sessions, loading, error, hasLoaded, fetchSessions, removeSession } = useSessions();
     const filteredSessions = useSessionFilter(sessions, query);
 
     const handleOpenSession = (sessionId) => {
@@ -25,14 +24,16 @@ export default function Dashboard() {
     };
 
     const handleDeleteSession = async (sessionId) => {
-        try {
-            fetchDeleteSession(sessionId).then(
-                () => {window.info('Session deleted successfully.')}
-            ).catch(() => {window.error('Failed to delete session.')})
-            await fetchSessions();
-        } catch (error) {
-            console.error('Failed to delete session:', error);
-        }
+        fetchDeleteSession(sessionId)
+            .then((result) => {
+                if (!result) return
+                removeSession(sessionId);
+                window.alert('Session deleted successfully.')
+            })
+            .catch((e) => {
+                window.alert('Failed to delete session.')
+                console.error(e)
+            })
     };
 
     const handleFileAction = async (apiCall) => {

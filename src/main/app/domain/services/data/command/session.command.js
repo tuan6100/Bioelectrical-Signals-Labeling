@@ -244,11 +244,12 @@ function notifySessionUpdate(sessionId) {
 
 async function exportSessionDirectly(sessionId, inputFileName) {
     try {
+        const inputFileNameSanitized = inputFileName.replace(path.extname(getInputFileName(sessionId)), '')
         const store = new Store();
         const lastExportDir = store.get('lastExportDir')
-        let defaultPath = `${inputFileName}.xlsx`
+        let defaultPath = `${inputFileNameSanitized}.xlsx`
         if (lastExportDir) {
-            defaultPath = path.join(lastExportDir, `${inputFileName}.xlsx`)
+            defaultPath = path.join(lastExportDir, `${inputFileNameSanitized}.xlsx`)
         }
         const win = BrowserWindow.getFocusedWindow()
         const fileManager = await dialog.showSaveDialog(win, {
@@ -267,13 +268,10 @@ async function exportSessionDirectly(sessionId, inputFileName) {
         const year = now.getFullYear()
         const folderName = `${day}-${month}-${year}`
         const targetDir = path.join(baseDir, folderName)
-
         await fs.promises.mkdir(targetDir, { recursive: true })
         const targetPath = path.join(targetDir, baseName)
-
-        // Thực hiện export và chờ xong
         await saveSessionToExcel(sessionId, targetPath)
-        return true // Export thành công
+        return true
     } catch (error) {
         console.error("Auto export failed:", error)
         dialog.showErrorBox('Export Error', `Could not backup session: ${error.message}`)
@@ -288,19 +286,16 @@ export async function deleteSession(sessionId) {
     }
     if (session.exported === 0 && session.status !== 'DOCTOR_COMPLETED' && session.status !== 'STUDENT_COMPLETED') {
         const wantToExport = warnDeletionBeforeExport(session.inputFileName)
-        switch (wantToExport) {
-            case 0:
-                const exported = await exportSessionDirectly(sessionId, session.inputFileName)
-                if (!exported) {
-                    return
-                }
-                break
-            case 1:
-                break
-            case 2:
+        if (wantToExport === 0) {
+            const exported = await exportSessionDirectly(sessionId, session.inputFileName)
+            if (!exported) {
                 return
+            }
+        } else if (wantToExport === 2) {
+            return
         }
     }
+
     return asTransaction(function (sessionId) {
         const channels = Channel.findBySessionId(sessionId)
         channels.forEach(channel => Annotation.deleteByChannelId(channel.channelId))

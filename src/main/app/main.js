@@ -1,34 +1,16 @@
-import {app, BrowserWindow, globalShortcut, dialog} from 'electron'
+import {app, BrowserWindow, dialog, globalShortcut} from 'electron'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-const isPackaged = __dirname.includes('app.asar')
-
-if (isPackaged) {
-    const configPath = path.join(__dirname, '..', '..', '..', 'config')
-    process.env.NODE_CONFIG_DIR = configPath
-    console.log('Production config path:', configPath)
-} else {
-    const configPath = path.join(__dirname, '..', '..', '..', 'config')
-    process.env.NODE_CONFIG_DIR = configPath
-    console.log('Development config path:', configPath)
-}
-
-if (!process.env.NODE_ENV) {
-    process.env.NODE_ENV = isPackaged ? 'production' : 'development'
-}
-
-console.log('NODE_ENV:', process.env.NODE_ENV)
-console.log('NODE_CONFIG_DIR:', process.env.NODE_CONFIG_DIR)
-
+import {fileURLToPath} from 'node:url'
 import './api/handlers/index.js'
 import {db} from "./persistence/connection/sqlite.connection.js";
 import pkg from 'electron-updater';
 import {initSchema, isDbInitialized, migrateSchema} from "./domain/utils/version-management.util.js";
-import config from "config";
 import log from 'electron-log';
+import appConfig from "./config.js";
+import fs from "node:fs";
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 const { autoUpdater } = pkg
 log.initialize()
@@ -77,31 +59,22 @@ app.whenReady().then(async() => {
         autoUpdater.autoDownload = true
         autoUpdater.autoRunAppAfterInstall = true
         autoUpdater.allowPrerelease = true
-
         if (process.env.NODE_ENV === 'dev') {
-            const updateForDevEnv = config.has('update.force') ? Boolean(config.get('update.force')) : false
+            const updateForDevEnv =  appConfig.has('update.force') ? Boolean(appConfig.get('update.force')) : false
             if (updateForDevEnv) {
                 autoUpdater.forceDevUpdateConfig = updateForDevEnv
                 autoUpdater.updateConfigPath = path.join(__dirname, '..', '..','..', 'dev-app-update.yml')
             }
         }
-
         await autoUpdater.checkForUpdatesAndNotify()
-
-        const migrationEnabled = config.has('migration.require')
-            ? Boolean(config.get('migration.require'))
-            : true
-        console.log('Migration enabled:', migrationEnabled)
-
+        const migrationEnabled = appConfig.get('migration.require', false);
         if (!isDbInitialized()) {
             console.log('Database not initialized → initSchema()')
             initSchema()
-        }
-        else if (migrationEnabled) {
+        } else if (migrationEnabled) {
             console.log('Database exists → migrateSchema()')
             await migrateSchema()
-        }
-        else {
+        } else {
             console.log('Migration disabled → skip')
         }
 
