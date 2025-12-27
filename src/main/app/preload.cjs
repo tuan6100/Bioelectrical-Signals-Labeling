@@ -45,9 +45,9 @@ contextBridge.exposeInMainWorld("biosignalApi", {
             sessionId
         ),
 
-        exportToExcel: (sessionId, channelId) => ipcRenderer.send(
+        exportToExcel: (sessionId) => ipcRenderer.send(
             "label:exportExcel",
-            sessionId, channelId
+            sessionId
         ),
         importRaw: () => ipcRenderer.invoke("file:importRaw"),
         importReviewed: () => ipcRenderer.invoke("file:importReviewed"),

@@ -16,7 +16,7 @@ import { useSessionFilter } from "../hooks/useSessionFilter";
 export default function Dashboard() {
     const navigate = useNavigate();
     const [query, setQuery] = useState("");
-    
+
     const { sessions, loading, error, hasLoaded, fetchSessions } = useSessions();
     const filteredSessions = useSessionFilter(sessions, query);
 
@@ -26,14 +26,12 @@ export default function Dashboard() {
 
     const handleDeleteSession = async (sessionId) => {
         try {
-            // Call the delete API
-            await fetchDeleteSession(sessionId);
-            
-            // Refresh sessions after successful delete
+            fetchDeleteSession(sessionId).then(
+                () => {window.info('Session deleted successfully.')}
+            ).catch(() => {window.error('Failed to delete session.')})
             await fetchSessions();
         } catch (error) {
             console.error('Failed to delete session:', error);
-            alert('Failed to delete session. Please try again.');
         }
     };
 
@@ -47,40 +45,40 @@ export default function Dashboard() {
     };
 
     return (
-        <div className="start-page-root" style={{ 
-            display: 'flex', 
-            flexDirection: 'column', 
-            width: '100vw', 
-            height: '100vh', 
-            backgroundColor: '#f5f5f5', 
-            overflow: 'hidden' 
+        <div className="start-page-root" style={{
+            display: 'flex',
+            flexDirection: 'column',
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: '#f5f5f5',
+            overflow: 'hidden'
         }}>
-            <main className="start-page-main" style={{ 
-                flex: 1, 
-                display: 'flex', 
-                flexDirection: 'column', 
-                width: '100%', 
-                padding: '20px', 
-                boxSizing: 'border-box', 
-                overflow: 'hidden' 
+            <main className="start-page-main" style={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                width: '100%',
+                padding: '20px',
+                boxSizing: 'border-box',
+                overflow: 'hidden'
             }}>
-                <div className="dashboard-wrapper" style={{ 
-                    display: 'flex', 
-                    flexDirection: 'column', 
-                    flex: 1, 
-                    backgroundColor: '#fff', 
-                    borderRadius: '8px', 
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)', 
-                    overflow: 'hidden' 
+                <div className="dashboard-wrapper" style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    flex: 1,
+                    backgroundColor: '#fff',
+                    borderRadius: '8px',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                    overflow: 'hidden'
                 }}>
                     <DashboardHeader />
 
-                    <div className="dashboard-sessions-block" style={{ 
-                        display: 'flex', 
-                        flexDirection: 'column', 
-                        flex: 1, 
-                        overflow: 'hidden', 
-                        padding: '20px' 
+                    <div className="dashboard-sessions-block" style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        flex: 1,
+                        overflow: 'hidden',
+                        padding: '20px'
                     }}>
                         <SearchToolbar
                             query={query}
@@ -90,11 +88,11 @@ export default function Dashboard() {
                         />
 
                         {error && <div className="start-page-error">{error}</div>}
-                        
+
                         {loading && sessions.length === 0 && (
                             <div className="start-page-placeholder">Loading sessions…</div>
                         )}
-                        
+
                         {!loading && hasLoaded && sessions.length === 0 && (
                             <div className="start-page-placeholder">No sessions found.</div>
                         )}
@@ -105,12 +103,12 @@ export default function Dashboard() {
                             onDelete={handleDeleteSession}
                         />
 
-                        <div className="dashboard-sessions-footer" style={{ 
-                            marginTop: '10px', 
-                            flexShrink: 0, 
-                            textAlign: 'right', 
-                            fontSize: '0.85rem', 
-                            color: '#666' 
+                        <div className="dashboard-sessions-footer" style={{
+                            marginTop: '10px',
+                            flexShrink: 0,
+                            textAlign: 'right',
+                            fontSize: '0.85rem',
+                            color: '#666'
                         }}>
                             Total {filteredSessions.length} file(s)
                         </div>

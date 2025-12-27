@@ -32,6 +32,7 @@
     "better-sqlite3": "^12.4.1",
     "config": "^4.1.1",
     "crc-32": "^1.2.2",
+    "electron-log": "^5.4.3",
     "electron-store": "^11.0.2",
     "electron-updater": "^6.6.2",
     "exceljs": "^4.4.0"
@@ -68,7 +69,7 @@
       "better-sqlite3"
     ]
   },
-  "build": {
+    "build": {
     "appId": "vn.edu.hust.ibme.biosignal",
     "productName": "Biosignal Labeling",
     "artifactName": "biosignal-labeling-${version}-${os}-${arch}.${ext}",
