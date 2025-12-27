@@ -120,7 +120,7 @@ export default class Channel {
             WHERE session_id = ?
             ORDER BY channel_number
         `)
-        const rows = stmt.all()
+        const rows = stmt.all(sessionId)
         return rows.map(row => {
             const channel = new Channel(
                 row.channel_id,

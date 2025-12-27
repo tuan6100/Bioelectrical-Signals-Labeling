@@ -12,16 +12,14 @@ export default function SessionRow({ session, index, onOpenSession, onDelete }) 
 
     const handleDelete = (e) => {
         e.stopPropagation();
-        if (window.confirm(`Are you sure you want to delete session ${session.sessionId}?`)) {
-            onDelete(session.sessionId);
-        }
+        onDelete(session.sessionId);
     };
 
     return (
-        <tr 
-            key={session.sessionId} 
-            className={`session-row session-status-${(session.status || '').toLowerCase()}`} 
-            onClick={() => onOpenSession(session.sessionId)} 
+        <tr
+            key={session.sessionId}
+            className={`session-row session-status-${(session.status || '').toLowerCase()}`}
+            onClick={() => onOpenSession(session.sessionId)}
             style={{ cursor: 'pointer', borderBottom: '1px solid #eee' }}
         >
             <td style={{ padding: '10px' }}>{no}</td>
