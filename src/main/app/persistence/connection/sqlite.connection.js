@@ -28,7 +28,7 @@ const ddl = `
     CREATE TABLE IF NOT EXISTS patients (
         patient_id TEXT PRIMARY KEY NOT NULL,
         first_name TEXT,
-        gender TEXT CHECK (gender IN ('M','F'))
+        gender TEXT CHECK (gender IN ('M', 'F', 'U'))
     );
 
     CREATE TABLE IF NOT EXISTS sessions (

@@ -21,8 +21,8 @@ export function useSessions() {
             setLoading(true);
             setError("");
             const res = await fetchAllSessions();
-            const allSessions = Array.isArray(res) 
-                ? res 
+            const allSessions = Array.isArray(res)
+                ? res
                 : (Array.isArray(res?.contents) ? res.contents : []);
 
             if (!mountedRef.current) return;
@@ -65,11 +65,18 @@ export function useSessions() {
         }
     }, [fetchSessions]);
 
+    const removeSession = (sessionId) => {
+        setSessions(prev =>
+            prev.filter(session => session.sessionId !== sessionId)
+        );
+    };
+
     return {
         sessions,
         loading,
         error,
         hasLoaded,
-        fetchSessions
+        fetchSessions,
+        removeSession
     };
 }

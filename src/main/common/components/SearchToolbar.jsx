@@ -1,28 +1,39 @@
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowRotateRight } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faArrowRotateRight } from '@fortawesome/free-solid-svg-icons';
+import { useEffect, useState } from 'react';
+import './SearchToolbar.css';
+import {useDebounce} from "../hooks/useDebounce.js";
 
-export default function SearchToolbar({ query, onQueryChange, onRefresh, loading }) {
+export default function SearchToolbar({
+     query,
+     onQueryChange,
+     onRefresh,
+     loading
+}) {
+    const [localQuery, setLocalQuery] = useState(query);
+
+    const debouncedQuery = useDebounce(localQuery, 300);
+
+    // Emit search khi debounce xong
+    useEffect(() => {
+        onQueryChange(debouncedQuery);
+    }, [debouncedQuery]);
+
     return (
-        <div className="dashboard-sessions-header" style={{ 
-            flexShrink: 0, 
-            marginBottom: '15px' 
-        }}>
-            <div className="start-page-search-wrap start-page-search-wrap--with-action" 
-                 style={{ flexShrink: 0, marginBottom: 0 }}>
+        <div className="dashboard-sessions-header">
+            <div className="search-toolbar">
                 <input
-                    className="start-page-search-input start-page-search-input--with-action"
+                    className="search-toolbar__input"
                     type="text"
                     placeholder="Search (e.g. status=NEW, patientname=Nguyen Van A, ...)"
-                    value={query}
-                    onChange={(e) => onQueryChange(e.target.value)}
+                    value={localQuery}
+                    onChange={(e) => setLocalQuery(e.target.value)}
                 />
+
                 <button
-                    className="icon-btn start-page-search-action"
+                    className="icon-btn search-toolbar__refresh-btn"
                     title="Refresh List"
-                    onClick={(e) => {
-                        e.preventDefault();
-                        onRefresh();
-                    }}
+                    onClick={onRefresh}
                     disabled={loading}
                 >
                     <FontAwesomeIcon

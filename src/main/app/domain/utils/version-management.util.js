@@ -1,7 +1,6 @@
 import Store from "electron-store"
 import {app} from "electron";
 import {db} from "../../persistence/connection/sqlite.connection.js";
-import config from "config"
 
 const store = new Store()
 
@@ -29,9 +28,7 @@ export async function migrateSchema() {
         initSchema()
         return
     }
-    const changed = Boolean(config.get('migration.require'))
     const latestVersion = app.getVersion()
-    if (!changed) return
     await db.migrate(latestVersion)
 }
 
