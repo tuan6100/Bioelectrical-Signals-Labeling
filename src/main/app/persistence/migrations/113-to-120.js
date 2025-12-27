@@ -21,17 +21,18 @@ const migrateTableSessions = `
         measurement_type TEXT DEFAULT 'UNKNOWN' CHECK (measurement_type IN ('ECG','EEG','EMG', 'UNKNOWN')),
         start_time TEXT NOT NULL,
         end_time TEXT NOT NULL,
-        status TEXT DEFAULT 'NEW' CHECK (status IN ('NEW','IN_PROGRESS', 'REQUEST_DOUBLE_CHECK', 'WAIT_FOR_DOUBLE_CHECK','COMPLETED')),
+        status TEXT DEFAULT 'NEW' CHECK (status IN ('NEW','IN_PROGRESS', 'REQUEST_DOUBLE_CHECK', 'WAIT_FOR_DOUBLE_CHECK','STUDENT_COMPLETED', 'DOCTOR_COMPLETED')),
         input_file_name TEXT,
         content_hash TEXT UNIQUE,
         updated_at TEXT,
+        exported INTEGER DEFAULT 0 CHECK (exported IN (0,1)),
         FOREIGN KEY (patient_id) REFERENCES patients(patient_id) ON DELETE CASCADE
     );
     CREATE INDEX IF NOT EXISTS session_time_idx ON sessions(start_time, end_time);
     CREATE INDEX IF NOT EXISTS session_content_hash_idx ON sessions(content_hash);
     INSERT INTO sessions 
     SELECT session_id, patient_id, measurement_type, start_time, end_time,
-           status, input_file_name, content_hash, updated_at
+           status, input_file_name, content_hash, updated_at, 0 AS exported
     FROM sessions_old;
 
     DROP TABLE sessions_old;
@@ -49,13 +50,13 @@ const migrateTableChannels = `
         sampling_frequency_khz REAL,
         subsampled_khz REAL,
         duration_ms REAL,
-        double_checked BOOLEAN,
+        double_checked INTEGER DEFAULT 0 CHECK (double_checked IN (0,1)),
         FOREIGN KEY (session_id) REFERENCES sessions(session_id) ON DELETE CASCADE
     );
     INSERT INTO channels
     SELECT channel_id, session_id, channel_number,
            raw_samples_uv, sampling_frequency_khz,
-           subsampled_khz, duration_ms, null
+           subsampled_khz, duration_ms, double_checked
     FROM channels_old;
 --     WHERE data_kind = 'trace';
     CREATE INDEX IF NOT EXISTS channel_session_channel_number_idx ON channels(session_id, channel_number);

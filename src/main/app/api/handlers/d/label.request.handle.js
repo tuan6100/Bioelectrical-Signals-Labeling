@@ -11,7 +11,9 @@ import {saveSessionToExcel} from "../../../domain/services/file/writer/excel.wri
 import {getInputFileName} from "../../../domain/services/data/query/session.query.js";
 import path from "node:path";
 import fs from "node:fs";
+import Store from "electron-store";
 
+const store = new Store();
 
 ipcMain.removeHandler('annotation:create')
 ipcMain.handle('annotation:create', (event, labelDto) => {
@@ -57,9 +59,16 @@ ipcMain.removeHandler('label:exportExcel')
 ipcMain.on('label:exportExcel', async (event, sessionId) => {
     const inputFileName = getInputFileName(sessionId)
         .replace(path.extname(getInputFileName(sessionId)), '')
+    
+    const lastExportDir = store.get('lastExportDir');
+    let defaultPath = `${inputFileName}.xlsx`;
+    if (lastExportDir) {
+        defaultPath = path.join(lastExportDir, `${inputFileName}.xlsx`);
+    }
+
     const fileManager = await dialog.showSaveDialog({
         title: 'Export Labels to CSV',
-        defaultPath: `${inputFileName}.xlsx`,
+        defaultPath: defaultPath,
         filters: [
             { name: 'Excel Files', extensions: ['xlsx'] }
         ]
@@ -67,6 +76,10 @@ ipcMain.on('label:exportExcel', async (event, sessionId) => {
     if (fileManager.canceled || !fileManager.filePath) return
     const chosenPath = fileManager.filePath
     const baseDir = path.dirname(chosenPath)
+    
+    // Save the directory for next time
+    store.set('lastExportDir', baseDir);
+
     const baseName = path.basename(chosenPath)
     const now = new Date();
     const day = String(now.getDate()).padStart(2, '0');

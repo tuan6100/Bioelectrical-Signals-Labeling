@@ -216,7 +216,7 @@ export default class Channel {
         const stmt = Channel.db.prepare(`
             SELECT COUNT(*) as count
             FROM channels 
-            WHERE session_id = ? AND (double_checked = 0)
+            WHERE session_id = ? AND (double_checked = 0) 
         `)
         const row = stmt.get(sessionId)
         return row ? row.count : 0
