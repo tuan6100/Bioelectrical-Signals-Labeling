@@ -6,7 +6,9 @@ export default function StatusBadge({ status }) {
         'IN_PROGRESS': 'In Progress',
         'REQUEST_DOUBLE_CHECK': 'Request Double Check',
         'WAIT_FOR_DOUBLE_CHECK': 'Wait for Double Check',
-        'COMPLETED': 'Completed'
+        'COMPLETED': 'Completed',
+        'STUDENT_COMPLETED': 'Student Completed',
+        'DOCTOR_COMPLETED': 'Doctor Completed'
     };
     
     const statusLabel = statusObj[statusRaw] || statusRaw || '-';

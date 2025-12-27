@@ -280,8 +280,21 @@
 .session-status-in_progress td {
     background: #fff9db; /* light yellow */
 }
-.session-status-completed td {
+.session-status-completed td,
+.session-status-student_completed td,
+.session-status-doctor_completed td {
     background: #e9fff0; /* light green */
+}
+
+.session-status-request_double_check td,
+.session-status-wait_for_double_check td {
+    background: #e0f2fe; /* light blue */
+}
+
+.session-row.session-status-completed:hover td,
+.session-row.session-status-student_completed:hover td,
+.session-row.session-status-doctor_completed:hover td {
+    background: #d1f4e0 !important;
 }
 
 .sessions-table td:first-child {
