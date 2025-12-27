@@ -10,7 +10,7 @@ export default class Session {
         status,
         inputFileName,
         contentHash,
-        updatedAt
+        updatedAt,
     ) {
         this.sessionId = sessionId
         this.patientId = patientId
@@ -21,6 +21,7 @@ export default class Session {
         this.inputFileName = inputFileName
         this.contentHash = contentHash
         this.updatedAt = updatedAt
+        this.exported = 0
     }
 
     static db = sqliteDb

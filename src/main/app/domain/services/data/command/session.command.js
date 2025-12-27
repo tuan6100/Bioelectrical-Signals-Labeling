@@ -1,4 +1,4 @@
-    import { BrowserWindow } from "electron";
+import {BrowserWindow} from "electron";
 import asTransaction from "../../../../persistence/transaction/index.js";
 import {findKeyValue} from "../../../utils/json.util.js";
 import {extractChannelsFromJson} from "../../../utils/channel.util.js";
@@ -8,6 +8,7 @@ import Patient from "../../../../persistence/dao/patient.dao.js";
 import {parseVietnameseDateTime} from "../../../utils/parse-time.util.js";
 import Annotation from "../../../../persistence/dao/annotation.dao.js";
 import Label from "../../../../persistence/dao/label.dao.js";
+import {warnDetetionBeforeExport} from "../../../utils/warning.util.js";
 
 
 export function processAndPersistData(inputFileName, data, contentHash) {
@@ -16,7 +17,6 @@ export function processAndPersistData(inputFileName, data, contentHash) {
         const firstName = findKeyValue(data, 'First Name')
         const gender = findKeyValue(data, 'Gender').toString().toUpperCase() === 'MALE' ? 'M' : 'F'
         patientId = insertPatient(patientId, firstName, gender)
-
         let measurementType = findKeyValue(data, "Test").toString()
         measurementType = measurementType.toUpperCase().includes("ECG") ? "ECG" :
             measurementType.toUpperCase().includes("EEG") ? "EEG" :
@@ -75,10 +75,19 @@ function insertSession(patientId, measurementType, startTime, endTime, inputFile
 
 export function updateSessionStatus(sessionId, status) {
     asTransaction(() => {
-        if (!['NEW', 'IN_PROGRESS', 'COMPLETED', 'REQUEST_DOUBLE_CHECK', 'WAIT_FOR_DOUBLE_CHECK'].includes(status)) {
+        const validStatuses = [
+            'NEW',
+            'IN_PROGRESS',
+            'STUDENT_COMPLETED',
+            'DOCTOR_COMPLETED',
+            'REQUEST_DOUBLE_CHECK',
+            'WAIT_FOR_DOUBLE_CHECK'
+        ];
+
+        if (!validStatuses.includes(status)) {
             throw new Error(`Invalid session status: ${status}`)
         }
-        if (status === 'COMPLETED') {
+        if (['DOCTOR_COMPLETED', 'STUDENT_COMPLETED'].includes(status)) {
             const pendingCount = Channel.countPendingDoubleCheck(sessionId);
             if (pendingCount > 0) {
                 throw new Error(`Cannot complete session. There are ${pendingCount} channels pending double check.`);
@@ -88,14 +97,11 @@ export function updateSessionStatus(sessionId, status) {
         if (!currentSession) {
             throw new Error(`Session with ID ${sessionId} not found`)
         }
-        if (['IN_PROGRESS', 'COMPLETED'].includes(currentSession.status) && status === 'NEW') {
-            throw new Error(`Cannot change status of a completed session to ${status}`)
+        if (['IN_PROGRESS', 'STUDENT_COMPLETED', 'DOCTOR_COMPLETED'].includes(currentSession.status) && status === 'NEW') {
+            throw new Error(`Cannot change status of a completed/in-progress session to ${status}`)
         }
-        let isUpdated
-        if (currentSession.status === 'REQUEST_DOUBLE_CHECK' && status === 'IN_PROGRESS' && currentSession) {
-        }
-        Session.update(sessionId, {status: status})
 
+        Session.update(sessionId, {status: status})
         notifySessionUpdate(sessionId);
     })();
 }
@@ -104,10 +110,11 @@ export function persistExcelData(data) {
     return asTransaction(() => {
         const { session, annotations, channels } = data;
         const sessionId = session.session_id;
+        let targetStatus = session.status;
         const existingSession = Session.findOneById(sessionId);
         if (existingSession) {
             Session.update(sessionId, {
-                status: session.status,
+                status: targetStatus,
                 updated_at: session.updated_at
             });
         } else {
@@ -121,7 +128,7 @@ export function persistExcelData(data) {
                 session.measurement_type,
                 session.start_time,
                 session.end_time,
-                session.status,
+                targetStatus,
                 session.input_file_name,
                 null,
                 session.updated_at
@@ -138,7 +145,7 @@ export function persistExcelData(data) {
                     dataKind: 'EEG'
                 }));
                 for(const ch of channelEntities) {
-                    const dao = new Channel(
+                    new Channel(
                         ch.channelId,
                         ch.sessionId,
                         ch.channelNumber,
@@ -163,7 +170,6 @@ export function persistExcelData(data) {
                 if (!annotationsByChannel[chNum]) annotationsByChannel[chNum] = [];
                 annotationsByChannel[chNum].push(ann);
             });
-
             for (const [chNum, anns] of Object.entries(annotationsByChannel)) {
                 const channelId = Channel.findChannelIdBySessionIdAndChanelNumber(sessionId, chNum);
                 if (channelId) {
@@ -191,7 +197,6 @@ export function persistExcelData(data) {
 }
 
 export function enableDoubleCheckMode(channelId) {
-    console.log("Enabling double check mode for channel:", channelId);
     asTransaction(() => {
         const sessionId = Channel.findSessionIdByChannelId(channelId)
         Session.update(sessionId, { status: 'REQUEST_DOUBLE_CHECK' });
@@ -201,7 +206,6 @@ export function enableDoubleCheckMode(channelId) {
 }
 
 export function disableDoubleCheckMode(channelId) {
-    console.log("Disabling double check mode for channel:", channelId);
     asTransaction(() => {
         const sessionId = Channel.findSessionIdByChannelId(channelId)
         Session.update(sessionId, { status: 'IN_PROGRESS' });
@@ -214,7 +218,7 @@ export function setChannelDoubleChecked(sessionId, channelId, isChecked) {
     asTransaction(() => {
         Channel.updateDoubleChecked(channelId, isChecked? 1 : 0);
         if (isChecked && Channel.countPendingDoubleCheck(sessionId) === 0) {
-            Session.update(sessionId, { status: 'COMPLETED' })
+            Session.update(sessionId, { status: 'DOCTOR_COMPLETED' })
         }
         notifySessionUpdate(sessionId);
     })();
@@ -235,6 +239,31 @@ function notifySessionUpdate(sessionId) {
 }
 
 export function deleteSession(sessionId) {
+    const session = Session.findOneById(sessionId)
+    if (!session) {
+        throw new Error(`Session with ID ${sessionId} not found`)
+    }
+    if (session.exported === 0) {
+        const wantToExport = warnDetetionBeforeExport()
+        switch (wantToExport) {
+            case 0:
+                const window = BrowserWindow.getFocusedWindow()
+                if (window) {
+                    window.webContents.send('label:exportExcel', sessionId)
+                }
+                break
+            case 1:
+                break
+            case 2:
+                return
+        }
+    }
+    if (session.status !== 'DOCTOR_COMPLETED' && session.status !== 'STUDENT_COMPLETED') {
+        const wantToDelete = warnDetetionBeforeExport(session.inputFileName)
+        if (wantToDelete === 1) {
+            return
+        }
+    }
     return asTransaction(function (sessionId) {
         const channels = Channel.findBySessionId(sessionId);
         channels.forEach(channel => Annotation.deleteByChannelId(channel.channelId));

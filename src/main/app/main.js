@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 import './api/handlers/index.js'
 import {db} from "./persistence/connection/sqlite.connection.js";
 import pkg from 'electron-updater';
-import {initSchema, migrateSchema} from "./domain/utils/version-management.util.js";
+import {initSchema, isDbInitialized, migrateSchema} from "./domain/utils/version-management.util.js";
 import config from "config";
 const { autoUpdater } = pkg;
 
@@ -59,11 +59,19 @@ app.whenReady().then(async() => {
     //     autoUpdater.updateConfigPath = path.join(__dirname, '..', '..','..', 'dev-app-update.yml')
     // }
     await autoUpdater.checkForUpdatesAndNotify()
-    if (Boolean(config.get('migration.enable'))) {
-        await migrateSchema()
-    } else {
+    const migrationEnabled = Boolean(config.get('migration.enable'))
+    if (!isDbInitialized()) {
+        console.log('Database not initialized → initSchema()')
         initSchema()
     }
+    else if (migrationEnabled) {
+        console.log('Database exists → migrateSchema()')
+        await migrateSchema()
+    }
+    else {
+        console.log('Migration disabled → skip')
+    }
+
     const win = createWindow()
     // Toggle full screen
     globalShortcut.register('F11', () => {

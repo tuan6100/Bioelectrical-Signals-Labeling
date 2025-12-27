@@ -269,12 +269,13 @@ export default function Dashboard() {
                                         'IN_PROGRESS': 'In Progress',
                                         'REQUEST_DOUBLE_CHECK': 'Request Double Check',
                                         'WAIT_FOR_DOUBLE_CHECK': 'Wait for Double Check',
-                                        'COMPLETED': 'Completed'
+                                        'STUDENT_COMPLETED': 'Completed',
+                                        'DOCTOR_COMPLETED': 'Completed'
                                     }
                                     const statusLabel = statusObj[statusRaw] || statusRaw || '-'
                                     const patientId = s.patient?.id ?? s.patientId ?? '-'
                                     const patientName = s.patient?.name ?? s.patientName ?? '-'
-                                    const isChecked = statusRaw === 'COMPLETED'
+                                    const isChecked = ['STUDENT_COMPLETED', 'DOCTOR_COMPLETED'].includes(statusRaw);
                                     const isDoubleChecked = s.isDoubleChecked || false
 
                                     return (

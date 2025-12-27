@@ -37,10 +37,11 @@ const ddl = `
         measurement_type TEXT DEFAULT 'UNKNOWN' CHECK (measurement_type IN ('ECG','EEG','EMG', 'UNKNOWN')),
         start_time TEXT NOT NULL,
         end_time TEXT NOT NULL,
-        status TEXT DEFAULT 'NEW' CHECK (status IN ('NEW','IN_PROGRESS', 'REQUEST_DOUBLE_CHECK', 'WAIT_FOR_DOUBLE_CHECK','COMPLETED')),
+        status TEXT DEFAULT 'NEW' CHECK (status IN ('NEW','IN_PROGRESS', 'REQUEST_DOUBLE_CHECK', 'WAIT_FOR_DOUBLE_CHECK','STUDENT_COMPLETED', 'DOCTOR_COMPLETED')),
         input_file_name TEXT,
         content_hash TEXT UNIQUE,
         updated_at TEXT,
+        exported INTEGER DEFAULT 0 CHECK (exported IN (0,1)),
         FOREIGN KEY (patient_id) REFERENCES patients(patient_id) ON DELETE CASCADE
     );
     CREATE INDEX IF NOT EXISTS session_time_idx ON sessions(start_time, end_time);
@@ -54,7 +55,7 @@ const ddl = `
         sampling_frequency_khz REAL,
         subsampled_khz REAL,
         duration_ms REAL,
-        double_checked BOOLEAN, 
+        double_checked INTEGER DEFAULT 0 CHECK (double_checked IN (0,1)), 
         FOREIGN KEY (session_id) REFERENCES sessions(session_id) ON DELETE CASCADE
     );
     CREATE INDEX IF NOT EXISTS channel_session_channel_number_idx ON channels(session_id, channel_number);
@@ -117,7 +118,7 @@ db.init = function() {
 db.migrate = async function migrate(latestVersion) {
     const current = db.pragma('user_version', { simple: true })
     const targetVersion = parseInt(latestVersion.replace(/[-+].*$/, '').replace(/\./g, ''))
-    console.log(`Current DB version: ${current}, Target app version: ${targetVersion}`)
+    console.log(`Current DB version: ${current}, Target app version: ${targetVersion}, ${current === targetVersion ? 'Skipping migrations.' : 'Running migrations...'}`)
     if (current === targetVersion) return
     if (current > targetVersion) {
         throw new Error(`DB version ${current} > app version ${targetVersion}`)

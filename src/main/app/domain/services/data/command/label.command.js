@@ -4,7 +4,7 @@ import Label from "../../../../persistence/dao/label.dao.js"
 import Annotation from "../../../../persistence/dao/annotation.dao.js"
 import Channel from "../../../../persistence/dao/channel.dao.js"
 import Session from "../../../../persistence/dao/session.dao.js"
-import { confirmOverlap } from "../../../utils/overlapping-warning.util.js"
+import { confirmOverlap } from "../../../utils/warning.util.js"
 import {findNearestTimePoint} from "../../../utils/algorithm.util.js"
 
 export function createAnnotation(channelId, startTime, endTime, labelName, labelNote = null) {

@@ -56,11 +56,6 @@ function prepareChannelData(channel) {
     }
 }
 
-export function exportLabels(channelId) {
-    const channel = Channel.findOneById(channelId, true)
-    return prepareChannelData(channel)
-}
-
 export function exportSessionData(sessionId) {
     const relatedInfo = Session.findAllRelatedById(sessionId)
     if (!relatedInfo) {
@@ -86,6 +81,7 @@ export function exportSessionData(sessionId) {
         null,
         relatedInfo.sessionUpdatedAt
     )
+    Session.update(sessionId, {exported: 1})
     return {
         session,
         channelsData: channelsData.sort((a, b) => a.channel.channelNumber - b.channel.channelNumber)
