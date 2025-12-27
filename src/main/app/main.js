@@ -1,19 +1,42 @@
-// src/main/main.js
-import {app, BrowserWindow, Menu, globalShortcut, dialog} from 'electron'
+import {app, BrowserWindow, globalShortcut, dialog} from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+const isPackaged = __dirname.includes('app.asar')
+
+if (isPackaged) {
+    const configPath = path.join(__dirname, '..', '..', '..', 'config')
+    process.env.NODE_CONFIG_DIR = configPath
+    console.log('Production config path:', configPath)
+} else {
+    const configPath = path.join(__dirname, '..', '..', '..', 'config')
+    process.env.NODE_CONFIG_DIR = configPath
+    console.log('Development config path:', configPath)
+}
+
+if (!process.env.NODE_ENV) {
+    process.env.NODE_ENV = isPackaged ? 'production' : 'development'
+}
+
+console.log('NODE_ENV:', process.env.NODE_ENV)
+console.log('NODE_CONFIG_DIR:', process.env.NODE_CONFIG_DIR)
 
 import './api/handlers/index.js'
 import {db} from "./persistence/connection/sqlite.connection.js";
 import pkg from 'electron-updater';
 import {initSchema, isDbInitialized, migrateSchema} from "./domain/utils/version-management.util.js";
 import config from "config";
-const { autoUpdater } = pkg;
+import log from 'electron-log';
 
+const { autoUpdater } = pkg
+log.initialize()
+log.transports.file.getFile()
+Object.assign(console, log.functions)
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-const MAIN_WINDOW_VITE_DEV_SERVER_URL = process.env.NODE_ENV === 'dev'? 'http://localhost:5173': null
+const MAIN_WINDOW_VITE_DEV_SERVER_URL = process.env.NODE_ENV === 'dev' ? 'http://localhost:5173' : null
+
 const createWindow = () => {
     // Create the browser window.
     const mainWindow = new BrowserWindow({
@@ -42,7 +65,7 @@ const createWindow = () => {
     mainWindow.setMenu(null)
 
     //spell checker
-    mainWindow.webContents.session.setSpellCheckerLanguages(['en-US', 'vi', 'fr',])
+    mainWindow.webContents.session.setSpellCheckerLanguages(['en-US', 'vi', 'fr'])
 
     return mainWindow
 }
@@ -50,45 +73,65 @@ const createWindow = () => {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 app.whenReady().then(async() => {
-    autoUpdater.autoDownload = true
-    autoUpdater.autoRunAppAfterInstall = true
-    autoUpdater.allowPrerelease = true
-    // const updateForDevEnv = Boolean(config.get('update.force'))
-    // if (updateForDevEnv) {
-    //     autoUpdater.forceDevUpdateConfig = updateForDevEnv
-    //     autoUpdater.updateConfigPath = path.join(__dirname, '..', '..','..', 'dev-app-update.yml')
-    // }
-    await autoUpdater.checkForUpdatesAndNotify()
-    const migrationEnabled = Boolean(config.get('migration.enable'))
-    if (!isDbInitialized()) {
-        console.log('Database not initialized → initSchema()')
-        initSchema()
-    }
-    else if (migrationEnabled) {
-        console.log('Database exists → migrateSchema()')
-        await migrateSchema()
-    }
-    else {
-        console.log('Migration disabled → skip')
-    }
+    try {
+        autoUpdater.autoDownload = true
+        autoUpdater.autoRunAppAfterInstall = true
+        autoUpdater.allowPrerelease = true
 
-    const win = createWindow()
-    // Toggle full screen
-    globalShortcut.register('F11', () => {
-        win.setFullScreen(!win.isFullScreen())
-    })
+        if (process.env.NODE_ENV === 'dev') {
+            const updateForDevEnv = config.has('update.force') ? Boolean(config.get('update.force')) : false
+            if (updateForDevEnv) {
+                autoUpdater.forceDevUpdateConfig = updateForDevEnv
+                autoUpdater.updateConfigPath = path.join(__dirname, '..', '..','..', 'dev-app-update.yml')
+            }
+        }
 
-    //Open the DevTools.
-    if (process.env.NODE_ENV === 'dev') {
-        globalShortcut.register('Ctrl+F12', async () => {
-            win.webContents.toggleDevTools()
+        await autoUpdater.checkForUpdatesAndNotify()
+
+        const migrationEnabled = config.has('migration.require')
+            ? Boolean(config.get('migration.require'))
+            : true
+        console.log('Migration enabled:', migrationEnabled)
+
+        if (!isDbInitialized()) {
+            console.log('Database not initialized → initSchema()')
+            initSchema()
+        }
+        else if (migrationEnabled) {
+            console.log('Database exists → migrateSchema()')
+            await migrateSchema()
+        }
+        else {
+            console.log('Migration disabled → skip')
+        }
+
+        const win = createWindow()
+
+        // Toggle full screen
+        globalShortcut.register('F11', () => {
+            win.setFullScreen(!win.isFullScreen())
         })
+
+        //Open the DevTools.
+        if (process.env.NODE_ENV === 'dev') {
+            globalShortcut.register('Ctrl+F12', async () => {
+                win.webContents.toggleDevTools()
+            })
+        }
+    } catch (error) {
+        console.error('Error during app initialization:', error)
+        dialog.showErrorBox('Initialization Error', `Failed to initialize app: ${error.message}`)
+        app.quit()
     }
 })
 
 // Quit when all windows are closed, except on macOS.
 app.on('window-all-closed', () => {
-    db.close()
+    try {
+        db.close()
+    } catch (error) {
+        console.error('Error closing database:', error)
+    }
     if (process.platform !== 'darwin') {
         app.quit()
     }
@@ -103,9 +146,6 @@ autoUpdater.on('update-downloaded', () => {
         buttons: ['OK']
     })
     migrateSchema().finally(() => {
-        autoUpdater.quitAndInstall();
+        autoUpdater.quitAndInstall()
     })
-});
-
-
-
+})
