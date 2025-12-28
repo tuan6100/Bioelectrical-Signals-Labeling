@@ -10,7 +10,7 @@ export default class Session {
         status,
         inputFileName,
         contentHash,
-        updatedAt
+        updatedAt,
     ) {
         this.sessionId = sessionId
         this.patientId = patientId
@@ -21,6 +21,7 @@ export default class Session {
         this.inputFileName = inputFileName
         this.contentHash = contentHash
         this.updatedAt = updatedAt
+        this.exported = 0
     }
 
     static db = sqliteDb
@@ -28,8 +29,6 @@ export default class Session {
     static useDb(dbInstance) {
         Session.db = dbInstance
     }
-
-
 
     insert() {
         const now = this.updatedAt?? new Date().toISOString()
@@ -93,6 +92,27 @@ export default class Session {
         )
     }
 
+    static findSessionIdByInputFileName(inputFileName) {
+        const stmt = Session.db.prepare(`
+            SELECT session_id
+            FROM sessions
+            WHERE input_file_name = ?
+        `)
+        const row = stmt.get(inputFileName)
+        return row ? row.session_id : null
+    }
+
+    static findAll() {
+        const stmt = Session.db.prepare(`
+            SELECT s.session_id, s.patient_id, s.measurement_type, s.start_time, s.end_time, s.status, s.input_file_name, s.updated_at,
+                   a.first_name AS patient_name, a.gender AS patient_gender
+            FROM sessions s
+            INNER JOIN patients a ON s.patient_id = a.patient_id
+            ORDER BY datetime(s.updated_at) DESC
+        `)
+        return stmt.all()
+    }
+
     static findAllWithPagination(page, size) {
         const limit = size
         const offset = (page - 1) * size
@@ -111,9 +131,9 @@ export default class Session {
         const stmt = Session.db.prepare(`
         SELECT
             p.patient_id, p.first_name AS patient_first_name, p.gender AS patient_gender,
-            s.start_time AS session_start_time, s.end_time AS session_end_time,
-            s.status, s.updated_at AS session_updated_at,
-            c.channel_id, c.channel_number, c.data_kind AS channel_data_kind
+            s.start_time AS session_start_time, s.end_time AS session_end_time, s.measurement_type,
+            s.status, s.updated_at AS session_updated_at, s.input_file_name,
+            c.channel_id, c.channel_number
         FROM sessions AS s
         INNER JOIN patients AS p ON s.patient_id = p.patient_id
         INNER JOIN channels AS c ON s.session_id = c.session_id
@@ -130,57 +150,20 @@ export default class Session {
             patientGender: rows[0].patient_gender,
             sessionStartTime: rows[0].session_start_time,
             sessionEndTime: rows[0].session_end_time,
+            sessionMeasurementType: rows[0].measurement_type,
             sessionStatus: rows[0].status,
-            sessionUpdatedAt: new Date(rows[0].session_updated_at).toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }),
+            inputFileName: rows[0].input_file_name,
+            sessionUpdatedAt: new Date(rows[0].session_updated_at)
+                .toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }),
             channels: []
         }
         for (const row of rows) {
             result.channels.push({
                 channelId: row.channel_id,
-                channelNumber: row.channel_number,
-                dataKind: row.channel_data_kind
+                channelNumber: row.channel_number
             })
         }
         return result
-    }
-
-    static findAllLabelsBySessionId(sessionId) {
-        const stmt = Session.db.prepare(`
-            SELECT
-                c.channel_id,
-                c.channel_number,
-                c.raw_samples_uv              AS samples,
-                c.sampling_frequency_khz   AS sampling_frequency,
-                c.subsampled_khz           AS subsampled,
-                a.annotation_id,
-                a.start_time_ms,
-                a.end_time_ms,
-                a.note,
-                l.label_id,
-                l.name                     AS label_name
-            FROM sessions s
-            INNER JOIN channels c ON s.session_id = c.session_id
-            LEFT JOIN annotations a ON a.channel_id = c.channel_id
-            LEFT JOIN labels l ON l.label_id = a.label_id
-            WHERE s.session_id = ? AND l.label_id IS NOT NULL
-            ORDER BY c.channel_id, a.start_time_ms;
-        `)
-        const rows = stmt.all(sessionId)
-        return rows.map(row => ({
-            channelId: row.channel_id,
-            channelNumber: row.channel_number,
-            samples: JSON.parse(row.samples || '[]'),
-            samplingFrequency: +row.sampling_frequency || null,
-            subsampled: +row.subsampled || null,
-            annotation: row.annotation_id ? {
-                id: row.annotation_id,
-                labelId: row.label_id,
-                labelName: row.label_name,
-                startTimeMs: +row.start_time_ms,
-                endTimeMs: +row.end_time_ms,
-                note: row.note
-            } : null
-        }));
     }
 
     static findByPatientId(patientId) {
@@ -223,7 +206,7 @@ export default class Session {
             SET ${setClause}, updated_at = ?
             WHERE session_id = ?
         `)
-        stmt.run(...values, now, sessionId)
+        return stmt.run(...values, now, sessionId)
     }
 
     static delete(sessionId) {

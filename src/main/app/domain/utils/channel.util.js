@@ -98,30 +98,9 @@ export function extractChannelsFromJson(jsonData, sessionId) {
         if (!obj || typeof obj !== "object") return
         for (const [_, value] of Object.entries(obj)) {
             if (!value || typeof value !== "object") continue
-
-            if ("Store Data" in value) {
-                const data = value["Store Data"]
-                const channelNumber = parseInt(data["Channel Number"]) || lastChannelNumber + 1 || 0
-                lastChannelNumber = channelNumber
-                const found = findDataKey(data, "Averaged Data")
-                const scale = deriveScale(found?.key || null, data, value)
-                const samples = parseRawSamples(found?.value, scale)
-                const ch = new Channel(
-                    null,
-                    sessionId,
-                    channelNumber,
-                    "average",
-                    JSON.stringify(samples),
-                    toNumber(data["Sampling Frequency(kHz)"]) ?? null,
-                    toNumber(data["Subsampled(kHz)"]) ?? null,
-                    toNumber(data["Sweep Duration(ms)"]) ?? null,
-                )
-                channels.push(ch)
-            }
-
             if ("Trace Data" in value) {
                 const data = value["Trace Data"]
-                const channelNumber = parseInt(data["Channel Number"]) || lastChannelNumber || 0
+                const channelNumber = parseInt(findDataKey(data, 'Channel number')) || lastChannelNumber || 1
                 lastChannelNumber = channelNumber
                 const found = findDataKey(data, "Sweep  Data")
                 const scale = deriveScale(found?.key || null, data, value)
@@ -135,27 +114,6 @@ export function extractChannelsFromJson(jsonData, sessionId) {
                 })
             }
 
-            if ("LongTrace Data" in value) {
-                const data = value["LongTrace Data"]
-                const channelNumber = parseInt(data["Channel Number"]) || lastChannelNumber || 0
-                lastChannelNumber = channelNumber
-                const found = findDataKey(data, "LongTrace Data")
-                const scale = deriveScale(found?.key || null, data, value)
-                const samples = parseRawSamples(found?.value, scale)
-                if (samples.length > 0) {
-                    const ch = new Channel(
-                        null,
-                        sessionId,
-                        channelNumber,
-                        "longtrace",
-                        JSON.stringify(samples),
-                        toNumber(data["Sampling Frequency(kHz)"]) ?? null,
-                        toNumber(data["Subsampled(kHz)"]) ?? null,
-                        toNumber(data["Trace Duration(ms)"]) ?? toNumber(data["Sweep Duration(ms)"]) ?? null,
-                    )
-                    channels.push(ch)
-                }
-            }
             walk(value)
         }
     }
@@ -170,7 +128,6 @@ export function extractChannelsFromJson(jsonData, sessionId) {
             null,
             sessionId,
             firstTrace.channelNumber,
-            "trace",
             JSON.stringify(combinedSamples),
             firstTrace.samplingFrequency,
             firstTrace.subsampled,

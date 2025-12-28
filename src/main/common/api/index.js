@@ -1,14 +1,12 @@
 import {
     createAnnotationAppApi,
     getAllLabelsAppApi,
-    updateLabelAppApi,
-    deleteLabelAppApi,
     updateAnnotationAppApi,
     deleteAnnotationAppApi,
-    getChannelSamplesAppApi,
     getSessionInfoAppApi,
-    isDesktopEnv, getAllSessionsAppApi, getSessionsByPatientIdAppApi, getAnnotationsByChannelAppApi,
-    updateSessionStatusAppApi, exportToExcelAppApi
+    isDesktopEnv, getAllSessionsAppApi, getSessionsByPatientIdAppApi,
+    updateSessionStatusAppApi, exportToExcelAppApi, enableDoubleCheckAppApi, setChannelDoubleCheckedAppApi,
+    deleteSessionAppApi, disableDoubleCheckAppApi
 } from '../../app/api/provider';
 
 /**
@@ -26,7 +24,7 @@ import {
  *     sessionStartTime: string,
  *     sessionEndTime: string,
  *     sessionStatus: string,
- *     channels: Array<{ channelId: number, channelNumber: number, dataKind: string }>
+ *     channels: Array<{ channelId: number, channelNumber: number }>
  *   },
  *   defaultChannel: {
  *     channelId: number|null,
@@ -40,9 +38,12 @@ import {
  *         startTimeMs: number,
  *         endTimeMs: number,
  *         note: string|null,
- *         timeline: Date,
  *         label: { labelId: number, name: string }|null
- *       }>|null
+ *       }>|null,
+ *       overlaps: Array<{
+ *           first: number,
+ *           second: number
+ *       }>| null
  *     }|null
  *   }
  * }>} A promise that resolves to the session data including patient info, channels list, and default averaged channel samples.
@@ -70,43 +71,14 @@ export async function fetchSessionWorkspace(sessionId) {
  *     startTimeMs: number,
  *     endTimeMs: number,
  *     note: string|null,
- *     timeline: Date
  *     label: {labelId: number, name: string}|null
- *   }|null
+ *   }|null,
+ *   overlaps: Array<{
+ *      first: number,
+ *      second: number
+ *  }>| null
  * }>} A promise that resolves to the channel samples with time series data and any associated annotations.
  */
-export async function fetchChannelSamples(channelId) {
-    if (isDesktopEnv()) {
-        return await getChannelSamplesAppApi(channelId);
-    } else {
-        // TODO: Implement web version
-    }
-}
-
-/**
- * Fetches all annotations for a specific channel.
- * @async
- * @function fetchGetChannelAnnotations
- * @param {number} channelId - The ID of the channel to fetch annotations for.
- * @returns {Promise<Array<{
- *     annotationId: number,
- *     startTime: number,
- *     endTime: number,
- *     note: string|null,
- *     label: {
- *         id: number,
- *         name: string
- *     }
- * }>>}
- */
-export async function fetchChannelAnnotations(channelId) {
-    if (isDesktopEnv()) {
-        // previously returned channel samples by mistake; use annotations API
-        return await getAnnotationsByChannelAppApi(channelId);
-    } else {
-        // TODO: Implement web version
-    }
-}
 
 /**
  * Gets all labels from the database.
@@ -118,39 +90,6 @@ export async function fetchChannelAnnotations(channelId) {
 export async function fetchGetAllLabels() {
     if (isDesktopEnv()) {
         return await getAllLabelsAppApi();
-    } else {
-        // TODO: Implement web version
-    }
-}
-
-/**
- * Updates a label by ID.
- *
- * @async
- * @function fetchUpdateLabel
- * @param {number} labelId - The ID of the label to update.
- * @param {Object} updateFields - Fields to update (e.g., {name: 'newName'}).
- * @returns {Promise<{labelId: number, name: string, createdAt: string}|null>} A promise that resolves to the updated label or null if not found.
- */
-export async function fetchUpdateLabel(labelId, updateFields) {
-    if (isDesktopEnv()) {
-        return await updateLabelAppApi(labelId, updateFields);
-    } else {
-        // TODO: Implement web version
-    }
-}
-
-/**
- * Deletes a label by ID.
- *
- * @async
- * @function fetchDeleteLabel
- * @param {number} labelId - The ID of the label to delete.
- * @returns {Promise<boolean>} A promise that resolves to true if deleted successfully, false otherwise.
- */
-export async function fetchDeleteLabel(labelId) {
-    if (isDesktopEnv()) {
-        return await deleteLabelAppApi(labelId);
     } else {
         // TODO: Implement web version
     }
@@ -204,12 +143,11 @@ export async function fetchCreateAnnotation(labelDto) {
  * @function fetchUpdateAnnotation
  * @param {number} annotationId - The ID of the annotation to update.
  * @param {Object} updateFields - Fields to update (e.g., {labelName: 'newName', note: 'new note'}).
- * @param {boolean} [force=false] - Whether to force the update even if it overlaps.
- * @returns {Promise<{annotationId: number, channelId: number, labelId: number, labelName: string, startTimeMs: number, endTimeMs: number, note: string|null, timeline: Date}>} A promise that resolves to the updated annotation.
+ * @returns {Promise<{annotationId: number, channelId: number, labelId: number, labelName: string, startTimeMs: number, endTimeMs: number, note: string|null, needsRevision: boolean}>} A promise that resolves to the updated annotation.
  */
-export async function fetchUpdateAnnotation(annotationId, updateFields, force = false) {
+export async function fetchUpdateAnnotation(annotationId, updateFields) {
     if (isDesktopEnv()) {
-        return await updateAnnotationAppApi(annotationId, updateFields, force);
+        return await updateAnnotationAppApi(annotationId, updateFields);
     } else {
         // TODO: Implement web version
     }
@@ -236,13 +174,11 @@ export async function fetchDeleteAnnotation(annotationId) {
  * Each item contains session metadata and nested patient info.
  * @async
  * @function fetchAllSessions
- * @param {number} [page=1] - 1-based page index.
- * @param {number} [size=10] - Items per page.
  * @returns {Promise<{contents: Array<{sessionId: number, patient: {id: number, name: string, gender: string}, measurementType: string, startTime: string, endTime: string, inputFileName: string, updatedAt: string}>, page: {size: number, number: number, totalElements: number, totalPages: number}}>} Paginated sessions payload.
  */
-export async function fetchAllSessions(page = 1, size = 10) {
+export async function fetchAllSessions() {
     if (isDesktopEnv()) {
-        return await getAllSessionsAppApi(page, size);
+        return await getAllSessionsAppApi();
     } else {
         // TODO: Implement web version
     }
@@ -284,6 +220,57 @@ export async function fetchSessionsByPatientId(patientId) {
 export async function fetchUpdateSessionStatus(sessionId, newStatus) {
     if (isDesktopEnv()) {
         return await updateSessionStatusAppApi(sessionId, newStatus);
+    } else {
+        // TODO: Implement web version
+    }
+}
+
+/**
+ * Enables double check mode for a session (Student side).
+ * Sets session status to REQUEST_DOUBLE_CHECK
+ */
+export const fetchEnableDoubleCheck = async (channelId) => {
+    if (isDesktopEnv()) {
+        return await enableDoubleCheckAppApi(channelId);
+    } else {
+        // TODO: Implement web version
+    }
+};
+
+/**
+ * Disable double check mode for a session (Student side).
+ * Sets session status to IN_PROGRESS
+ */
+export const fetchDisableDoubleCheck = async (channelId) => {
+    if (isDesktopEnv()) {
+        return await disableDoubleCheckAppApi(channelId);
+    } else {
+        // TODO: Implement web version
+    }
+};
+
+/**
+ * Updates the double-checked status of a specific channel (Doctor side).
+ */
+export const fetchSetChannelDoubleChecked = async (sessionId, channelId, isDoubleChecked) => {
+    if (isDesktopEnv()) {
+        return await setChannelDoubleCheckedAppApi(sessionId, channelId, isDoubleChecked);
+    } else {
+        // TODO: Implement web version
+    }
+};
+
+/**
+ * Delete session by ID.
+ *
+ * @async
+ * @function fetchDeleteSession
+ * @param {number} sessionId - The ID of the session to delete.
+ * @returns {Promise<number>} A promise that resolves to the sessionId of the deleted session.
+ */
+export async function fetchDeleteSession(sessionId) {
+    if (isDesktopEnv()) {
+        return await deleteSessionAppApi(sessionId)
     } else {
         // TODO: Implement web version
     }

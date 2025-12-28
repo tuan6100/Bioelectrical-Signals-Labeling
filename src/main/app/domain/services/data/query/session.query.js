@@ -3,7 +3,7 @@ import Session from "../../../../persistence/dao/session.dao.js";
 
 export function getSessionInfo(sessionId) {
     const sessionInfo =  Session.findAllRelatedById(sessionId)
-    const defaultChannelId = Channel.findByDataKind(sessionId, 'trace')
+    const defaultChannelId = Channel.findChannelIdBySessionIdAndChanelNumber(sessionId, 1)
     const defaultChannelSignal = defaultChannelId ? getChannelSignal(defaultChannelId) : null
     return {
         session: sessionInfo,
@@ -65,11 +65,12 @@ export function getChannelSignal(channelId) {
             startTimeMs: r.start_time_ms,
             endTimeMs: r.end_time_ms,
             note: r.note ?? null,
-            label: r.label_id ? { labelId: r.label_id, name: r.label_name } : null,
-            timeline: new Date(r.updated_at?? r.labeled_at).toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' })
+            needsRevision: r.needs_revision === 1,
+            label: r.label_id ? { labelId: r.label_id, name: r.label_name } : null
         })
         return acc
     }, [])
+    console.log(annotations)
     return {
         samplingRateHz: freqHz || null,
         durationMs: durationMs,
@@ -78,45 +79,21 @@ export function getChannelSignal(channelId) {
     }
 }
 
-export function getSessionsByPage(page, size) {
-    const pageNumber = Math.max(1, Number(page) || 1)
-    const pageSize = Math.max(1, Number(size) || 10)
-    const rows =  Session.findAllWithPagination(pageNumber, pageSize)
-    const total = Session.countAll()
-    if (!rows || rows.length === 0) {
-        return {
-            contents: [],
-            page: {
-                size: pageSize,
-                number: pageNumber,
-                totalElements: total,
-                totalPages: Math.ceil(total / pageSize)
-            }
-        }
-    }
-    const contents = rows.map(r => ({
+export function getAllSessions() {
+    const rows =  Session.findAll()
+    return rows.map(r => ({
         sessionId: r.session_id,
         patient: {
             id: r.patient_id,
-            name: r.patient_name,
-            gender: r.patient_gender
+            name: r.patient_name
         },
         measurementType: r.measurement_type,
         startTime: r.start_time,
         endTime: r.end_time,
         status: r.status,
         inputFileName: r.input_file_name,
-        updatedAt: new Date(r.updated_at).toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' })
+        updatedAt: new Date(r.updated_at).toLocaleString('en-US', {timeZone: 'Asia/Ho_Chi_Minh'})
     }))
-    return {
-        contents,
-        page: {
-            size: pageSize,
-            number: pageNumber,
-            totalElements: total,
-            totalPages: Math.ceil(total / pageSize)
-        }
-    }
 }
 
 export function getSessionsByPatientId(patientId) {

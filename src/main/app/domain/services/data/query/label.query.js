@@ -1,21 +1,88 @@
-import Label from "../../../../persistence/dao/label.dao.js";
-import Annotation from "../../../../persistence/dao/annotation.dao.js";
+import Label from "../../../../persistence/dao/label.dao.js"
+import Annotation from "../../../../persistence/dao/annotation.dao.js"
+import Channel from "../../../../persistence/dao/channel.dao.js"
+import Session from "../../../../persistence/dao/session.dao.js";
 
 export function getAllLabels() {
     return Label.findAll().filter(l => l.name.toLowerCase() !== 'pending')
 }
 
-export function getAllAnnotationsByChannel(channelId) {
-    const rows = Annotation.findByChannelId(channelId)
-    return rows.map(r => ({
-        annotationId: r.annotation_id,
-        startTime: r.start_time_ms,
-        endTime: r.end_time_ms,
-        note: r.note,
-        label: {
-            id: r.label_id,
-            name: r.label_name
+function prepareChannelData(channel) {
+    if (!channel) {
+        return {
+            channel: null,
+            samplesArray: [],
+            annotations: []
         }
-    }))
+    }
 
+    let samplesArray = []
+    if (channel.rawSamplesUv) {
+        try {
+            let parsedData = channel.rawSamplesUv
+            while (typeof parsedData === 'string') {
+                try {
+                    parsedData = JSON.parse(parsedData)
+                } catch (e) {
+                    break
+                }
+            }
+            samplesArray = Array.isArray(parsedData) ? parsedData : [parsedData]
+        } catch (e) {
+            console.error(`Error processing samples for channel ${channel.channelId}`, e)
+        }
+    }
+
+    let annotations = Annotation.findByChannelId(channel.channelId) || []
+    const freq = channel.subsampledKhz ?? channel.samplingFrequencyKhz;
+
+    const processedAnnotations = annotations.map(ann => {
+        const startIndex = Math.floor(ann.start_time_ms * freq);
+        const endIndex = Math.floor(ann.end_time_ms * freq);
+        return {
+            ...ann,
+            sampleStartIndex: startIndex,
+            sampleEndIndex: endIndex,
+            excelRowStart: startIndex + 2,
+            excelRowEnd: endIndex + 2
+        };
+    });
+
+    return {
+        channel,
+        samplesArray,
+        annotations: processedAnnotations
+    }
+}
+
+export function exportSessionData(sessionId) {
+    const relatedInfo = Session.findAllRelatedById(sessionId)
+    if (!relatedInfo) {
+        throw new Error("Session not found")
+    }
+    const channelsData = []
+    if (relatedInfo && relatedInfo.channels) {
+        for (const chRef of relatedInfo.channels) {
+            const fullChannel = Channel.findOneById(chRef.channelId, true)
+            if (fullChannel) {
+                channelsData.push(prepareChannelData(fullChannel))
+            }
+        }
+    }
+    const session = new Session(
+        relatedInfo.sessionId,
+        relatedInfo.patientId,
+        relatedInfo.sessionMeasurementType,
+        relatedInfo.sessionStartTime,
+        relatedInfo.sessionEndTime,
+        relatedInfo.sessionStatus,
+        relatedInfo.inputFileName,
+        null,
+        relatedInfo.sessionUpdatedAt
+    )
+    Session.update(sessionId, {exported: 1})
+    return {
+        session,
+        channelsData: channelsData.sort((a, b) => a.channel.channelNumber - b.channel.channelNumber)
+    }
 }

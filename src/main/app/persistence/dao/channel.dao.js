@@ -5,21 +5,20 @@ export default class Channel {
         channelId,
         sessionId,
         channelNumber,
-        dataKind,
         rawSamplesUv,
         samplingFrequencyKhz,
         subsampledKhz ,
-        durationMs ,
+        durationMs,
+        doubleChecked
     ) {
         this.channelId = channelId
         this.sessionId = sessionId
         this.channelNumber = channelNumber
-        this.dataKind = dataKind
         this.rawSamplesUv = rawSamplesUv
         this.samplingFrequencyKhz = samplingFrequencyKhz
         this.subsampledKhz = subsampledKhz
         this.durationMs = durationMs
-
+        this.doubleChecked = doubleChecked
     }
 
     static db = sqliteDb
@@ -31,16 +30,15 @@ export default class Channel {
     insert() {
         const stmt = Channel.db.prepare(`
         INSERT INTO channels ( channel_id,
-            session_id, channel_number, data_kind, raw_samples_uv,
+            session_id, channel_number, raw_samples_uv,
             sampling_frequency_khz, subsampled_khz, duration_ms
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
     `)
         const resultingChanges = stmt.run(
             this.channelId,
             this.sessionId,
             this.channelNumber,
-            this.dataKind,
             JSON.stringify(this.rawSamplesUv),
             this.samplingFrequencyKhz,
             this.subsampledKhz,
@@ -54,17 +52,16 @@ export default class Channel {
         const insertMany = Channel.db.transaction((channelList) => {
             const stmt = Channel.db.prepare(`
             INSERT INTO channels (
-                channel_id, session_id, channel_number, data_kind, raw_samples_uv,
+                channel_id, session_id, channel_number, raw_samples_uv,
                 sampling_frequency_khz, subsampled_khz, duration_ms
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         `)
             for (const channel of channelList) {
                 const resultingChanges = stmt.run(
                     channel.channelId,
                     channel.sessionId,
                     channel.channelNumber,
-                    channel.dataKind,
                     JSON.stringify(channel.rawSamplesUv),
                     channel.samplingFrequencyKhz,
                     channel.subsampledKhz,
@@ -76,17 +73,17 @@ export default class Channel {
         insertMany(channels)
     }
 
-    static findOneById(channelId, rawSamples) {
-        const query = rawSamples ? `
+    static findOneById(channelId, includesRawSamples = false) {
+        const query = includesRawSamples ? `
             SELECT 
-                channel_id, session_id, channel_number, data_kind,
+                channel_id, session_id, channel_number,
                 raw_samples_uv,
                 sampling_frequency_khz, subsampled_khz, duration_ms
             FROM channels 
             WHERE channel_id = ?
         ` : `
             SELECT 
-                channel_id, session_id, channel_number, data_kind,
+                channel_id, session_id, channel_number,
                 sampling_frequency_khz, subsampled_khz, duration_ms
             FROM channels 
             WHERE channel_id = ?
@@ -98,58 +95,45 @@ export default class Channel {
             channelId,
             row.session_id,
             row.channel_number,
-            row.data_kind,
-            rawSamples ? row.raw_samples_uv : null,
+            includesRawSamples ? row.raw_samples_uv : null,
             row.sampling_frequency_khz,
             row.subsampled_khz,
             row.duration_ms
         )
     }
-    static findOneDurationById(channelId) {
+    static findChannelIdBySessionIdAndChanelNumber(sessionId, channelNumber) {
         const stmt = Channel.db.prepare(`
-            SELECT duration_ms
+            SELECT channel_id
             FROM channels
-            WHERE channel_id = ?
+            WHERE session_id = ? AND channel_number = ?
         `)
-        const row = stmt.get(channelId)
-        if (!row) return null
-        return row.duration_ms
+        const row = stmt.get(sessionId, channelNumber)
+        return row ? row.channel_id : null
     }
 
-    static findAll() {
+    static findBySessionId(sessionId) {
         const stmt  = Channel.db.prepare(`
             SELECT 
-                channel_id, session_id, channel_number, data_kind,
-                sampling_frequency_khz, subsampled_khz, duration_ms
+                channel_id, session_id, channel_number,
+                sampling_frequency_khz, subsampled_khz, duration_ms, double_checked
             FROM channels 
+            WHERE session_id = ?
             ORDER BY channel_number
         `)
-        const rows = stmt.all()
+        const rows = stmt.all(sessionId)
         return rows.map(row => {
             const channel = new Channel(
                 row.channel_id,
                 row.session_id,
                 row.channel_number,
-                row.data_kind,
                 row.sampling_frequency_khz,
                 row.subsampled_khz,
                 row.duration_ms,
+                row.double_checked
             )
             channel.channelId = row.channel_id
             return channel
         })
-    }
-
-    static findByDataKind(sessionId, dataKind) {
-        const query =
-            `SELECT channel_id
-             FROM channels
-             WHERE session_id = ? AND LOWER(data_kind) = ?
-             ORDER BY channel_number
-             `
-        const stmt  = Channel.db.prepare(query)
-        const result = stmt.get(sessionId, `${dataKind.toLowerCase()}`)
-        return result ? result.channel_id : null
     }
 
     static findSamplesById(channelId) {
@@ -159,7 +143,7 @@ export default class Channel {
                 c.sampling_frequency_khz,
                 c.subsampled_khz,
                 c.duration_ms,
-                a.annotation_id, a.start_time_ms, a.end_time_ms, a.note, a.labeled_at, a.updated_at,
+                a.annotation_id, a.start_time_ms, a.end_time_ms, a.note, a.needs_revision,
                 l.label_id, l.name AS label_name
             FROM channels c
             LEFT JOIN annotations a ON c.channel_id = a.channel_id
@@ -176,7 +160,6 @@ export default class Channel {
         const fieldMap = {
             sessionId: 'session_id',
             channelNumber: 'channel_number',
-            dataKind: 'data_kind',
             samplingFrequencyKhz: 'sampling_frequency_khz',
             subsampledKhz: 'subsampled_khz',
             sweepDurationMs: 'duration_ms',
@@ -217,5 +200,25 @@ export default class Channel {
         const stmt = Channel.db.prepare(`SELECT session_id FROM channels WHERE channel_id = ?`)
         const row = stmt.get(channelId)
         return row ? row.session_id : null
+    }
+
+    static updateDoubleChecked(channelId, checkedValue) {
+        const stmt = Channel.db.prepare(`
+            UPDATE channels 
+            SET double_checked = ?
+            WHERE channel_id = ?
+        `)
+        const info = stmt.run(checkedValue, channelId)
+        return info.changes > 0
+    }
+
+    static countPendingDoubleCheck(sessionId) {
+        const stmt = Channel.db.prepare(`
+            SELECT COUNT(*) as count
+            FROM channels 
+            WHERE session_id = ? AND (double_checked = 0) 
+        `)
+        const row = stmt.get(sessionId)
+        return row ? row.count : 0
     }
 }

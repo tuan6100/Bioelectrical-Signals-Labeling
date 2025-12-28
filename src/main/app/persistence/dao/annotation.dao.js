@@ -7,7 +7,8 @@ export default class Annotation {
         labelId,
         startTimeMs,
         endTimeMs,
-        note
+        note,
+        needsRevision = false
     ) {
         this.annotationId = annotationId
         this.channelId = channelId
@@ -15,8 +16,7 @@ export default class Annotation {
         this.startTimeMs = startTimeMs
         this.endTimeMs = endTimeMs
         this.note = note
-        this.labeledAt = new Date().toISOString()
-        this.updatedAt = null
+        this.needsRevision = needsRevision
     }
 
     static db = sqliteDb
@@ -28,9 +28,9 @@ export default class Annotation {
     insert() {
     const stmt = Annotation.db.prepare(`
         INSERT INTO annotations (
-            annotation_id, channel_id, label_id, start_time_ms, end_time_ms, note, labeled_at, updated_at
+            annotation_id, channel_id, label_id, start_time_ms, end_time_ms, note, needs_revision
         ) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
     `)
     const info = stmt.run(
         this.annotationId,
@@ -39,8 +39,7 @@ export default class Annotation {
         this.startTimeMs,
         this.endTimeMs,
         this.note,
-        this.labeledAt,
-        this.updatedAt
+        this.needsRevision ? 1 : 0
     )
         this.annotationId = info.lastInsertRowid
     return this
@@ -49,7 +48,7 @@ export default class Annotation {
     static findOneById(annotationId) {
         const stmt = Annotation.db.prepare(`
         SELECT 
-            annotation_id, channel_id, label_id, start_time_ms, end_time_ms, note
+            annotation_id, channel_id, label_id, start_time_ms, end_time_ms, note, needs_revision
         FROM annotations 
         WHERE annotation_id = ?
     `)
@@ -61,14 +60,15 @@ export default class Annotation {
             row.label_id,
             row.start_time_ms,
             row.end_time_ms,
-            row.note
+            row.note,
+            row.needs_revision === 1
         )
 }
 
     static findAll() {
         const stmt = Annotation.db.prepare(`
         SELECT 
-            annotation_id, channel_id, label_id, start_time_ms, end_time_ms, note
+            annotation_id, channel_id, label_id, start_time_ms, end_time_ms, note, needs_revision
         FROM annotations 
         ORDER BY start_time_ms
     `)
@@ -78,15 +78,16 @@ export default class Annotation {
             row.channel_id,
             row.label_id,
             row.start_time_ms,
-            row.end_timeMs,
-            row.note
+            row.end_time_ms,
+            row.note,
+            row.needs_revision === 1
         ))
 }
 
     static findByChannelId(channelId) {
         const stmt = Annotation.db.prepare(`
         SELECT 
-            a.annotation_id, a.start_time_ms, a.end_time_ms, a.note,
+            a.annotation_id, a.start_time_ms, a.end_time_ms, a.note, a.needs_revision,
             l.label_id, l.name AS label_name
         FROM annotations a
         INNER JOIN labels l ON a.label_id = l.label_id
@@ -100,7 +101,7 @@ export default class Annotation {
     static findByLabelId(labelId) {
         const stmt = Annotation.db.prepare(`
         SELECT 
-            annotation_id, channel_id, label_id, start_time_ms, end_time_ms, note
+            annotation_id, channel_id, label_id, start_time_ms, end_time_ms, note, needs_revision
         FROM annotations 
         WHERE label_id = ?
         ORDER BY start_time_ms
@@ -111,7 +112,7 @@ export default class Annotation {
             row.channel_id,
             row.label_id,
             row.start_time_ms,
-            row.end_timeMs,
+            row.end_time_ms,
             row.note
         ))
     }
@@ -119,7 +120,7 @@ export default class Annotation {
     static findByTimeRange(channelId, startMs, endMs) {
         const stmt = Annotation.db.prepare(`
         SELECT 
-            annotation_id, channel_id, label_id, start_time_ms, end_time_ms, note
+            annotation_id, channel_id, label_id, start_time_ms, end_time_ms, note, needs_revision
         FROM annotations 
         WHERE channel_id = ?
         AND start_time_ms <= ?
@@ -138,29 +139,28 @@ export default class Annotation {
     }
 
     static update(annotationId, updateFields) {
-        const fields = Object.keys(updateFields);
+        const fields = Object.keys(updateFields)
         if (fields.length === 0) return null;
+
         const fieldMap = {
             channelId: 'channel_id',
             labelId: 'label_id',
             startTimeMs: 'start_time_ms',
             endTimeMs: 'end_time_ms',
-            note: 'note'
+            note: 'note',
+            needsRevision: 'needs_revision'
         };
-        const validFields = fields.filter(f => fieldMap[f]);
+        const validFields = fields.filter(f => fieldMap[f])
+        const clause = validFields.map(f => `${fieldMap[f]} = ?`).join(', ')
         if (validFields.length === 0) return null;
-        const assignments = validFields.map(f => `${fieldMap[f]} = ?`).join(', ');
-        const updatedAt = new Date().toISOString();
-        const finalSetClause = assignments ? `${assignments}, updated_at = ?` : 'updated_at = ?';
-        const values = validFields.map(f => updateFields[f]);
-        values.push(updatedAt);
+        const values = validFields.map(f => updateFields[f])
         const stmt = Annotation.db.prepare(`
             UPDATE annotations
-            SET ${finalSetClause}
+            SET ${clause}
             WHERE annotation_id = ?
         `);
         const info = stmt.run(...values, annotationId);
-        return info.changes > 0 ? this.findOneById(annotationId) : null;
+        return info.changes > 0 ? this.findOneById(annotationId) : null
     }
     static delete(annotationId) {
         const stmt = Annotation.db.prepare(`
@@ -212,5 +212,14 @@ export default class Annotation {
         `);
         const rows = stmt.all(this.channelId , this.annotationId, this.startTimeMs, this.endTimeMs);
         return rows.length > 0;
+    }
+
+    static deleteByChannelId(channelId) {
+        const stmt = Annotation.db.prepare(`
+        DELETE FROM annotations 
+        WHERE channel_id = ?
+    `)
+        const info = stmt.run(channelId)
+        return info.changes
     }
 }
