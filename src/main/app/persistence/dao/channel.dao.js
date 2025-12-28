@@ -143,7 +143,7 @@ export default class Channel {
                 c.sampling_frequency_khz,
                 c.subsampled_khz,
                 c.duration_ms,
-                a.annotation_id, a.start_time_ms, a.end_time_ms, a.note,
+                a.annotation_id, a.start_time_ms, a.end_time_ms, a.note, a.needs_revision,
                 l.label_id, l.name AS label_name
             FROM channels c
             LEFT JOIN annotations a ON c.channel_id = a.channel_id

@@ -88,10 +88,8 @@ ipcMain.handle('channel:setDoubleChecked', (event, sessionId, channelId, isCheck
 ipcMain.removeHandler('session:delete')
 ipcMain.handle('session:delete', (event, sessionId) => {
     try {
-        deleteSession(sessionId);
-        return true;
+        return deleteSession(sessionId);
     } catch (error) {
-        dialog.showErrorBox('Delete Session Error', error.message || String(error));
         throw error;
     }
 });

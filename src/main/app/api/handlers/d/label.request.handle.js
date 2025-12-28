@@ -12,6 +12,7 @@ import {getInputFileName} from "../../../domain/services/data/query/session.quer
 import path from "node:path";
 import fs from "node:fs";
 import Store from "electron-store";
+import {toggleSessionExported} from "../../../domain/services/data/command/session.command.js";
 
 const store = new Store();
 
@@ -87,6 +88,7 @@ ipcMain.on('label:exportExcel', async (event, sessionId) => {
     const targetPath = path.join(targetDir, baseName)
     try {
         await saveSessionToExcel(sessionId, targetPath)
+        toggleSessionExported(sessionId, true)
     } catch (error) {
         if (error.code === 'EBUSY' || error.code === 'EPERM') {
             const response = await dialog.showMessageBox({

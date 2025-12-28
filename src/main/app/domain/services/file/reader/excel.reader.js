@@ -45,7 +45,8 @@ export async function readExcelSession(filePath) {
                         labelName: labelName,
                         startTime: row.getCell(headers['start_time']).value,
                         endTime: row.getCell(headers['end_time']).value,
-                        note: row.getCell(headers['note'])?.value || ''
+                        note: row.getCell(headers['note'])?.value || '',
+                        needsRevision: row.getCell(headers['needs_revision']).value === 'Yes'
                     });
                 }
             });

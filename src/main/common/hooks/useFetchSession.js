@@ -48,6 +48,7 @@ export function useFetchSession(sessionId) {
             endTimeMs: a.endTimeMs ?? a.endTime,
             labelName: a.label?.name || a.labelName || 'Unknown',
             note: a.note || null,
+            needsRevision: a.needsRevision || false,
             label: a.label || null
         }));
     };

@@ -7,7 +7,6 @@ import pkg from 'electron-updater';
 import {initSchema, isDbInitialized, migrateSchema} from "./domain/utils/version-management.util.js";
 import log from 'electron-log';
 import appConfig from "./config.js";
-import fs from "node:fs";
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)

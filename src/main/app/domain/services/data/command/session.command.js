@@ -13,6 +13,7 @@ import {saveSessionToExcel} from "../../file/writer/excel.writer.js"
 import fs from "node:fs"
 import path from "node:path"
 import Store from "electron-store";
+import {getInputFileName} from "../query/session.query.js";
 
 
 export function processAndPersistData(inputFileName, data, contentHash) {
@@ -82,10 +83,11 @@ export function updateSessionStatus(sessionId, status) {
         const validStatuses = [
             'NEW',
             'IN_PROGRESS',
+            'REQUEST_DOUBLE_CHECK',
+            'WAIT_FOR_DOUBLE_CHECK',
+            'NEEDS_REVISION',
             'STUDENT_COMPLETED',
             'DOCTOR_COMPLETED',
-            'REQUEST_DOUBLE_CHECK',
-            'WAIT_FOR_DOUBLE_CHECK'
         ]
 
         if (!validStatuses.includes(status)) {
@@ -106,6 +108,17 @@ export function updateSessionStatus(sessionId, status) {
         }
 
         Session.update(sessionId, {status: status})
+        notifySessionUpdate(sessionId)
+    })()
+}
+
+export function toggleSessionExported(sessionId, exported) {
+    asTransaction(() => {
+        const currentSession = Session.findOneById(sessionId)
+        if (!currentSession) {
+            throw new Error(`Session with ID ${sessionId} not found`)
+        }
+        Session.update(sessionId, {exported: exported ? 1 : 0})
         notifySessionUpdate(sessionId)
     })()
 }
@@ -135,7 +148,7 @@ export function persistExcelData(data) {
                 targetStatus,
                 session.input_file_name,
                 null,
-                session.updated_at
+                new Date(session.updated_at).toISOString()
             ).insert()
             if (channels && channels.length > 0) {
                 const channelEntities = channels.map(ch => ({
@@ -189,7 +202,8 @@ export function persistExcelData(data) {
                             labelObj.labelId,
                             ann.startTime,
                             ann.endTime,
-                            ann.note
+                            ann.note,
+                            ann.needsRevision
                         ).insert()
                     }
                 }

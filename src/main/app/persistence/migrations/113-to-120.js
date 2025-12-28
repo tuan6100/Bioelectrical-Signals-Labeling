@@ -21,7 +21,7 @@ const migrateTableSessions = `
         measurement_type TEXT DEFAULT 'UNKNOWN' CHECK (measurement_type IN ('ECG','EEG','EMG', 'UNKNOWN')),
         start_time TEXT NOT NULL,
         end_time TEXT NOT NULL,
-        status TEXT DEFAULT 'NEW' CHECK (status IN ('NEW','IN_PROGRESS', 'REQUEST_DOUBLE_CHECK', 'WAIT_FOR_DOUBLE_CHECK','STUDENT_COMPLETED', 'DOCTOR_COMPLETED')),
+        status TEXT DEFAULT 'NEW' CHECK (status IN ('NEW','IN_PROGRESS', 'REQUEST_DOUBLE_CHECK', 'WAIT_FOR_DOUBLE_CHECK', 'NEEDS_REVISION', 'STUDENT_COMPLETED', 'DOCTOR_COMPLETED')),
         input_file_name TEXT,
         content_hash TEXT UNIQUE,
         updated_at TEXT,
@@ -32,7 +32,7 @@ const migrateTableSessions = `
     CREATE INDEX IF NOT EXISTS session_content_hash_idx ON sessions(content_hash);
     INSERT INTO sessions 
     SELECT session_id, patient_id, measurement_type, start_time, end_time,
-           status, input_file_name, content_hash, updated_at, 0 AS exported
+           status, input_file_name, content_hash, updated_at, exported
     FROM sessions_old;
 
     DROP TABLE sessions_old;
@@ -76,12 +76,13 @@ const migrateTableAnnotations = `
         start_time_ms REAL NOT NULL,
         end_time_ms REAL NOT NULL,
         note TEXT,
+        needs_revision INTEGER DEFAULT 0 CHECK (needs_revision IN (0,1)),
         FOREIGN KEY (channel_id) REFERENCES channels(channel_id) ON DELETE CASCADE,
         FOREIGN KEY (label_id) REFERENCES labels(label_id)
     );
     INSERT INTO annotations
     SELECT annotation_id, channel_id, label_id,
-           start_time_ms, end_time_ms, note
+           start_time_ms, end_time_ms, note, 0 AS needs_revision
     FROM annotations_old;
     CREATE INDEX IF NOT EXISTS annotation_start_time_asc_idx ON annotations(start_time_ms ASC);
 

@@ -93,6 +93,7 @@ export async function saveSessionToExcel(sessionId, filePath) {
             { header: 'start_index', key: 'startIndex', width: 15 },
             { header: 'end_index', key: 'endIndex', width: 15 },
             { header: 'note', key: 'note', width: 30, style: { alignment: { wrapText: true, vertical: 'top' } } },
+            { header: 'needs_revision', key: 'needsRevision', width: 15 }
         ]
 
         if (annotations && annotations.length > 0) {
@@ -104,7 +105,8 @@ export async function saveSessionToExcel(sessionId, filePath) {
                     timeUnit: 'ms',
                     startIndex: null,
                     endIndex: null,
-                    note: ann.note || ''
+                    note: ann.note || '',
+                    needsRevision: ann.needs_revision ? 'Yes' : 'No'
                 })
                 const startIndexCell = row.getCell('startIndex');
                 startIndexCell.value = {
@@ -129,6 +131,5 @@ export async function saveSessionToExcel(sessionId, filePath) {
     if (openResult) {
         console.warn(`Failed to open exported file: ${openResult}`)
     }
-
     return filePath
 }
