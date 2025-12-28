@@ -12,12 +12,19 @@ import ActionToolbar from "../components/ActionToolbar";
 // Custom Hooks
 import { useSessions } from "../hooks/useSessions";
 import { useSessionFilter } from "../hooks/useSessionFilter";
+import { useTableSort } from "../hooks/useTableSort";
 
 export default function Dashboard() {
     const navigate = useNavigate();
     const [query, setQuery] = useState("");
     const { sessions, loading, error, hasLoaded, fetchSessions, removeSession } = useSessions();
     const filteredSessions = useSessionFilter(sessions, query);
+
+    const {
+        sortedData,
+        sortConfig,
+        handleSort
+    } = useTableSort(filteredSessions);
 
     const handleOpenSession = (sessionId) => {
         navigate(`/sessions/${sessionId}`);
@@ -99,7 +106,9 @@ export default function Dashboard() {
                         )}
 
                         <SessionsTable
-                            sessions={filteredSessions}
+                            sessions={sortedData}
+                            sortConfig={sortConfig}
+                            onSort={handleSort}
                             onOpenSession={handleOpenSession}
                             onDelete={handleDeleteSession}
                         />
