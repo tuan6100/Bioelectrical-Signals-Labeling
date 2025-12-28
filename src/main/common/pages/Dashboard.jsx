@@ -24,16 +24,16 @@ export default function Dashboard() {
     };
 
     const handleDeleteSession = async (sessionId) => {
-        fetchDeleteSession(sessionId)
-            .then((result) => {
-                if (!result) return
-                removeSession(sessionId);
-                window.alert('Session deleted successfully.')
-            })
-            .catch((e) => {
-                window.alert('Failed to delete session.')
-                console.error(e)
-            })
+        try {
+            const removedSessionId = await fetchDeleteSession(sessionId)
+            console.log("Delete session result:", removedSessionId);
+            if (!removedSessionId) return
+            removeSession(removedSessionId);
+            window.alert('Session deleted successfully.')
+        } catch (e) {
+            window.alert('Failed to delete session.')
+            console.error(e)
+        }
     };
 
     const handleFileAction = async (apiCall) => {

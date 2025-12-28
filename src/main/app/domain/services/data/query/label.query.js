@@ -20,7 +20,6 @@ function prepareChannelData(channel) {
     if (channel.rawSamplesUv) {
         try {
             let parsedData = channel.rawSamplesUv
-            // Parse cho đến khi ra object/array (xử lý trường hợp double stringify)
             while (typeof parsedData === 'string') {
                 try {
                     parsedData = JSON.parse(parsedData)
@@ -44,7 +43,7 @@ function prepareChannelData(channel) {
             ...ann,
             sampleStartIndex: startIndex,
             sampleEndIndex: endIndex,
-            excelRowStart: startIndex + 2, // +2 vì row header của Excel là 1, data bắt đầu từ 2
+            excelRowStart: startIndex + 2,
             excelRowEnd: endIndex + 2
         };
     });

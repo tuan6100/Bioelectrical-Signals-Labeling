@@ -50,14 +50,12 @@ export function createAnnotation(channelId, startTime, endTime, labelName, label
             labelName: label.name,
             startTimeMs: annotation.startTimeMs,
             endTimeMs: annotation.endTimeMs,
-            note: annotation.note,
-            timeline: new Date(annotation.labeledAt).toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' })
+            note: annotation.note
         }
     })(channelId, startTime, endTime, labelName)
 }
 
 export function updateAnnotation(annotationId, updates) {
-    console.log('Updating:')
     return asTransaction(function (annotationId, updates) {
         const annotation = Annotation.findOneById(annotationId)
         if (!annotation) throw new Error(`Annotation ${annotationId} not found`)
@@ -69,9 +67,8 @@ export function updateAnnotation(annotationId, updates) {
             updates.labelId = label.labelId;
             delete updates.labelName;
         }
-
-        const wasOverlapping = annotation.isOverlappingWithOthers()
         if (updates.startTimeMs !== undefined || updates.endTimeMs !== undefined) {
+            const wasOverlapping = annotation.isOverlappingWithOthers()
             const channelId = annotation.channelId
             const newStart = updates.startTimeMs ?? annotation.startTimeMs
             const newEnd = updates.endTimeMs ?? annotation.endTimeMs
@@ -95,6 +92,7 @@ export function updateAnnotation(annotationId, updates) {
                 }
             }
         }
+        updates.needsRevision = updates.needsRevision? 1 : 0
         const updated = Annotation.update(annotationId, updates)
         if (!updated) {
             throw new Error('Failed to update annotation, no changes were made or annotation not found.')
@@ -113,7 +111,8 @@ export function updateAnnotation(annotationId, updates) {
             startTimeMs: updated.startTimeMs,
             endTimeMs: updated.endTimeMs,
             note: updated.note,
-            timeline: new Date(updated.updatedAt ?? updated.labeledAt)
+            // SỬA: Lấy trực tiếp giá trị boolean từ DAO, không so sánh === 1 nữa
+            needsRevision: !!updated.needsRevision,
         }
     })(annotationId, updates)
 }

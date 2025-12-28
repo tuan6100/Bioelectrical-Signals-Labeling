@@ -19,7 +19,7 @@ import {
     fetchUpdateAnnotation
 } from "../../api/index.js"
 
-const LabelTable = ({ channelId, annotations}) => {
+const LabelTable = ({ channelId, annotations, sessionStatus }) => {
     const [selectedId, setSelectedId] = useState(null)
     const selectedIdRef = useRef(selectedId)
     const prevLengthRef = useRef(null)
@@ -27,26 +27,27 @@ const LabelTable = ({ channelId, annotations}) => {
     const [filterText, setFilterText] = useState('')
     const [sort, setSort] = useState({ key: 'startTimeMs', dir: 'asc' })
     const [newRow, setNewRow] = useState({ startTimeMs: '', endTimeMs: '', labelName: '', note: '' })
-
     const [editId, setEditId] = useState(null)
     const [editFields, setEditFields] = useState({ labelName: '', note: '', startTimeMs: '', endTimeMs: '' })
     const [focusedField, setFocusedField] = useState(null)
-
     const [allLabels, setAllLabels] = useState([])
     const [labelsLoading, setLabelsLoading] = useState(false)
-
     const [activeDropdown, setActiveDropdown] = useState(null)
     const dropdownRef = useRef(null)
     const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 })
 
-    // New color function based on label name
+    const showRevisionCheckbox = ['WAIT_FOR_DOUBLE_CHECK', 'DOCTOR_COMPLETED', 'NEEDS_REVISION'].includes(sessionStatus);
+
+    useEffect(() => {
+        console.log('LabelTable annotations updated:', annotations)
+    }, []);
+
     const getBaseColor = (labelName) => {
         const name = (labelName || '').trim().toLowerCase();
         if (name === 'unknown') return '#FF7F00'
         if (name !== '') return '#4da3ff'
         return '#999999'
     }
-
 
     const overlapGroupColors = ['#FF6B6B']
 
@@ -108,7 +109,8 @@ const LabelTable = ({ channelId, annotations}) => {
             const id = row.annotationId ?? row.id
             const labelName = row.labelName || row.label?.name || ''
             const note = row.note || ''
-            const sig = `${Number(row.startTimeMs) || 0}|${Number(row.endTimeMs) || 0}|${labelName}|${note}`
+            const needsRevision = row.needsRevision ? '1' : '0'
+            const sig = `${Number(row.startTimeMs) || 0}|${Number(row.endTimeMs) || 0}|${labelName}|${note}|${needsRevision}`
             currMap.set(id, sig)
         }
         if (prevLength == null) { if (firstId && selectedId !== firstId) setSelectedId(firstId) }
@@ -205,7 +207,6 @@ const LabelTable = ({ channelId, annotations}) => {
             setActiveDropdown(null)
         } else {
             if(allLabels.length === 0) await handleReload()
-            // Calculate position
             const wrapper = e.target.closest('.custom-select-wrapper')
             if (wrapper) {
                 const rect = wrapper.getBoundingClientRect()
@@ -238,17 +239,19 @@ const LabelTable = ({ channelId, annotations}) => {
         })
         window.dispatchEvent(evt)
     }
+
     const handleCellUpdate = async (id, fields) => {
         if (!id || !fields || typeof fields !== 'object') return
         try {
             const updated = await fetchUpdateAnnotation(id, fields)
             if (!updated) return
             const next = (Array.isArray(annotations) ? annotations : []).map(row => row && (row.annotationId ?? row.id) === id ?
-                { ...row, ...(updated?.labelName != null ? { labelName: updated.labelName } : {}), ...(updated?.note !== undefined ? {
-                        note: updated.note } : {}), ...(updated?.startTimeMs != null ?
-                        { startTimeMs: updated.startTimeMs } : {}), ...(updated?.endTimeMs != null ? { endTimeMs: updated.endTimeMs }
-                            : {}
-                    )
+                { ...row,
+                    ...(updated?.labelName != null ? { labelName: updated.labelName } : {}),
+                    ...(updated?.note !== undefined ? { note: updated.note } : {}),
+                    ...(updated?.startTimeMs != null ? { startTimeMs: updated.startTimeMs } : {}),
+                    ...(updated?.endTimeMs != null ? { endTimeMs: updated.endTimeMs } : {}),
+                    ...(updated?.needsRevision != null ? { needsRevision: updated.needsRevision } : {})
                 } : row
             )
             if (fields.labelName) { const nm = (fields.labelName || '').trim()
@@ -269,6 +272,13 @@ const LabelTable = ({ channelId, annotations}) => {
             console.error('Failed to update annotation:', err)
         }
     }
+
+    const handleToggleRevision = async (e, id, currentVal) => {
+        e.preventDefault()
+        e.stopPropagation()
+        await handleCellUpdate(id, { needsRevision: !currentVal })
+    }
+
     const handleDelete = async (e, id) => {
         e.preventDefault()
         e.stopPropagation()
@@ -288,6 +298,7 @@ const LabelTable = ({ channelId, annotations}) => {
         }
     }
     const handleHeaderSort = (key) => { setSort(prev => { if (prev.key === key) { return { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' } } return { key, dir: 'asc' } }) }
+
     const handleReload = async () => {
         setSort({ key: 'startTimeMs', dir: 'asc' })
         setFilterText('')
@@ -301,6 +312,7 @@ const LabelTable = ({ channelId, annotations}) => {
             setLabelsLoading(false)
         }
     }
+
     const filteredSortedData = React.useMemo(() => {
         if (!Array.isArray(annotations)) return annotations
         const safeData = annotations.filter(r => r !== null && r !== undefined)
@@ -439,19 +451,20 @@ const LabelTable = ({ channelId, annotations}) => {
                                     const id = row.annotationId ?? row.id
                                     const labelName = row.labelName || row.label?.name || 'Unknown'
                                     const note = row.note || ''
+                                    const needsRevision = row.needsRevision || false
                                     const isEditing = id === editId
-
-                                    // Determine overlap group and border color for this row
                                     const groupId = overlapGroupMap.get(id)
                                     const borderColor = groupId != null ? overlapGroupColors[groupId % overlapGroupColors.length] : undefined
+                                    const revisionStyle = needsRevision ? { backgroundColor: '#ffe6e6', borderLeft: '4px solid #ff4444' } : {}
 
                                     return (
                                         <tr key={id}
                                             data-annotation-id={id}
                                             className={id === selectedId ? 'highlight' : ''}
                                             style={{
-                                                ...(id === selectedId ? { backgroundColor: getBaseColor(labelName), color: 'white' } : {}),
-                                                cursor: isEditing ? 'default' : 'pointer'
+                                                ...(id === selectedId ? { backgroundColor: getBaseColor(labelName), color: 'white' } : revisionStyle),
+                                                cursor: isEditing ? 'default' : 'pointer',
+                                                ...(needsRevision && !id === selectedId ? { borderLeft: '4px solid #ff4444' } : { borderLeft: borderColor ? `4px solid ${borderColor}` : undefined })
                                             }}
                                             onClick={e => {
                                                 if (!isEditing) handleRowClick(e, id)
@@ -461,7 +474,7 @@ const LabelTable = ({ channelId, annotations}) => {
 
                                             <td onDoubleClick={(e) =>
                                                 handleDoubleClick(e, row, 'startTimeMs')}
-                                                style={{ borderLeft: borderColor ? `4px solid ${borderColor}` : undefined }}
+                                                style={{ borderLeft: needsRevision ? 'none' : (borderColor ? `4px solid ${borderColor}` : undefined) }}
                                             >
                                                 {isEditing ? <input type="number" className="edit-input" value={editFields.startTimeMs ?? ''} onChange={(e) => setEditFields(f => ({ ...f, startTimeMs: e.target.value }))} autoFocus={focusedField === 'startTimeMs'} onClick={(e) => e.stopPropagation()} style={{ width: '100%' }} /> : row.startTimeMs}
                                             </td>
@@ -542,12 +555,25 @@ const LabelTable = ({ channelId, annotations}) => {
                                                         >
                                                             <FontAwesomeIcon icon={faPencil} />
                                                         </button>
+
                                                         <button className="icon-btn editing"
-                                                                title="Delete"
+                                                                title="Delete" style={{ marginRight: 8 }}
                                                                 onClick={(e) => handleDelete(e, id)}
                                                         >
                                                             <FontAwesomeIcon icon={faTrash} />
                                                         </button>
+
+                                                        {showRevisionCheckbox && (
+                                                            <label title={sessionStatus === 'NEEDS_REVISION' ? "Uncheck when resolved" : "Request Revision"}
+                                                                   style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={needsRevision}
+                                                                    onChange={(e) => handleToggleRevision(e, id, needsRevision)}
+                                                                    style={{ cursor: 'pointer', width: '16px', height: '16px', accentColor: '#ff4444' }}
+                                                                />
+                                                            </label>
+                                                        )}
                                                     </>
                                                 )}
                                             </td>
@@ -621,4 +647,3 @@ const LabelTable = ({ channelId, annotations}) => {
 }
 
 export default LabelTable
-

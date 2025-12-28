@@ -37,7 +37,7 @@ const ddl = `
         measurement_type TEXT DEFAULT 'UNKNOWN' CHECK (measurement_type IN ('ECG','EEG','EMG', 'UNKNOWN')),
         start_time TEXT NOT NULL,
         end_time TEXT NOT NULL,
-        status TEXT DEFAULT 'NEW' CHECK (status IN ('NEW','IN_PROGRESS', 'REQUEST_DOUBLE_CHECK', 'WAIT_FOR_DOUBLE_CHECK','STUDENT_COMPLETED', 'DOCTOR_COMPLETED')),
+        status TEXT DEFAULT 'NEW' CHECK (status IN ('NEW','IN_PROGRESS', 'REQUEST_DOUBLE_CHECK', 'WAIT_FOR_DOUBLE_CHECK','NEEDS_REVISION', 'STUDENT_COMPLETED', 'DOCTOR_COMPLETED')),
         input_file_name TEXT,
         content_hash TEXT UNIQUE,
         updated_at TEXT,
@@ -73,6 +73,7 @@ const ddl = `
         start_time_ms REAL NOT NULL,
         end_time_ms REAL NOT NULL,
         note TEXT,
+        needs_revision INTEGER DEFAULT 0 CHECK (needs_revision IN (0,1)),
         FOREIGN KEY (channel_id) REFERENCES channels(channel_id) ON DELETE CASCADE,
         FOREIGN KEY (label_id) REFERENCES labels(label_id)
     );

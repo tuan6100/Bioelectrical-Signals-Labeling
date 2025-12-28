@@ -65,39 +65,18 @@ export function getChannelSignal(channelId) {
             startTimeMs: r.start_time_ms,
             endTimeMs: r.end_time_ms,
             note: r.note ?? null,
+            needsRevision: r.needs_revision === 1,
             label: r.label_id ? { labelId: r.label_id, name: r.label_name } : null
         })
         return acc
     }, [])
-    const overlaps = findOverlappingAnnotations(annotations)
+    console.log(annotations)
     return {
         samplingRateHz: freqHz || null,
         durationMs: durationMs,
         samples: timeSeries,
-        annotations,
-        overlaps
+        annotations
     }
-}
-
-function findOverlappingAnnotations(annotations) {
-    const overlaps = []
-    const sorted = [...annotations].sort(
-        (a, b) => a.startTimeMs - b.startTimeMs
-    )
-    for (let i = 0; i < sorted.length; i++) {
-        const a = sorted[i]
-        for (let j = i + 1; j < sorted.length; j++) {
-            const b = sorted[j]
-            if (b.startTimeMs >= a.endTimeMs) break
-            if (a.startTimeMs < b.endTimeMs && a.endTimeMs > b.startTimeMs) {
-                overlaps.push({
-                    first: a.annotationId,
-                    second: b.annotationId
-                })
-            }
-        }
-    }
-    return overlaps
 }
 
 export function getAllSessions() {
@@ -115,47 +94,6 @@ export function getAllSessions() {
         inputFileName: r.input_file_name,
         updatedAt: new Date(r.updated_at).toLocaleString('en-US', {timeZone: 'Asia/Ho_Chi_Minh'})
     }))
-}
-
-export function getSessionsByPage(page, size) {
-    const pageNumber = Math.max(1, Number(page) || 1)
-    const pageSize = Math.max(1, Number(size) || 10)
-    const rows =  Session.findAllWithPagination(pageNumber, pageSize)
-    const total = Session.countAll()
-    if (!rows || rows.length === 0) {
-        return {
-            contents: [],
-            page: {
-                size: pageSize,
-                number: pageNumber,
-                totalElements: total,
-                totalPages: Math.ceil(total / pageSize)
-            }
-        }
-    }
-    const contents = rows.map(r => ({
-        sessionId: r.session_id,
-        patient: {
-            id: r.patient_id,
-            name: r.patient_name,
-            gender: r.patient_gender
-        },
-        measurementType: r.measurement_type,
-        startTime: r.start_time,
-        endTime: r.end_time,
-        status: r.status,
-        inputFileName: r.input_file_name,
-        updatedAt: new Date(r.updated_at).toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' })
-    }))
-    return {
-        contents,
-        page: {
-            size: pageSize,
-            number: pageNumber,
-            totalElements: total,
-            totalPages: Math.ceil(total / pageSize)
-        }
-    }
 }
 
 export function getSessionsByPatientId(patientId) {
