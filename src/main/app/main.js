@@ -109,6 +109,19 @@ app.on('window-all-closed', () => {
     }
 })
 
+autoUpdater.on('update-available', () => {
+    dialog.showMessageBox({
+        type: 'info',
+        title: 'Found Updates',
+        message: 'Found updates, do you want update now?',
+        buttons: ['Sure', 'No']
+    }).then((buttonIndex) => {
+        if (buttonIndex.response === 0) {
+            autoUpdater.downloadUpdate()
+        }
+    })
+})
+
 // Auto Updater Events
 autoUpdater.on('update-downloaded', () => {
     dialog.showMessageBoxSync({
