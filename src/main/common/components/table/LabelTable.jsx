@@ -568,7 +568,7 @@ const LabelTable = ({ channelId, annotations, sessionStatus }) => {
                                                                    style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
                                                                 <input
                                                                     type="checkbox"
-                                                                    checked={needsRevision}
+                                                                    checked={!needsRevision}
                                                                     onChange={(e) => handleToggleRevision(e, id, needsRevision)}
                                                                     style={{ cursor: 'pointer', width: '16px', height: '16px', accentColor: '#ff4444' }}
                                                                 />

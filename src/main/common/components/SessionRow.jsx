@@ -30,9 +30,6 @@ export default function SessionRow({ session, index, onOpenSession, onDelete }) 
             <td style={{ padding: '10px', textAlign: 'center' }}>
                 {isChecked ? '✓' : ''}
             </td>
-            <td style={{ padding: '10px', textAlign: 'center' }}>
-                {isDoubleChecked ? '✓' : ''}
-            </td>
             <td style={{ padding: '10px' }}>
                 <StatusBadge status={session.status} />
             </td>

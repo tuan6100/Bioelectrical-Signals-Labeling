@@ -100,7 +100,8 @@ ipcMain.on('label:exportExcel', async (event, sessionId) => {
             })
             if (response.response === 0) {
                 await new Promise(resolve => setTimeout(resolve, 1000))
-                return await saveSessionToExcel(sessionId, targetPath)
+                await saveSessionToExcel(sessionId, targetPath)
+                toggleSessionExported(sessionId, true)
             }
         } else {
             dialog.showErrorBox('Export Error', error.message)

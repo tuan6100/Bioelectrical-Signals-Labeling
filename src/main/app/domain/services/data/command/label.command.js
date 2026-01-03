@@ -8,7 +8,6 @@ import { confirmOverlap } from "../../../utils/warning.util.js"
 import {findNearestTimePoint} from "../../../utils/algorithm.util.js"
 
 export function createAnnotation(channelId, startTime, endTime, labelName, labelNote = null) {
-    console.log('Creating:')
     return asTransaction(function (channelId, startTime, endTime, labelName) {
         let label = Label.findOneByName(labelName)
         if (label === null) {
@@ -158,7 +157,6 @@ function sendSessionUpdate(sessionId) {
 }
 
 function checkTimeValidity(startTime, endTime, channelId, duration) {
-    console.log(`New startTime: ${startTime}, endTime: ${endTime} for channel ${channelId}`)
     const parsedStartTime = Number(startTime)
     const parsedEndTime = Number(endTime)
     if (isNaN(parsedStartTime) || isNaN(parsedEndTime)) {
