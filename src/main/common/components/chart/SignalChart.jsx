@@ -10,15 +10,15 @@ import LabelContextMenu from './LabelContextMenu.jsx';
 import {NavControl} from "../control/NavControl.jsx";
 
 export default function SignalChart({
-                                        samples,
-                                        samplingRateHz,
-                                        durationMs,
-                                        viewport,
-                                        onViewportChange,
-                                        channelId,
-                                        existingLabels,
-                                        minLabelDurationMs
-                                    }) {
+    samples,
+    samplingRateHz,
+    durationMs,
+    viewport,
+    onViewportChange,
+    channelId,
+    existingLabels,
+    minLabelDurationMs
+}) {
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
     const [dimensions, setDimensions] = useState({ width: 800, height: 400 });
