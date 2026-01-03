@@ -66,7 +66,7 @@ app.whenReady().then(async() => {
             }
         }
         await autoUpdater.checkForUpdatesAndNotify()
-        const migrationEnabled = appConfig.get('migration.require', false);
+        const migrationEnabled = appConfig.get('database.migration.require', false);
         if (!isDbInitialized()) {
             console.log('Database not initialized → initSchema()')
             initSchema()

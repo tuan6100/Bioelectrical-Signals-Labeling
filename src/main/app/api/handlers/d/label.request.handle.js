@@ -43,7 +43,7 @@ ipcMain.handle('annotation:update', (event, annotationId, updateFields) => {
         if (!(error instanceof OverlapError)) {
             dialog.showErrorBox('Annotation Update Error', error.message)
         }
-            console.trace(error.message)
+        console.trace(error.message)
     }
 })
 

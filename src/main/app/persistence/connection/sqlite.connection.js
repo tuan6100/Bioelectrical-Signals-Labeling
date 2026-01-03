@@ -3,6 +3,7 @@ import path from "path";
 import {app} from "electron";
 import fs from "node:fs";
 import {fileURLToPath, pathToFileURL} from "node:url";
+import appConfig from "../../config.js";
 
 const env = process.env.NODE_ENV
 let dbFileName
@@ -82,8 +83,8 @@ const ddl = `
 `
 
 db.init = function() {
-    const cleanedVersion = app.getVersion().replace(/[-+].*$/, '').replace(/\./g, '')
-    db.pragma(`user_version = ${cleanedVersion}`)
+    const dbVersion = parseInt(appConfig.get('database.version', 0))
+    db.pragma(`user_version = ${dbVersion}`)
     db.exec(ddl)
     const stmt = db.prepare('INSERT OR IGNORE INTO labels (name) VALUES (?)')
     const labelList = [
@@ -116,10 +117,10 @@ db.init = function() {
     labelList.forEach(label => stmt.run(label))
 }
 
-db.migrate = async function migrate(latestVersion) {
+db.migrate = async function migrate() {
     const current = db.pragma('user_version', { simple: true })
-    const targetVersion = parseInt(latestVersion.replace(/[-+].*$/, '').replace(/\./g, ''))
-    console.log(`Current DB version: ${current}, Target app version: ${targetVersion}, ${current === targetVersion ? 'Skipping migrations.' : 'Running migrations...'}`)
+    const targetVersion = parseInt(appConfig.get('database.version', 0))
+    console.log(`Current DB version: ${current}, Lastest DB version: ${targetVersion}, ${current === targetVersion ? 'Skipping migrations.' : 'Running migrations...'}`)
     if (current === targetVersion) return
     if (current > targetVersion) {
         throw new Error(`DB version ${current} > app version ${targetVersion}`)

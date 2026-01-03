@@ -1,5 +1,8 @@
 {
-  "migration": {
-    "require": true
+  "database": {
+    "version": 120,
+    "migration": {
+      "require": true
+    }
   }
 }
