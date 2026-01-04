@@ -15,54 +15,58 @@ export default function DashboardHeader() {
             <h1 style={{
                 textAlign: "center",
                 margin: 0,
-                fontSize: '2rem',
+                fontSize: '2.5rem',
                 color: '#333',
                 fontFamily: 'Open Sans, sans-serif'
             }}>
-                EMG Biosignal Labeling Dashboard
+                Biosignal Labeling Dashboard
             </h1>
 
-            <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'flex-end',
-                gap: '10px'
-            }}>
+            <div
+                style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '12px',
+                    marginTop: '16px'
+                }}
+            >
                 <a
                     href="https://lab.ibme.edu.vn/"
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{
-                        display: 'block',
-                        cursor: 'pointer',
-                        textDecoration: 'none'
+                        display: 'inline-block',
+                        cursor: 'pointer'
                     }}
                 >
                     <img
                         src={ibmeLogo}
                         alt="iBME Logo"
                         style={{
-                            height: '80px',
+                            height: '72px',
                             width: 'auto',
-                            transition: 'opacity 0.2s'
+                            transition: 'opacity 0.2s ease'
                         }}
-                        onMouseEnter={(e) => e.target.style.opacity = '0.8'}
-                        onMouseLeave={(e) => e.target.style.opacity = '1'}
+                        onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.85')}
+                        onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
                     />
                 </a>
 
                 <a
-                    href="mailto:huy.lp187172@sis.hust.edu.vn,"
-                    className="contact-link"
+                    href="mailto:huy.lp187172@sis.hust.edu.vn"
                     style={{
-                        textDecoration: "none",
-                        color: "#007bff",
-                        fontWeight: "500",
-                        fontSize: "0.9rem",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "5px",
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        textDecoration: 'none',
+                        color: '#555',
+                        fontSize: '0.85rem',
+                        fontWeight: 500,
+                        transition: 'color 0.2s ease'
                     }}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = '#007bff')}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = '#555')}
                 >
                     <FontAwesomeIcon icon={faEnvelope} />
                     Contact Us
