@@ -1,23 +1,6 @@
-import Store from "electron-store"
-import {app} from "electron";
 import {db} from "../../persistence/connection/sqlite.connection.js";
-
-const store = new Store()
-
 export function initSchema() {
-    const latestVersion = app.getVersion()
-    const targetVersion = parseInt(
-        latestVersion.replace(/[-+].*$/, '').replace(/\./g, '')
-    )
-    const dbVersion = db.pragma('user_version', { simple: true })
-    if (dbVersion === 0) {
-        console.log('Initializing database schema...')
-        db.init()
-        db.pragma(`user_version = ${targetVersion}`)
-        store.set('app.version', latestVersion)
-    } else {
-        console.log(`Database already initialized at version ${dbVersion}`)
-    }
+    db.init()
 }
 
 
@@ -26,10 +9,10 @@ export async function migrateSchema() {
     if (dbVersion === 0) {
         console.log('DB not initialized → skip migrate, call init instead')
         initSchema()
-        return
+    } else {
+        await db.migrate()
     }
-    const latestVersion = app.getVersion()
-    await db.migrate(latestVersion)
+
 }
 
 export function isDbInitialized() {

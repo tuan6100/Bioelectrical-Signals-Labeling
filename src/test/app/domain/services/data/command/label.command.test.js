@@ -33,7 +33,7 @@ describe('label.command createAnnotation', () => {
         // Channel / Session
         channelDurationStub = sinon.stub(Channel, 'findOneDurationById');
         channelFindSessionStub = sinon.stub(Channel, 'findSessionIdByChannelId');
-        sessionTouchStub = sinon.stub(Session, 'touch');
+        sessionTouchStub = sinon.stub(Session, 'toggleStatus');
     });
 
     afterEach(() => sinon.restore());
@@ -64,7 +64,7 @@ describe('label.command createAnnotation', () => {
         labelFindByNameStub.returns({ labelId: 7, name: 'Existing' });
         annotationOverlapStub.returns(false);
         channelDurationStub.returns({ sweepDurationMs: 1000 });
-        channelFindSessionStub.returns(null); // no session touch
+        channelFindSessionStub.returns(null); // no session toggleStatus
 
         const result = LabelCommand.persistLabel(11, 0, 200, 'Existing');
         expect(labelInsertStub.notCalled).to.be.true;
@@ -153,7 +153,7 @@ describe('label.command updateAnnotation/deleteAnnotation', () => {
         findLabelStub = sinon.stub(Label, 'findOneById');
         canResizeStub = sinon.stub(Annotation, 'canResize');
         findSessionStub = sinon.stub(Channel, 'findSessionIdByChannelId');
-        sessionTouchStub = sinon.stub(Session, 'touch');
+        sessionTouchStub = sinon.stub(Session, 'toggleStatus');
         deleteAnnStub = sinon.stub(Annotation, 'delete');
         labelFindByNameStub = sinon.stub(Label, 'findOneByName');
         labelInsertStub = sinon.stub(Label.prototype, 'insert').callsFake(function () {

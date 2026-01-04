@@ -24,9 +24,9 @@ describe('Session DAO', () => {
         expect(s.updatedAt).to.be.a('string');
     });
 
-    it('touch updates updated_at', () => {
+    it('toggleStatus updates updated_at', () => {
         runStub.returns({ changes: 1 });
-        Session.touch(77);
+        Session.toggleStatus(77);
         expect(runStub.calledOnce).to.be.true;
         const sql = normalizeSql(prepareStub.firstCall.args[0]);
         expect(sql).to.match(/UPDATE sessions SET updated_at = \?/);

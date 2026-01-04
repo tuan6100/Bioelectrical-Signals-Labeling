@@ -11,22 +11,18 @@ import {
 import './NavControll.css';
 
 export function NavControl({ onZoomXIn, onZoomXOut, onZoomYIn, onZoomYOut }) {
-    // Vị trí mặc định
     const [position, setPosition] = useState({ top: 20, right: 20 });
     const [isDragging, setIsDragging] = useState(false);
-    const [isExpanded, setIsExpanded] = useState(false); // State đóng/mở
+    const [isExpanded, setIsExpanded] = useState(false);
 
     const dragStartRef = useRef({ x: 0, y: 0, initialTop: 0, initialRight: 0 });
-    const isClickRef = useRef(true); // Biến để phân biệt giữa Click và Drag
+    const isClickRef = useRef(true);
 
     const handleMouseDown = (e) => {
-        // Chỉ cho phép kéo khi nhấn vào nút trung tâm (main-toggle)
         if (!e.target.closest('.main-toggle')) return;
-
         e.preventDefault();
         setIsDragging(true);
-        isClickRef.current = true; // Giả sử là click, nếu chuột di chuyển sẽ thành false
-
+        isClickRef.current = true;
         dragStartRef.current = {
             x: e.clientX,
             y: e.clientY,
@@ -41,8 +37,6 @@ export function NavControl({ onZoomXIn, onZoomXOut, onZoomYIn, onZoomYOut }) {
 
             const dx = e.clientX - dragStartRef.current.x;
             const dy = e.clientY - dragStartRef.current.y;
-
-            // Nếu di chuyển quá 5px thì coi là đang Drag, không phải Click
             if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
                 isClickRef.current = false;
             }
@@ -56,7 +50,6 @@ export function NavControl({ onZoomXIn, onZoomXOut, onZoomYIn, onZoomYOut }) {
         const handleMouseUp = () => {
             if (isDragging) {
                 setIsDragging(false);
-                // Nếu không di chuyển chuột (là click) thì toggle menu
                 if (isClickRef.current) {
                     setIsExpanded(prev => !prev);
                 }

@@ -1,7 +1,9 @@
 {
-  "migration": {
-    "enable": true,
-    "require": true
+  "database": {
+    "version": 120,
+    "migration": {
+      "require": true
+    }
   },
   "update": {
     "force": false
