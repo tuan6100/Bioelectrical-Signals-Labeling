@@ -55,6 +55,7 @@ const createWindow = () => {
 // initialization and is ready to create browser windows.
 app.whenReady().then(async() => {
     try {
+        autoUpdater.autoDownload = false
         autoUpdater.autoRunAppAfterInstall = true
         autoUpdater.allowPrerelease = true
         if (process.env.NODE_ENV === 'dev') {
