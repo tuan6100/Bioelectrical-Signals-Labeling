@@ -168,6 +168,7 @@ export default function SignalChart({
     }, [dataRange.max, VOLTAGE_LEVELS]);
 
     const handleZoomXIn = useCallback(() => {
+
         const currentRange = renderViewport.endMs - renderViewport.startMs;
         const newRange = currentRange * 0.8;
         const center = (renderViewport.startMs + renderViewport.endMs) / 2;
@@ -189,6 +190,41 @@ export default function SignalChart({
         if (newEnd > effectiveDurationMs) { newStart -= (newEnd - effectiveDurationMs); newEnd = effectiveDurationMs; }
         onViewportChange({ startMs: newStart, endMs: newEnd });
     }, [renderViewport, effectiveDurationMs, onViewportChange]);
+
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (!e.ctrlKey) return;
+            switch (e.key) {
+                case 'ArrowUp':
+                    e.preventDefault();
+                    handleZoomYIn();
+                    break;
+                case 'ArrowDown':
+                    e.preventDefault();
+                    handleZoomYOut();
+                    break;
+                case 'ArrowRight':
+                    e.preventDefault();
+                    handleZoomXIn();
+                    break;
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    handleZoomXOut();
+                    break;
+                default:
+                    break;
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [
+        handleZoomYIn,
+        handleZoomYOut,
+        handleZoomXIn,
+        handleZoomXOut
+    ]);
+
 
     useEffect(() => {
         const container = containerRef.current;
@@ -836,7 +872,7 @@ export default function SignalChart({
             };
             document.addEventListener('mousedown', h);
             return () => document.removeEventListener('mousedown', h); }
-        }, [contextMenu.visible]);
+    }, [contextMenu.visible]);
 
     useEffect(() => {
         const norm = (existingLabels || []).map(l => ({
@@ -960,6 +996,19 @@ export default function SignalChart({
         return () => { canvas.removeEventListener('wheel', wheelHandler); };
     }, [handleWheel]);
 
+    useEffect(() => {
+        if (contextMenu.visible) {
+            const handleKeyDown = (e) => {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    handleCancelContextMenu();
+                }
+            };
+            document.addEventListener('keydown', handleKeyDown);
+            return () => document.removeEventListener('keydown', handleKeyDown);
+        }
+    }, [contextMenu.visible]);
+
     return (
         <div
             ref={containerRef}
@@ -1004,9 +1053,7 @@ export default function SignalChart({
                     isEditingPersisted={contextMenu.type === 'persisted' ? isEditingPersisted : false}
                     onEditPersistedClick={() => setIsEditingPersisted(true)}
                     onDeletePersistedClick={handlePersistedDelete}
-                    onBackPersistedClick={() => {
-                        setIsEditingPersisted(false);
-                    }}
+                    onBackPersistedClick={handleCancelContextMenu}
                     onChoosePersistedLabel={handlePersistedEditChoose}
                 />
             )}

@@ -7,6 +7,7 @@ export function useSessions() {
     const [error, setError] = useState("");
     const [hasLoaded, setHasLoaded] = useState(false);
     const mountedRef = useRef(true);
+    const loadingRef = useRef(false);
 
     useEffect(() => {
         mountedRef.current = true;
@@ -16,10 +17,13 @@ export function useSessions() {
     }, []);
 
     const fetchSessions = useCallback(async () => {
-        if (loading) return;
+        if (loadingRef.current) return;
+
         try {
+            loadingRef.current = true;
             setLoading(true);
             setError("");
+
             const res = await fetchAllSessions();
             const allSessions = Array.isArray(res)
                 ? res
@@ -32,16 +36,16 @@ export function useSessions() {
             if (mountedRef.current) setError("Failed to load sessions.");
         } finally {
             if (mountedRef.current) {
+                loadingRef.current = false;
                 setLoading(false);
                 setHasLoaded(true);
             }
         }
-    }, [loading]);
+    }, []); // ✅ Không có dependencies
 
     useEffect(() => {
         fetchSessions();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [fetchSessions]);
 
     useEffect(() => {
         if (window.biosignalApi?.on?.sessionStatusUpdated) {
@@ -65,11 +69,14 @@ export function useSessions() {
         }
     }, [fetchSessions]);
 
-    const removeSession = (sessionId) => {
-        setSessions(prev =>
-            prev.filter(session => session.sessionId !== sessionId)
-        );
-    };
+    const removeSession = useCallback((sessionId) => {
+        console.log('Removing session:', sessionId);
+        setSessions(prev => {
+            const newSessions = prev.filter(session => session.sessionId !== sessionId);
+            console.log('Sessions after remove:', newSessions.length);
+            return newSessions;
+        });
+    }, []);
 
     return {
         sessions,

@@ -56,7 +56,7 @@ export default class Session {
         return this;
     }
 
-    static touch(sessionId) {
+    static toggleStatus(sessionId) {
         const session = Session.findOneById(sessionId);
         if (session && session.status === 'NEW') {
             Session.update(sessionId, { status: 'IN_PROGRESS' });

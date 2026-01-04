@@ -8,7 +8,6 @@ import { confirmOverlap } from "../../../utils/warning.util.js"
 import {findNearestTimePoint} from "../../../utils/algorithm.util.js"
 
 export function createAnnotation(channelId, startTime, endTime, labelName, labelNote = null) {
-    console.log('Creating:')
     return asTransaction(function (channelId, startTime, endTime, labelName) {
         let label = Label.findOneByName(labelName)
         if (label === null) {
@@ -40,7 +39,7 @@ export function createAnnotation(channelId, startTime, endTime, labelName, label
         annotation = annotation.insert()
         const sessionId = channel.sessionId
         if (sessionId) {
-            Session.touch(sessionId)
+            Session.toggleStatus(sessionId)
             sendSessionUpdate(sessionId)
         }
         return {
@@ -99,7 +98,7 @@ export function updateAnnotation(annotationId, updates) {
         }
         const sessionId = Channel.findSessionIdByChannelId(updated.channelId)
         if (sessionId) {
-            Session.touch(sessionId)
+            Session.toggleStatus(sessionId)
             sendSessionUpdate(sessionId)
         }
         const label = Label.findOneById(updated.labelId)
@@ -111,7 +110,6 @@ export function updateAnnotation(annotationId, updates) {
             startTimeMs: updated.startTimeMs,
             endTimeMs: updated.endTimeMs,
             note: updated.note,
-            // SỬA: Lấy trực tiếp giá trị boolean từ DAO, không so sánh === 1 nữa
             needsRevision: !!updated.needsRevision,
         }
     })(annotationId, updates)
@@ -136,7 +134,7 @@ export function deleteAnnotation(annotationId) {
         if (deleted && ann) {
             const sessionId = Channel.findSessionIdByChannelId(ann.channelId)
             if (sessionId) {
-                Session.touch(sessionId)
+                Session.toggleStatus(sessionId)
                 sendSessionUpdate(sessionId)
             }
         }
@@ -158,7 +156,6 @@ function sendSessionUpdate(sessionId) {
 }
 
 function checkTimeValidity(startTime, endTime, channelId, duration) {
-    console.log(`New startTime: ${startTime}, endTime: ${endTime} for channel ${channelId}`)
     const parsedStartTime = Number(startTime)
     const parsedEndTime = Number(endTime)
     if (isNaN(parsedStartTime) || isNaN(parsedEndTime)) {

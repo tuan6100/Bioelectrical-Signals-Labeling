@@ -1,4 +1,4 @@
-import {app, BrowserWindow, dialog, globalShortcut} from 'electron'
+import {app, BrowserWindow, dialog, globalShortcut, shell} from 'electron'
 import path from 'node:path'
 import {fileURLToPath} from 'node:url'
 import './api/handlers/index.js'
@@ -21,8 +21,8 @@ const MAIN_WINDOW_VITE_DEV_SERVER_URL = process.env.NODE_ENV === 'dev' ? 'http:/
 const createWindow = () => {
     // Create the browser window.
     const mainWindow = new BrowserWindow({
-        width: 1280,
-        height: 720,
+        width: 1920,
+        height: 1280,
         webPreferences: {
             preload: path.join(__dirname, 'preload.cjs'),
             spellcheck: true,
@@ -66,7 +66,7 @@ app.whenReady().then(async() => {
             }
         }
         await autoUpdater.checkForUpdatesAndNotify()
-        const migrationEnabled = appConfig.get('migration.require', false);
+        const migrationEnabled = appConfig.get('database.migration.require', false);
         if (!isDbInitialized()) {
             console.log('Database not initialized → initSchema()')
             initSchema()
@@ -90,6 +90,7 @@ app.whenReady().then(async() => {
                 win.webContents.toggleDevTools()
             })
         }
+
     } catch (error) {
         console.error('Error during app initialization:', error)
         dialog.showErrorBox('Initialization Error', `Failed to initialize app: ${error.message}`)
