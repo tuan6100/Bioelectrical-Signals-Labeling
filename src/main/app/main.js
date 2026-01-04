@@ -55,7 +55,6 @@ const createWindow = () => {
 // initialization and is ready to create browser windows.
 app.whenReady().then(async() => {
     try {
-        autoUpdater.autoDownload = true
         autoUpdater.autoRunAppAfterInstall = true
         autoUpdater.allowPrerelease = true
         if (process.env.NODE_ENV === 'dev') {
@@ -65,7 +64,7 @@ app.whenReady().then(async() => {
                 autoUpdater.updateConfigPath = path.join(__dirname, '..', '..','..', 'dev-app-update.yml')
             }
         }
-        await autoUpdater.checkForUpdatesAndNotify()
+        await autoUpdater.checkForUpdates()
         const migrationEnabled = appConfig.get('database.migration.require', false);
         if (!isDbInitialized()) {
             console.log('Database not initialized → initSchema()')
