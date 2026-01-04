@@ -115,7 +115,8 @@ autoUpdater.on('update-available', () => {
         type: 'info',
         title: 'Found Updates',
         message: 'Found updates, do you want update now?',
-        buttons: ['Sure', 'No']
+        buttons: ['Yes', 'Maybe Later'],
+        noLink: true
     }).then((buttonIndex) => {
         if (buttonIndex.response === 0) {
             autoUpdater.downloadUpdate()
