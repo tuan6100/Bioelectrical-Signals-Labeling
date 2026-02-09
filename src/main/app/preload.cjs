@@ -52,6 +52,7 @@ contextBridge.exposeInMainWorld("biosignalApi", {
         importRaw: () => ipcRenderer.invoke("file:importRaw"),
         importReviewed: () => ipcRenderer.invoke("file:importReviewed"),
         openFolder: () => ipcRenderer.invoke("file:openFolder"),
+        openDocumentation: () => ipcRenderer.send("app:open-pdf-viewer"),
     },
 
     post: {

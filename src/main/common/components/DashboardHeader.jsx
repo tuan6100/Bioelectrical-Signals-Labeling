@@ -1,77 +1,116 @@
+import { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEnvelope } from "@fortawesome/free-solid-svg-icons";
+import { faBook, faEnvelope } from "@fortawesome/free-solid-svg-icons";
 import ibmeLogo from "../assets/ibme-logo.png";
 
-export default function DashboardHeader() {
+const HeaderLink = ({ icon, text, onClick, href }) => {
+    const [isHovered, setIsHovered] = useState(false);
+
+    const style = {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        textDecoration: 'none',
+        color: isHovered ? '#1890ff' : '#595959',
+        fontSize: '14px',
+        fontWeight: 500,
+        padding: '8px 12px',
+        borderRadius: '6px',
+        backgroundColor: isHovered ? 'rgba(0,0,0,0.025)' : 'transparent',
+        transition: 'all 0.3s ease',
+        cursor: 'pointer',
+        fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial",
+    };
+
+    const content = (
+        <>
+            <FontAwesomeIcon icon={icon} style={{ fontSize: '14px' }} />
+            <span>{text}</span>
+        </>
+    );
+
+    if (onClick) {
+        return (
+            <a href="#" onClick={onClick} style={style} onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
+                {content}
+            </a>
+        );
+    }
+
     return (
-        <div className="dashboard-top-nav" style={{
-            padding: '20px 20px 0 20px',
+        <a href={href} style={style} onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
+            {content}
+        </a>
+    );
+};
+
+export default function DashboardHeader() {
+    const handleOpenDocumentation = (e) => {
+        e.preventDefault();
+        if (window.biosignalApi?.head?.openDocumentation) {
+            window.biosignalApi.head.openDocumentation();
+        }
+    };
+
+    return (
+        <header style={{
+            height: '70px',
+            padding: '0 24px',
             display: 'flex',
+            alignItems: 'center',
             justifyContent: 'space-between',
-            alignItems: 'flex-end'
+            backgroundColor: '#ffffff',
+            boxShadow: 'none',
+            borderBottom: 'none',
+            position: 'relative',
+            zIndex: 1000,
         }}>
-            <div style={{ width: '200px' }}></div>
-
-            <h1 style={{
-                textAlign: "center",
-                margin: 0,
-                fontSize: '2.5rem',
-                color: '#333',
-                fontFamily: 'Open Sans, sans-serif'
-            }}>
-                Biosignal Labeling Dashboard
-            </h1>
-
-            <div
-                style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '12px',
-                    marginTop: '16px'
-                }}
-            >
+            <div style={{ display: 'flex', alignItems: 'center', zIndex: 2 }}>
                 <a
                     href="https://lab.ibme.edu.vn/"
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={{
-                        display: 'inline-block',
-                        cursor: 'pointer'
-                    }}
+                    style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}
                 >
                     <img
                         src={ibmeLogo}
                         alt="iBME Logo"
                         style={{
-                            height: '72px',
+                            height: '100px',
                             width: 'auto',
-                            transition: 'opacity 0.2s ease'
                         }}
-                        onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.85')}
-                        onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
                     />
                 </a>
-
-                <a
-                    href="mailto:huy.lp187172@sis.hust.edu.vn"
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        textDecoration: 'none',
-                        color: '#555',
-                        fontSize: '0.85rem',
-                        fontWeight: 500,
-                        transition: 'color 0.2s ease'
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.color = '#007bff')}
-                    onMouseLeave={(e) => (e.currentTarget.style.color = '#555')}
-                >
-                    <FontAwesomeIcon icon={faEnvelope} />
-                    Contact Us
-                </a>
             </div>
-        </div>
+
+            <h1 style={{
+                position: 'absolute',
+                left: '50%',
+                top: '50%',
+                transform: 'translate(-50%, -50%)',
+                margin: 0,
+                fontSize: '2rem',
+                color: '#333232',
+                fontFamily: '"Open Sans", sans-serif',
+                whiteSpace: 'nowrap',
+                zIndex: 1
+            }}>
+                Biosignal Labeling Dashboard
+            </h1>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', zIndex: 2 }}>
+                <HeaderLink
+                    icon={faBook}
+                    text="Documentation"
+                    onClick={handleOpenDocumentation}
+                />
+
+                <HeaderLink
+                    icon={faEnvelope}
+                    text="Contact Us"
+                    href="mailto:huy.lp187172@sis.hust.edu.vn"
+                />
+            </div>
+        </header>
     );
 }
