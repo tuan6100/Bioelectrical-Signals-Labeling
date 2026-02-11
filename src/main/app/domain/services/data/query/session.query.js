@@ -53,7 +53,7 @@ export function getChannelSignal(channelId) {
     const dtMs = freqHz ? 1000 / freqHz : (durationMs && samplesArr.length ? durationMs / samplesArr.length : 1)
     const timeSeries = samplesArr.map((value, index) => ({
         time: +(index * dtMs).toFixed(3),
-        value
+        value: -value
     }))
     const seen = new Set()
     let annotations = rows.reduce((acc, r) => {
