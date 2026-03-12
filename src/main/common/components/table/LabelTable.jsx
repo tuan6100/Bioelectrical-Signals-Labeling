@@ -19,12 +19,34 @@ import {
     fetchUpdateAnnotation
 } from "../../api/index.js"
 
+const removeVietnameseTones = (str) => {
+    if (!str) return '';
+    str = str.replace(/[àáạảãâầấậẩẫăằắặẳẵ]/g, "a");
+    str = str.replace(/[èéẹẻẽêềếệểễ]/g, "e");
+    str = str.replace(/[ìíịỉĩ]/g, "i");
+    str = str.replace(/[òóọỏõôồốộổỗơờớợởỡ]/g, "o");
+    str = str.replace(/[ùúụủũưừứựửữ]/g, "u");
+    str = str.replace(/[ỳýỵỷỹ]/g, "y");
+    str = str.replace(/đ/g, "d");
+    str = str.replace(/[ÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴ]/g, "A");
+    str = str.replace(/[ÈÉẸẺẼÊỀẾỆỂỄ]/g, "E");
+    str = str.replace(/[ÌÍỊỈĨ]/g, "I");
+    str = str.replace(/[ÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠ]/g, "O");
+    str = str.replace(/[ÙÚỤỦŨƯỪỨỰỬỮ]/g, "U");
+    str = str.replace(/[ỲÝỴỶỸ]/g, "Y");
+    str = str.replace(/Đ/g, "D");
+    str = str.replace(/[\u0300\u0301\u0303\u0309\u0323]/g, "");
+    str = str.replace(/[\u02C6\u0306\u031B]/g, "");
+    return str;
+}
+
 const LabelTable = ({ channelId, annotations, sessionStatus }) => {
     const [selectedId, setSelectedId] = useState(null)
     const selectedIdRef = useRef(selectedId)
     const prevLengthRef = useRef(null)
     const prevRowsMapRef = useRef(new Map())
     const [filterText, setFilterText] = useState('')
+    const [labelFilterText, setLabelFilterText] = useState('')
     const [sort, setSort] = useState({ key: 'startTimeMs', dir: 'asc' })
     const [newRow, setNewRow] = useState({ startTimeMs: '', endTimeMs: '', labelName: '', note: '' })
     const [editId, setEditId] = useState(null)
@@ -35,6 +57,7 @@ const LabelTable = ({ channelId, annotations, sessionStatus }) => {
     const [activeDropdown, setActiveDropdown] = useState(null)
     const dropdownRef = useRef(null)
     const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 })
+    const [highlightedIndex, setHighlightedIndex] = useState(-1)
 
     const showRevisionCheckbox = ['WAIT_FOR_DOUBLE_CHECK', 'DOCTOR_COMPLETED', 'NEEDS_REVISION'].includes(sessionStatus);
 
@@ -220,6 +243,30 @@ const LabelTable = ({ channelId, annotations, sessionStatus }) => {
         }
     }
 
+    const handleLabelInputChange = (e, id) => {
+        const val = e.target.value;
+        if (id === 'NEW') {
+            setNewRow(prev => ({ ...prev, labelName: val }))
+        } else {
+            setEditFields(prev => ({ ...prev, labelName: val }))
+        }
+
+        setHighlightedIndex(-1)
+
+        if (activeDropdown !== id) {
+            const wrapper = e.target.closest('.custom-select-wrapper')
+            if (wrapper) {
+                const rect = wrapper.getBoundingClientRect()
+                setDropdownPosition({
+                    top: rect.bottom + window.scrollY,
+                    left: rect.left + window.scrollX,
+                    width: rect.width
+                })
+            }
+            setActiveDropdown(id)
+        }
+    }
+
     const selectLabelFromDropdown = (name, isNewRow) => {
         if (isNewRow) {
             setNewRow(prev => ({ ...prev, labelName: name }))
@@ -227,6 +274,7 @@ const LabelTable = ({ channelId, annotations, sessionStatus }) => {
             setEditFields(prev => ({ ...prev, labelName: name }))
         }
         setActiveDropdown(null)
+        setHighlightedIndex(-1)
     }
 
     const dispatchAnnotationsUpdated = (nextAnnotations, updatedId) => {
@@ -302,6 +350,7 @@ const LabelTable = ({ channelId, annotations, sessionStatus }) => {
     const handleReload = async () => {
         setSort({ key: 'startTimeMs', dir: 'asc' })
         setFilterText('')
+        setLabelFilterText('')
         try {
             setLabelsLoading(true)
             const rows = await fetchGetAllLabels()
@@ -316,12 +365,21 @@ const LabelTable = ({ channelId, annotations, sessionStatus }) => {
     const filteredSortedData = React.useMemo(() => {
         if (!Array.isArray(annotations)) return annotations
         const safeData = annotations.filter(r => r !== null && r !== undefined)
-        const ft = (filterText || '').trim().toLowerCase()
-        const filtered = ft ? safeData.filter(row => {
-            const label = (row.labelName || row.label?.name || '').toLowerCase()
-            const note = (row.note || '').toLowerCase()
+        const ft = removeVietnameseTones((filterText || '').trim().toLowerCase())
+        let filtered = ft ? safeData.filter(row => {
+            const label = removeVietnameseTones((row.labelName || row.label?.name || '').toLowerCase())
+            const note = removeVietnameseTones((row.note || '').toLowerCase())
             return label.includes(ft) || note.includes(ft) }
         ) : safeData.slice()
+
+        const labelFilter = removeVietnameseTones((labelFilterText || '').trim().toLowerCase())
+        if (labelFilter) {
+            filtered = filtered.filter(row => {
+                const label = removeVietnameseTones((row.labelName || row.label?.name || '').toLowerCase())
+                return label.includes(labelFilter)
+            })
+        }
+
         const { key, dir } = sort || {}
         if (!key) return filtered
         const sign = dir === 'desc' ? -1 : 1
@@ -337,7 +395,7 @@ const LabelTable = ({ channelId, annotations, sessionStatus }) => {
             return ((Number(va) || 0) - (Number(vb) || 0)) * sign
         })
         return filtered
-    }, [annotations, filterText, sort])
+    }, [annotations, filterText, labelFilterText, sort])
 
     useEffect(() => {
         let cancelled = false
@@ -410,16 +468,44 @@ const LabelTable = ({ channelId, annotations, sessionStatus }) => {
         }
     }
 
+    const currentInputText = activeDropdown === 'NEW' ? newRow.labelName : editFields.labelName;
+    const searchTxt = removeVietnameseTones((currentInputText || '').trim().toLowerCase());
+    const displayLabels = searchTxt
+        ? allLabels.filter(l => removeVietnameseTones((l.name || '').toLowerCase()).includes(searchTxt))
+        : allLabels;
+
+    const handleLabelKeyDown = (e, id) => {
+        if (!activeDropdown) return;
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setHighlightedIndex(prev => Math.min(prev + 1, displayLabels.length - 1));
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setHighlightedIndex(prev => Math.max(prev - 1, 0));
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (highlightedIndex >= 0 && highlightedIndex < displayLabels.length) {
+                selectLabelFromDropdown(displayLabels[highlightedIndex].name, id === 'NEW');
+            } else if (displayLabels.length === 1 && searchTxt.length > 0) {
+                selectLabelFromDropdown(displayLabels[0].name, id === 'NEW');
+            } else {
+                setActiveDropdown(null);
+            }
+        } else if (e.key === 'Escape') {
+            setActiveDropdown(null);
+        }
+    }
+
     const hasInputData =
-        newRow.startTimeMs !== '' ||
-        newRow.endTimeMs !== '' ||
-        newRow.labelName.trim() !== '' ||
-        newRow.note.trim() !== ''
+        newRow.startTimeMs.trim() !== '' &&
+        newRow.endTimeMs.trim() !== '' &&
+        newRow.labelName.trim() !== ''
 
     return (
         <div className="table-container">
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-                <input type="text" value={filterText} className="filter-input" onChange={(e) => setFilterText(e.target.value)} placeholder="Filter by label or note..." style={{ flex: 1, minWidth: 120 }} />
+                <input type="text" value={filterText} className="filter-input" onChange={(e) => setFilterText(e.target.value)} placeholder="Filter globally..." style={{ flex: 1, minWidth: 120 }} />
                 <button className="icon-btn" onClick={handleReload} title="Reload & reset sort"><FontAwesomeIcon icon={faArrowRotateRight} /></button>
             </div>
 
@@ -429,11 +515,32 @@ const LabelTable = ({ channelId, annotations, sessionStatus }) => {
                         <table>
                             <thead>
                             <tr>
-                                <th onClick={() => handleHeaderSort('startTimeMs')} style={{cursor:'pointer'}}>Start (ms) <FontAwesomeIcon icon={faSort} className="ms-1"/></th>
-                                <th onClick={() => handleHeaderSort('endTimeMs')} style={{cursor:'pointer'}}>End (ms) <FontAwesomeIcon icon={faSort} className="ms-1"/></th>
-                                <th onClick={() => handleHeaderSort('labelName')} style={{cursor:'pointer'}}>Label <FontAwesomeIcon icon={faSort} className="ms-1"/></th>
-                                <th onClick={() => handleHeaderSort('note')} style={{cursor:'pointer'}}>Note <FontAwesomeIcon icon={faSort} className="ms-1"/></th>
-                                <th>Action</th>
+                                <th onClick={() => handleHeaderSort('startTimeMs')} style={{cursor:'pointer', verticalAlign: 'top'}}>
+                                    Start (ms) <FontAwesomeIcon icon={faSort} className="ms-1"/>
+                                </th>
+                                <th onClick={() => handleHeaderSort('endTimeMs')} style={{cursor:'pointer', verticalAlign: 'top'}}>
+                                    End (ms) <FontAwesomeIcon icon={faSort} className="ms-1"/>
+                                </th>
+
+                                <th style={{verticalAlign: 'top'}}>
+                                    <div onClick={() => handleHeaderSort('labelName')} style={{cursor:'pointer'}}>
+                                        Label
+                                    </div>
+                                    <input
+                                        className="input-label-detail custom-select-input"
+                                        type="text"
+                                        placeholder="Type to search..."
+                                        value={labelFilterText}
+                                        onChange={(e) => setLabelFilterText(e.target.value)}
+                                        onClick={(e) => e.stopPropagation()}
+                                        style={{ width: '100%', marginTop: '6px' }}
+                                    />
+                                </th>
+
+                                <th onClick={() => handleHeaderSort('note')} style={{cursor:'pointer', verticalAlign: 'top'}}>
+                                    Note
+                                </th>
+                                <th style={{verticalAlign: 'top'}}>Action</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -491,7 +598,8 @@ const LabelTable = ({ channelId, annotations, sessionStatus }) => {
                                                             type="text"
                                                             className="edit-input custom-select-input"
                                                             value={editFields.labelName ?? ''}
-                                                            onChange={(e) => setEditFields(f => ({ ...f, labelName: e.target.value }))}
+                                                            onChange={(e) => handleLabelInputChange(e, id)}
+                                                            onKeyDown={(e) => handleLabelKeyDown(e, id)}
                                                             autoFocus={focusedField === 'labelName'}
                                                             onClick={(e) => e.stopPropagation()}
                                                         />
@@ -592,7 +700,8 @@ const LabelTable = ({ channelId, annotations, sessionStatus }) => {
                                             className="input-label-detail custom-select-input"
                                             placeholder={labelsLoading ? 'Loading...' : 'Label'}
                                             value={newRow.labelName}
-                                            onChange={(e) => setNewRow(r => ({ ...r, labelName: e.target.value }))}
+                                            onChange={(e) => handleLabelInputChange(e, 'NEW')}
+                                            onKeyDown={(e) => handleLabelKeyDown(e, 'NEW')}
                                             style={{ width: '100%' }}
                                         />
                                         <button className="custom-select-btn" onClick={(e) => toggleDropdown(e, 'NEW')} tabIndex={-1}>
@@ -626,22 +735,29 @@ const LabelTable = ({ channelId, annotations, sessionStatus }) => {
                     </div>
                 )
             })()}
-            {activeDropdown && (
-                <div ref={dropdownRef} className="custom-dropdown-list" style={{ position: 'fixed', top: dropdownPosition.top, left: dropdownPosition.left, width: dropdownPosition.width, zIndex: 1000 }}>
-                    {allLabels.length > 0 ? allLabels.map(l => (
-                            <div key={l.labelId} className="dropdown-item" onClick={(e) => {
-                                e.stopPropagation()
-                                selectLabelFromDropdown(l.name, activeDropdown === 'NEW')
-                            }}>
-                                {l.name}
+
+            {activeDropdown && (() => {
+                return (
+                    <div ref={dropdownRef} className="custom-dropdown-list" style={{ position: 'fixed', top: dropdownPosition.top, left: dropdownPosition.left, width: dropdownPosition.width, zIndex: 1000 }}>
+                        {displayLabels.length > 0 ? displayLabels.map((l, index) => (
+                                <div key={l.labelId}
+                                     className="dropdown-item"
+                                     onClick={(e) => {
+                                         e.stopPropagation()
+                                         selectLabelFromDropdown(l.name, activeDropdown === 'NEW')
+                                     }}
+                                     style={index === highlightedIndex ? { backgroundColor: '#e6f7ff', color: '#1890ff' } : {}}
+                                >
+                                    {l.name}
+                                </div>
+                            )) :
+                            <div className="dropdown-item" style={{color:'#999', cursor:'default'}}>
+                                No labels match
                             </div>
-                        )) :
-                        <div className="dropdown-item" style={{color:'#999', cursor:'default'}}>
-                            No labels found
-                        </div>
-                    }
-                </div>
-            )}
+                        }
+                    </div>
+                );
+            })()}
         </div>
     )
 }
