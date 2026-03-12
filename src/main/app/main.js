@@ -33,6 +33,7 @@ const createWindow = () => {
             symbolColor: '#74b1be',
             height: 60
         },
+        title: 'Biosignal Labeling app version ' + app.getVersion(),
         titleBarStyle: 'customButtonsOnHover'
     })
 
@@ -110,16 +111,16 @@ app.on('window-all-closed', () => {
     }
 })
 
-autoUpdater.on('update-available', () => {
+autoUpdater.on('update-available', (updateInfo) => {
     dialog.showMessageBox({
         type: 'info',
         title: 'Found Updates',
-        message: 'Found updates, do you want update now?',
+        message: `Found updates from version ${app.getVersion()} to ${updateInfo.version} , do you want update now?`,
         buttons: ['Yes', 'Maybe Later'],
         noLink: true
-    }).then((buttonIndex) => {
+    }).then( async (buttonIndex) =>  {
         if (buttonIndex.response === 0) {
-            autoUpdater.downloadUpdate()
+            await autoUpdater.downloadUpdate()
         }
     })
 })
