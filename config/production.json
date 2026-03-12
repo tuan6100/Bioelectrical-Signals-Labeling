@@ -1,6 +1,6 @@
 {
   "database": {
-    "version": 120,
+    "version": 121,
     "migration": {
       "require": true
     }

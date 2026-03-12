@@ -70,7 +70,6 @@ export function getChannelSignal(channelId) {
         })
         return acc
     }, [])
-    console.log(annotations)
     return {
         samplingRateHz: freqHz || null,
         durationMs: durationMs,
