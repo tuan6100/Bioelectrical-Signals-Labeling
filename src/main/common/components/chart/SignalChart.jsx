@@ -43,7 +43,7 @@ export default function SignalChart({
     const [manualYMax, setManualYMax] = useState(null);
     const [verticalOffset, setVerticalOffset] = useState(0);
 
-    const VOLTAGE_LEVELS = useMemo(() => [100, 200, 500, 1000, 2000, 5000, 10000], []);
+    const VOLTAGE_LEVELS = useMemo(() => [10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000], []);
 
     const [contextMenu, setContextMenu] = useState({
         visible: false,
@@ -136,13 +136,8 @@ export default function SignalChart({
         } else {
             displayMax = VOLTAGE_LEVELS.find(v => v >= maxAbsValue) || 10000;
         }
-        let step = 100;
-        if (displayMax <= 400) step = 100;
-        else if (displayMax <= 1000) step = 200;
-        else if (displayMax <= 2500) step = 500;
-        else step = 1000;
 
-        return { min: -displayMax, max: displayMax, step: step };
+        return { min: -displayMax, max: displayMax, step: displayMax };
     }, [samples, manualYMax, VOLTAGE_LEVELS]);
 
     const handleZoomYIn = useCallback(() => {
