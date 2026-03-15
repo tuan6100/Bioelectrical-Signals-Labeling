@@ -3,6 +3,7 @@ import './Workspace.css'
 import {useFetchSession} from "../hooks/useFetchSession.js";
 import LeftPanel from "../components/panel/LeftPanel.jsx";
 import RightPanel from "../components/panel/RightPanel.jsx";
+import {useNavigate} from "react-router-dom";
 
 
 const COLLAPSE_BREAKPOINT = 1100
@@ -10,6 +11,7 @@ const RESIZER_WIDTH_PX = 6
 
 export default function Workspace({ sessionId }) {
     const containerRef = useRef(null)
+    const navigate = useNavigate();
 
     const {
         loading,
@@ -115,6 +117,9 @@ export default function Workspace({ sessionId }) {
     return (
         <div className={rootClass}>
             <div className="workspace-header">
+                <button className="back-btn" onClick={() => navigate('/')}>
+                    Back
+                </button>
                 <div className="layout-toggle">
                     <button
                         className={`toggle-btn ${layoutMode === 'left' ? 'active' : ''}`}

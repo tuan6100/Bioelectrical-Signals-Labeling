@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {fetchExportAllLabelInChannel} from '../../api/index.js';
 import { useSignalViewport } from '../../hooks/useSignalViewport.js';
 import './LeftPanel.css';
@@ -14,7 +13,6 @@ export default function LeftPanel({
    loading,
    labels: propLabels
 }) {
-    const navigate = useNavigate();
     const [samples, setSamples] = useState([]);
     const [samplingRate, setSamplingRate] = useState(null);
     const [durationMs, setDurationMs] = useState(null);
@@ -61,7 +59,6 @@ export default function LeftPanel({
     return (
         <div className="left-panel">
             <div className="left-panel-toolbar">
-                <button className="back-btn" onClick={() => navigate('/')}>Back</button>
                 <div className="toolbar-group">
                     {channels.length > 0 && (
                         <div className="channel-selector">

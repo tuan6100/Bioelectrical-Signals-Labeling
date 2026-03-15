@@ -9,7 +9,6 @@ import {
     faRectangleXmark,
     faTrash,
     faSort,
-    faArrowRotateRight,
     faChevronDown
 } from "@fortawesome/free-solid-svg-icons"
 import {
@@ -61,10 +60,6 @@ const LabelTable = ({ channelId, annotations, sessionStatus }) => {
     const [highlightedIndex, setHighlightedIndex] = useState(-1)
 
     const showRevisionCheckbox = ['WAIT_FOR_DOUBLE_CHECK', 'DOCTOR_COMPLETED', 'NEEDS_REVISION'].includes(sessionStatus);
-
-    useEffect(() => {
-        console.log('LabelTable annotations updated:', annotations)
-    }, []);
 
     const overlapGroupColors = ['#FF6B6B']
 
@@ -205,6 +200,15 @@ const LabelTable = ({ channelId, annotations, sessionStatus }) => {
         e.preventDefault()
         e.stopPropagation()
         startEditing(row, field)
+        requestAnimationFrame(() => {
+            const el = document.activeElement
+            if (!el) return
+            const tag = (el.tagName || '').toUpperCase()
+            if (tag !== 'INPUT' && tag !== 'TEXTAREA') return
+            if (typeof el.select === 'function') {
+                try { el.select() } catch (_) {}
+            }
+        })
     }
 
     useEffect(() => {
@@ -498,10 +502,6 @@ const LabelTable = ({ channelId, annotations, sessionStatus }) => {
 
     return (
         <div className="table-container">
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-                <input type="text" value={filterText} className="filter-input" onChange={(e) => setFilterText(e.target.value)} placeholder="Filter globally..." style={{ flex: 1, minWidth: 120 }} />
-                <button className="icon-btn" onClick={handleReload} title="Reload & reset sort"><FontAwesomeIcon icon={faArrowRotateRight} /></button>
-            </div>
 
             {(() => {
                 return (

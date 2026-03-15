@@ -8,7 +8,7 @@ import {
 import './SignalChart.css';
 import LabelContextMenu from './LabelContextMenu.jsx';
 import {NavControl} from "../control/NavControl.jsx";
-import {playEMGSound} from "../../hooks/useSound.js";
+import {makeSound} from "../../hooks/useSound.js";
 import {getBaseColor} from "../../hooks/useLabelColor.js";
 
 export default function SignalChart({
@@ -52,7 +52,8 @@ export default function SignalChart({
         x: 0,
         y: 0,
         type: null,
-        targetLabel: null
+        targetLabel: null,
+        isNewlyCreated: false
     });
 
     const [isEditingPersisted, setIsEditingPersisted] = useState(false);
@@ -656,13 +657,17 @@ export default function SignalChart({
         flushSegment();
     };
 
-    const handleMouseDown = async (e) => {
+    const handlePointerDown = async (e) => {
+        // "Bắt" con trỏ chuột, ép mọi sự kiện di chuyển tiếp theo phải gửi vào canvas này
+        try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
+
         const rect = canvasRef.current.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
         if (x < MARGIN.left || x > MARGIN.left + chartWidth || y < MARGIN.top || y > MARGIN.top + chartHeight) { return; }
         const time = xToTime(x);
         const edgeInfo = findLabelEdgeAtTime(time);
+
         if (edgeInfo) {
             interactionStateRef.current.isResizing = true;
             setResizeState({ active: true, label: edgeInfo.label, edge: edgeInfo.edge, originalStart: edgeInfo.label.startTimeMs, originalEnd: edgeInfo.label.endTimeMs });
@@ -689,10 +694,11 @@ export default function SignalChart({
         }
     };
 
-    const handleMouseMove = (e) => {
+    const handlePointerMove = (e) => {
         const rect = canvasRef.current.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
+
         if (contextMenu.visible) {
             const menuElement = document.getElementById('label-context-menu');
             if (menuElement) {
@@ -704,7 +710,7 @@ export default function SignalChart({
                 }
             }
         }
-        // Keep a stable time mapping while the viewport potentially changes due to auto-pan.
+
         const stableMsPerPx = msPerPixelRef.current || ((renderViewport.endMs - renderViewport.startMs) / Math.max(1, chartWidth));
         const anchorX = dragStartCanvasXRef.current;
         const anchorT = dragStartTimeRef.current;
@@ -713,7 +719,7 @@ export default function SignalChart({
             : xToTime(x);
         const time = stableTime;
 
-        // Auto-pan when dragging/resizing near chart edges (but not while Ctrl/Meta panning).
+        // Xử lý auto-pan (cuộn biểu đồ tự động) khi kéo sát mép
         if (!contextMenu.visible && !interactionStateRef.current.isPanning && (interactionStateRef.current.isDragging || interactionStateRef.current.isResizing)) {
             const { dir, intensity } = computeEdgePan(x);
             if (dir !== 0 && intensity > 0) {
@@ -726,6 +732,8 @@ export default function SignalChart({
         } else {
             stopAutoPan();
         }
+
+        // Cập nhật hover (chỉ khi con trỏ vẫn nằm trong canvas)
         if (x >= MARGIN.left && x <= MARGIN.left + chartWidth && y >= MARGIN.top && y <= MARGIN.top + chartHeight && !interactionStateRef.current.isPanning && !interactionStateRef.current.isResizing) {
             const nearest = findNearestSample(time);
             if (nearest) {
@@ -734,8 +742,8 @@ export default function SignalChart({
         } else { setHoverSample(null); }
 
         const effectiveMinResizeMs = Number(minLabelDurationMs) || 0;
+
         if (interactionStateRef.current.isResizing) {
-            // Compute resize based on pixel delta from the point resize started, so it stays stable while viewport scrolls.
             const baseX = resizeStartCanvasXRef.current;
             const newTimeUnclamped = (baseX != null)
                 ? ((resizeState.edge === 'left' ? resizeState.originalStart : resizeState.originalEnd) + (x - baseX) * stableMsPerPx)
@@ -755,6 +763,7 @@ export default function SignalChart({
             }));
             return;
         }
+
         if (x >= MARGIN.left && x <= MARGIN.left + chartWidth && y >= MARGIN.top && y <= MARGIN.top + chartHeight) {
             if (e.ctrlKey || e.metaKey) {
                 if (hoveredLabelId !== null) setHoveredLabelId(null);
@@ -772,6 +781,7 @@ export default function SignalChart({
             if (hoveredLabelId !== null) setHoveredLabelId(null);
             setResizeEdge(null);
         }
+
         if (interactionStateRef.current.isDragging) {
             const clamped = Math.max(0, Math.min(time, effectiveDurationMs));
             setDragState(prev => ({ ...prev, endTime: clamped }));
@@ -787,8 +797,12 @@ export default function SignalChart({
         }
     };
 
-    const handleMouseUp = async () => {
+    const handlePointerUp = async (e) => {
         stopAutoPan();
+
+        // Giải phóng con trỏ khi đã nhả chuột
+        try { if (e && e.pointerId != null) e.currentTarget.releasePointerCapture(e.pointerId); } catch (err) {}
+
         if (interactionStateRef.current.isResizing) {
             interactionStateRef.current.isResizing = false;
             const resizedLabel = labels.find(l => l.annotationId === resizeState.label.annotationId);
@@ -818,6 +832,7 @@ export default function SignalChart({
             resizeStartCanvasXRef.current = null;
             return;
         }
+
         if (interactionStateRef.current.isDragging) {
             interactionStateRef.current.isDragging = false;
             let s = Math.min(dragState.startTime, dragState.endTime);
@@ -844,7 +859,8 @@ export default function SignalChart({
                             x: canvasRect.left + labelX + 20,
                             y: canvasRect.top + MARGIN.top + 20,
                             type: 'persisted',
-                            targetLabel: newAnn
+                            targetLabel: newAnn,
+                            isNewlyCreated: true
                         });
                         setIsEditingPersisted(true);
                     }
@@ -857,8 +873,17 @@ export default function SignalChart({
         if (interactionStateRef.current.isPanning) { interactionStateRef.current.isPanning = false; setPanState({ active: false, startX: null, startViewport: null }); }
     };
 
-    const handleMouseLeave = async () => { setHoveredLabelId(null); setHoverSample(null); await handleMouseUp(); };
-    const minViewportSpanMs = useMemo(() => { const v = Number(minLabelDurationMs); return (Number.isFinite(v) && v > 0) ? v : 5; }, [minLabelDurationMs]);
+    const handlePointerLeave = () => {
+        if (!interactionStateRef.current.isDragging && !interactionStateRef.current.isResizing && !interactionStateRef.current.isPanning) {
+            setHoveredLabelId(null);
+            setHoverSample(null);
+        }
+    };
+
+    const minViewportSpanMs = useMemo(() => {
+        const v = Number(minLabelDurationMs)
+        return (Number.isFinite(v) && v > 0) ? v : 5
+    }, [minLabelDurationMs])
 
     const handleWheel = (e) => {
         e.preventDefault();
@@ -887,7 +912,7 @@ export default function SignalChart({
         const time = xToTime(x);
         const hits = labels.filter(l => time >= l.startTimeMs && time <= l.endTimeMs);
         const persisted = hits.find(l => !(((l.name || '').toLowerCase() === 'pending')));
-        setContextMenu({visible: true, x: e.clientX, y: e.clientY, type: 'persisted', targetLabel: persisted});
+        setContextMenu({visible: true, x: e.clientX, y: e.clientY, type: 'persisted', targetLabel: persisted, isNewlyCreated: false});
         setIsEditingPersisted(false);
     };
 
@@ -906,7 +931,8 @@ export default function SignalChart({
                 x: e.clientX,
                 y: e.clientY,
                 type: 'persisted',
-                targetLabel: hit
+                targetLabel: hit,
+                isNewlyCreated: false
             });
             setIsEditingPersisted(true);
         }
@@ -925,20 +951,21 @@ export default function SignalChart({
                 });
             }
         } finally {
-            setContextMenu({visible: false, x:0, y:0, type:null, targetLabel:null});
+            setContextMenu({visible: false, x:0, y:0, type:null, targetLabel:null, isNewlyCreated: false});
             setIsEditingPersisted(false);
         }
     };
 
     const handlePersistedDelete = async () => {
         const label = contextMenu.targetLabel;
-        if(!label || !window.confirm(`Delete "${label.name}"?`)) {
+        if(!label || (contextMenu.isNewlyCreated === false && !window.confirm(`Delete "${label.name}"?`))) {
             setContextMenu({
                 visible: false,
                 x:0,
                 y:0,
                 type:null,
-                targetLabel:null
+                targetLabel:null,
+                isNewlyCreated: false
             });
             return;
         }
@@ -953,20 +980,26 @@ export default function SignalChart({
                 visible: false,
                 x:0, y:0,
                 type:null,
-                targetLabel:null
+                targetLabel:null,
+                isNewlyCreated: false
             });
         }
     };
 
-    const handleCancelContextMenu = () => {
-        setContextMenu({
-            visible: false,
-            x: 0,
-            y: 0,
-            type: null,
-            targetLabel: null
-        });
-        setIsEditingPersisted(false);
+    const handleCancelContextMenu = (persist = true) => {
+        if (!persist && contextMenu.isNewlyCreated) {
+            handlePersistedDelete();
+        } else {
+            setContextMenu({
+                visible: false,
+                x: 0,
+                y: 0,
+                type: null,
+                targetLabel: null,
+                isNewlyCreated: false
+            });
+            setIsEditingPersisted(false);
+        }
     };
 
     useEffect(() => {
@@ -976,7 +1009,7 @@ export default function SignalChart({
             };
             document.addEventListener('mousedown', h);
             return () => document.removeEventListener('mousedown', h); }
-    }, [contextMenu.visible]);
+    }, [contextMenu.visible, contextMenu.isNewlyCreated]);
 
     useEffect(() => {
         const norm = (existingLabels || []).map(l => ({
@@ -1000,8 +1033,8 @@ export default function SignalChart({
             if (!match) return;
             const s = match.startTimeMs, eTime = match.endTimeMs, vs = renderViewport.startMs, ve= renderViewport.endMs;
             if (eTime < vs || s > ve) {
-                const c=(s + eTime) / 2, w=ve - vs;
-                let ns=c - w / 2, ne=c + w /2;
+                const c = (s + eTime) / 2, w = ve - vs;
+                let ns = c - w / 2, ne = c + w /2;
                 if (ns < 0) {
                     ne -= ns;
                     ns = 0;
@@ -1105,21 +1138,21 @@ export default function SignalChart({
             const handleKeyDown = (e) => {
                 if (e.key === 'Escape') {
                     e.preventDefault();
-                    handleCancelContextMenu();
+                    handleCancelContextMenu(true);
                 }
             };
             document.addEventListener('keydown', handleKeyDown);
             return () => document.removeEventListener('keydown', handleKeyDown);
         }
-    }, [contextMenu.visible]);
+    }, [contextMenu.visible, contextMenu.isNewlyCreated]);
 
     const handlePlayLabelAudio = useCallback((label) => {
         if (!label || !samples || samples.length === 0) return;
         const chunk = samples.filter(s => s.time >= label.startTimeMs && s.time <= label.endTimeMs);
         if (chunk.length > 0) {
-            playEMGSound(chunk, samplingRateHz);
+            makeSound(chunk, samplingRateHz);
         } else {
-            console.warn("Không tìm thấy dữ liệu tín hiệu cho nhãn này.");
+            console.warn("No signal data found for this label.");
         }
     }, [samples, samplingRateHz]);
 
@@ -1134,10 +1167,10 @@ export default function SignalChart({
             <canvas
                 ref={canvasRef}
                 className="signal-chart-canvas"
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseLeave}
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onPointerLeave={handlePointerLeave}
                 onContextMenu={handleContextMenu}
                 onDoubleClick={handleDoubleClick}
             />
@@ -1167,7 +1200,7 @@ export default function SignalChart({
                     isEditingPersisted={contextMenu.type === 'persisted' ? isEditingPersisted : false}
                     onEditPersistedClick={() => setIsEditingPersisted(true)}
                     onDeletePersistedClick={handlePersistedDelete}
-                    onBackPersistedClick={handleCancelContextMenu}
+                    onBackPersistedClick={() => handleCancelContextMenu(false)}
                     onChoosePersistedLabel={handlePersistedEditChoose}
                     onPlayAudioClick={() => handlePlayLabelAudio(contextMenu.targetLabel)}
                 />
