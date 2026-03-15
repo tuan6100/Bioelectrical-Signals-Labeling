@@ -11,6 +11,7 @@ export default function LabelContextMenu({
   onDeletePersistedClick,
   onBackPersistedClick,
   onChoosePersistedLabel,
+  onPlayAudioClick
 }) {
   return (
     <div
@@ -22,14 +23,21 @@ export default function LabelContextMenu({
       {type === 'persisted' && !isEditingPersisted && (
         <div>
           <div className="signal-label-menu__title">Label Actions:</div>
-          <button
-            className="signal-label-menu__btn signal-label-menu__btn--primary"
+          <button className="signal-label-menu__btn signal-label-menu__btn--primary"
             onClick={onEditPersistedClick}
-          >Edit Label</button>
-          <button
-            className="signal-label-menu__btn signal-label-menu__btn--danger"
+          >
+            Edit Label
+          </button>
+          <button className="signal-label-menu__btn signal-label-menu__btn--danger"
             onClick={onDeletePersistedClick}
-          >Delete Label</button>
+          >
+            Delete Label
+          </button>
+          <button className="signal-label-menu__btn signal-label-menu__btn--secondary"
+              onClick={onPlayAudioClick}
+          >
+            Play Sound
+          </button>
         </div>
       )}
 

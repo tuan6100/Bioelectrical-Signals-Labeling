@@ -8,6 +8,8 @@ import {
 import './SignalChart.css';
 import LabelContextMenu from './LabelContextMenu.jsx';
 import {NavControl} from "../control/NavControl.jsx";
+import {playEMGSound} from "../../hooks/useSound.js";
+import {getBaseColor} from "../../hooks/useLabelColor.js";
 
 export default function SignalChart({
     samples,
@@ -62,6 +64,87 @@ export default function SignalChart({
 
     const chartWidth = dimensions.width - MARGIN.left - MARGIN.right;
     const chartHeight = dimensions.height - MARGIN.top - MARGIN.bottom;
+    const latestViewportRef = useRef(viewport);
+    useEffect(() => { latestViewportRef.current = viewport; }, [viewport]);
+    const latestEffectiveDurationMsRef = useRef(0);
+    const autoPanRafRef = useRef(null);
+    const autoPanDirRef = useRef(0);
+    const autoPanIntensityRef = useRef(0);
+    const autoPanLastTsRef = useRef(0);
+
+    const dragStartCanvasXRef = useRef(null);
+    const dragStartTimeRef = useRef(null);
+    const resizeStartCanvasXRef = useRef(null);
+
+    const EDGE_PAN_ZONE_PX = 40;
+    const MAX_PAN_MS_PER_SEC = 1200;
+
+    const stopAutoPan = useCallback(() => {
+        if (autoPanRafRef.current != null) {
+            cancelAnimationFrame(autoPanRafRef.current);
+            autoPanRafRef.current = null;
+        }
+        autoPanDirRef.current = 0;
+        autoPanIntensityRef.current = 0;
+        autoPanLastTsRef.current = 0;
+    }, []);
+
+    const computeEdgePan = useCallback((canvasX) => {
+        const leftEdge = MARGIN.left;
+        const rightEdge = MARGIN.left + chartWidth;
+        if (chartWidth <= 0) return { dir: 0, intensity: 0 };
+
+        // allow being outside bounds; intensity ramps up within EDGE_PAN_ZONE_PX
+        const distLeft = canvasX - leftEdge;
+        if (distLeft < EDGE_PAN_ZONE_PX) {
+            const intensity = Math.max(0, (EDGE_PAN_ZONE_PX - distLeft) / EDGE_PAN_ZONE_PX);
+            return { dir: -1, intensity: Math.min(1, intensity) };
+        }
+
+        const distRight = rightEdge - canvasX;
+        if (distRight < EDGE_PAN_ZONE_PX) {
+            const intensity = Math.max(0, (EDGE_PAN_ZONE_PX - distRight) / EDGE_PAN_ZONE_PX);
+            return { dir: 1, intensity: Math.min(1, intensity) };
+        }
+
+        return { dir: 0, intensity: 0 };
+    }, [MARGIN.left, chartWidth]);
+
+    const startAutoPan = useCallback(() => {
+        if (autoPanRafRef.current != null) return;
+        const step = (ts) => {
+            const isDragging = interactionStateRef.current.isDragging;
+            const isResizing = interactionStateRef.current.isResizing;
+            const dir = autoPanDirRef.current;
+            const intensity = autoPanIntensityRef.current;
+            if ((!isDragging && !isResizing) || dir === 0 || intensity <= 0 || !onViewportChange) {
+                stopAutoPan();
+                return;
+            }
+
+            const prevTs = autoPanLastTsRef.current || ts;
+            const dtSec = Math.max(0, (ts - prevTs) / 1000);
+            autoPanLastTsRef.current = ts;
+
+            const vp = latestViewportRef.current;
+            const span = Math.max(1, (vp.endMs - vp.startMs));
+            const effectiveDurationMs = Number(latestEffectiveDurationMsRef.current) || 0;
+            const maxStart = Math.max(0, effectiveDurationMs - span);
+            const deltaMs = dir * intensity * MAX_PAN_MS_PER_SEC * dtSec;
+            let newStart = vp.startMs + deltaMs;
+            newStart = Math.max(0, Math.min(maxStart, newStart));
+            const newEnd = newStart + span;
+
+            // Keep ms/pixel stable while chart size is stable.
+            if (chartWidth > 0) msPerPixelRef.current = span / chartWidth;
+
+            onViewportChange({ startMs: newStart, endMs: newEnd });
+            autoPanRafRef.current = requestAnimationFrame(step);
+        };
+
+        autoPanRafRef.current = requestAnimationFrame(step);
+    }, [chartWidth, onViewportChange, stopAutoPan]);
+
 
     useEffect(() => {
         if (chartWidth <= 0) return;
@@ -111,6 +194,10 @@ export default function SignalChart({
         if (!samples || samples.length === 0) return 1000;
         return samples[samples.length - 1].time;
     }, [durationMs, samples]);
+
+    useEffect(() => {
+        latestEffectiveDurationMsRef.current = effectiveDurationMs;
+    }, [effectiveDurationMs]);
 
     const renderViewport = useMemo(() => {
         return {
@@ -304,20 +391,6 @@ export default function SignalChart({
         return null;
     }, [labelsToRender]);
 
-    // const getColorScheme = useCallback((label, hovered) => {
-    //     const baseName = (label.name || '').trim().toLowerCase();
-    //     if (baseName === 'unknown') {
-    //         return { fill: hovered ? 'rgba(0,100,255,0.40)' : 'rgba(0,100,255,0.30)', stroke: hovered ? 'rgba(0,80,200,1.0)' : 'rgba(0,80,200,0.9)', line: 'rgba(0,80,200,0.95)' };
-    //     }
-    //     return { fill: hovered ? 'rgba(255,50,50,0.40)' : 'rgba(255,50,50,0.30)', stroke: hovered ? 'rgba(200,0,0,1.0)' : 'rgba(200,0,0,0.9)', line: 'rgba(200,0,0,0.95)' };
-    // }, []);
-
-    //New color function based on label name
-    const getBaseColor = useCallback((labelName) => {
-        const name = (labelName || '').trim().toLowerCase();
-        if (name === 'unknown') return '#FF7F00'; // orange
-        return '#4da3ff'; // default color
-    }, []);
 
     const hexToRgba = useCallback((hex, alpha) => {
         const r = parseInt(hex.slice(1, 3), 16);
@@ -333,7 +406,7 @@ export default function SignalChart({
             stroke: hexToRgba(baseColor, hovered ? 1.0 : 0.9),
             line: hexToRgba(baseColor, 0.95)
         };
-    }, [getBaseColor, hexToRgba]);
+    }, [hexToRgba]);
 
     const findLabelEdgeAtTime = useCallback((timeMs, tolerance = 5) => {
         const toleranceMs = tolerance * (renderViewport.endMs - renderViewport.startMs) / chartWidth;
@@ -593,6 +666,7 @@ export default function SignalChart({
         if (edgeInfo) {
             interactionStateRef.current.isResizing = true;
             setResizeState({ active: true, label: edgeInfo.label, edge: edgeInfo.edge, originalStart: edgeInfo.label.startTimeMs, originalEnd: edgeInfo.label.endTimeMs });
+            resizeStartCanvasXRef.current = x;
             return;
         }
         if (e.ctrlKey || e.metaKey) {
@@ -610,6 +684,8 @@ export default function SignalChart({
             }
             interactionStateRef.current.isDragging = true;
             setDragState({ active: true, startTime: time, endTime: time });
+            dragStartCanvasXRef.current = x;
+            dragStartTimeRef.current = time;
         }
     };
 
@@ -628,7 +704,28 @@ export default function SignalChart({
                 }
             }
         }
-        const time = xToTime(x);
+        // Keep a stable time mapping while the viewport potentially changes due to auto-pan.
+        const stableMsPerPx = msPerPixelRef.current || ((renderViewport.endMs - renderViewport.startMs) / Math.max(1, chartWidth));
+        const anchorX = dragStartCanvasXRef.current;
+        const anchorT = dragStartTimeRef.current;
+        const stableTime = (anchorX != null && anchorT != null)
+            ? (anchorT + (x - anchorX) * stableMsPerPx)
+            : xToTime(x);
+        const time = stableTime;
+
+        // Auto-pan when dragging/resizing near chart edges (but not while Ctrl/Meta panning).
+        if (!contextMenu.visible && !interactionStateRef.current.isPanning && (interactionStateRef.current.isDragging || interactionStateRef.current.isResizing)) {
+            const { dir, intensity } = computeEdgePan(x);
+            if (dir !== 0 && intensity > 0) {
+                autoPanDirRef.current = dir;
+                autoPanIntensityRef.current = intensity;
+                startAutoPan();
+            } else {
+                stopAutoPan();
+            }
+        } else {
+            stopAutoPan();
+        }
         if (x >= MARGIN.left && x <= MARGIN.left + chartWidth && y >= MARGIN.top && y <= MARGIN.top + chartHeight && !interactionStateRef.current.isPanning && !interactionStateRef.current.isResizing) {
             const nearest = findNearestSample(time);
             if (nearest) {
@@ -638,7 +735,12 @@ export default function SignalChart({
 
         const effectiveMinResizeMs = Number(minLabelDurationMs) || 0;
         if (interactionStateRef.current.isResizing) {
-            const newTime = Math.max(0, Math.min(xToTime(x), effectiveDurationMs));
+            // Compute resize based on pixel delta from the point resize started, so it stays stable while viewport scrolls.
+            const baseX = resizeStartCanvasXRef.current;
+            const newTimeUnclamped = (baseX != null)
+                ? ((resizeState.edge === 'left' ? resizeState.originalStart : resizeState.originalEnd) + (x - baseX) * stableMsPerPx)
+                : xToTime(x);
+            const newTime = Math.max(0, Math.min(newTimeUnclamped, effectiveDurationMs));
             setLabels(prev => prev.map(l => {
                 if (l.annotationId !== resizeState.label.annotationId) return l;
                 if (resizeState.edge === 'left') {
@@ -670,7 +772,10 @@ export default function SignalChart({
             if (hoveredLabelId !== null) setHoveredLabelId(null);
             setResizeEdge(null);
         }
-        if (interactionStateRef.current.isDragging) { setDragState(prev => ({ ...prev, endTime: time })); } else if (interactionStateRef.current.isPanning) {
+        if (interactionStateRef.current.isDragging) {
+            const clamped = Math.max(0, Math.min(time, effectiveDurationMs));
+            setDragState(prev => ({ ...prev, endTime: clamped }));
+        } else if (interactionStateRef.current.isPanning) {
             const dx = x - panState.startX;
             const timeRange = viewport.endMs - viewport.startMs;
             const timeShift = -(dx / chartWidth) * timeRange;
@@ -683,6 +788,7 @@ export default function SignalChart({
     };
 
     const handleMouseUp = async () => {
+        stopAutoPan();
         if (interactionStateRef.current.isResizing) {
             interactionStateRef.current.isResizing = false;
             const resizedLabel = labels.find(l => l.annotationId === resizeState.label.annotationId);
@@ -709,6 +815,7 @@ export default function SignalChart({
                 }
             }
             setResizeState({ active: false, label: null, edge: null, originalStart: null, originalEnd: null });
+            resizeStartCanvasXRef.current = null;
             return;
         }
         if (interactionStateRef.current.isDragging) {
@@ -744,6 +851,8 @@ export default function SignalChart({
                 } catch (err) { console.error(err); }
             }
             setDragState({ active: false, startTime: null, endTime: null });
+            dragStartCanvasXRef.current = null;
+            dragStartTimeRef.current = null;
         }
         if (interactionStateRef.current.isPanning) { interactionStateRef.current.isPanning = false; setPanState({ active: false, startX: null, startViewport: null }); }
     };
@@ -1004,6 +1113,16 @@ export default function SignalChart({
         }
     }, [contextMenu.visible]);
 
+    const handlePlayLabelAudio = useCallback((label) => {
+        if (!label || !samples || samples.length === 0) return;
+        const chunk = samples.filter(s => s.time >= label.startTimeMs && s.time <= label.endTimeMs);
+        if (chunk.length > 0) {
+            playEMGSound(chunk, samplingRateHz);
+        } else {
+            console.warn("Không tìm thấy dữ liệu tín hiệu cho nhãn này.");
+        }
+    }, [samples, samplingRateHz]);
+
     return (
         <div
             ref={containerRef}
@@ -1050,6 +1169,7 @@ export default function SignalChart({
                     onDeletePersistedClick={handlePersistedDelete}
                     onBackPersistedClick={handleCancelContextMenu}
                     onChoosePersistedLabel={handlePersistedEditChoose}
+                    onPlayAudioClick={() => handlePlayLabelAudio(contextMenu.targetLabel)}
                 />
             )}
 

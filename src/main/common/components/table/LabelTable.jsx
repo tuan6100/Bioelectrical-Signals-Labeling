@@ -18,6 +18,7 @@ import {
     fetchGetAllLabels,
     fetchUpdateAnnotation
 } from "../../api/index.js"
+import {getBaseColor} from "../../hooks/useLabelColor.js";
 
 const removeVietnameseTones = (str) => {
     if (!str) return '';
@@ -64,13 +65,6 @@ const LabelTable = ({ channelId, annotations, sessionStatus }) => {
     useEffect(() => {
         console.log('LabelTable annotations updated:', annotations)
     }, []);
-
-    const getBaseColor = (labelName) => {
-        const name = (labelName || '').trim().toLowerCase();
-        if (name === 'unknown') return '#FF7F00'
-        if (name !== '') return '#4da3ff'
-        return '#999999'
-    }
 
     const overlapGroupColors = ['#FF6B6B']
 
