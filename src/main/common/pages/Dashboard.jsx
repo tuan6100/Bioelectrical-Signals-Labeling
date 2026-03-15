@@ -3,13 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import "./Dashboard.css";
 import { fetchDeleteSession } from "../api/index.js";
 
-// Components
 import DashboardHeader from "../components/DashboardHeader";
 import SearchToolbar from "../components/SearchToolbar";
 import SessionsTable from "../components/SessionsTable";
 import ActionToolbar from "../components/ActionToolbar";
-
-// Custom Hooks
 import { useSessions } from "../hooks/useSessions";
 import { useSessionFilter } from "../hooks/useSessionFilter";
 import { useTableSort } from "../hooks/useTableSort";

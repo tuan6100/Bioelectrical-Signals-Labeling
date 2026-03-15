@@ -10,7 +10,6 @@
 .workspace-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: 12px;
     padding: 8px 12px;
     border-bottom: 1px solid #e6e8eb;
@@ -20,6 +19,7 @@
 .layout-toggle {
     display: inline-flex;
     gap: 6px;
+    margin-left: auto;
 }
 
 .toggle-btn {
