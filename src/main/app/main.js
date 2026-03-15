@@ -11,12 +11,18 @@ import appConfig from "./config.js";
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-const { autoUpdater } = pkg
+
 log.initialize()
 log.transports.file.getFile()
 Object.assign(console, log.functions)
 
 const MAIN_WINDOW_VITE_DEV_SERVER_URL = process.env.NODE_ENV === 'dev' ? 'http://localhost:5173' : null
+
+const { autoUpdater } = pkg
+const isAlpha = app.getVersion().includes('alpha')
+const isBeta = app.getVersion().includes('beta')
+autoUpdater.allowPrerelease = isAlpha || isBeta
+autoUpdater.channel = isAlpha ? 'alpha' : isBeta ? 'beta' : 'latest'
 
 const createWindow = () => {
     // Create the browser window.
@@ -58,10 +64,6 @@ app.whenReady().then(async() => {
     try {
         autoUpdater.autoDownload = false;
         autoUpdater.autoRunAppAfterInstall = true
-        const isAlpha = app.getVersion().includes('alpha')
-        const isBeta = app.getVersion().includes('beta')
-        autoUpdater.allowPrerelease = isAlpha || isBeta
-        autoUpdater.channel = isAlpha ? 'alpha' : isBeta ? 'beta' : 'latest'
         if (process.env.NODE_ENV === 'dev') {
             const updateForDevEnv =  appConfig.has('update.force') ? Boolean(appConfig.get('update.force')) : false
             if (updateForDevEnv) {
