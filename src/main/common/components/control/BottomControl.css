@@ -1,6 +1,6 @@
 .bottom-controls {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: center;
     flex-wrap: wrap;
     gap: 20px;
@@ -22,12 +22,16 @@
     align-items: center;
     gap: 15px;
     flex-wrap: nowrap;
-    margin-left: auto;
     margin-right: 20px;
+    margin-left: 20px;
 }
 
 .toggle:not(:last-of-type) {
     margin-right: 40px;
+}
+
+.bottom-controls .toggle:last-of-type {
+    margin-left: auto;
 }
 
 .toggle input {

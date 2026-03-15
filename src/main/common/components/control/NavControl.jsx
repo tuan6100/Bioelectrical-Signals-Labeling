@@ -17,6 +17,7 @@ export function NavControl({ onZoomXIn, onZoomXOut, onZoomYIn, onZoomYOut }) {
 
     const dragStartRef = useRef({ x: 0, y: 0, initialTop: 0, initialRight: 0 });
     const isClickRef = useRef(true);
+    const navRef = useRef(null);
 
     const handleMouseDown = (e) => {
         if (!e.target.closest('.main-toggle')) return;
@@ -41,9 +42,24 @@ export function NavControl({ onZoomXIn, onZoomXOut, onZoomYIn, onZoomYOut }) {
                 isClickRef.current = false;
             }
 
+            let newTop = dragStartRef.current.initialTop + dy;
+            let newRight = dragStartRef.current.initialRight - dx;
+
+            if (navRef.current && navRef.current.parentElement) {
+                const parentRect = navRef.current.parentElement.getBoundingClientRect();
+                const navSize = 40;
+                const minPadding = 10;
+                
+                const maxTop = parentRect.height - navSize - minPadding;
+                const maxRight = parentRect.width - navSize - minPadding;
+
+                newTop = Math.max(minPadding, Math.min(newTop, maxTop));
+                newRight = Math.max(minPadding, Math.min(newRight, maxRight));
+            }
+
             setPosition({
-                top: dragStartRef.current.initialTop + dy,
-                right: dragStartRef.current.initialRight - dx
+                top: newTop,
+                right: newRight
             });
         };
 
@@ -67,8 +83,33 @@ export function NavControl({ onZoomXIn, onZoomXOut, onZoomYIn, onZoomYOut }) {
         };
     }, [isDragging]);
 
+    useEffect(() => {
+        if (navRef.current && navRef.current.parentElement) {
+            const parentRect = navRef.current.parentElement.getBoundingClientRect();
+            const navSize = 40;
+            const minPadding = isExpanded ? 60 : 10;
+            
+            let updatedTop = position.top;
+            let updatedRight = position.right;
+            let changed = false;
+
+            const maxTop = parentRect.height - navSize - minPadding;
+            const maxRight = parentRect.width - navSize - minPadding;
+
+            if (updatedTop > maxTop) { updatedTop = maxTop; changed = true; }
+            if (updatedTop < minPadding) { updatedTop = minPadding; changed = true; }
+            if (updatedRight > maxRight) { updatedRight = maxRight; changed = true; }
+            if (updatedRight < minPadding) { updatedRight = minPadding; changed = true; }
+
+            if (changed) {
+                setPosition({ top: updatedTop, right: updatedRight });
+            }
+        }
+    }, [isExpanded, position.top, position.right]);
+
     return (
         <div
+            ref={navRef}
             className={`nav-root ${isExpanded ? 'expanded' : ''} ${isDragging ? 'dragging' : ''}`}
             style={{ top: `${position.top}px`, right: `${position.right}px` }}
             onMouseDown={handleMouseDown}

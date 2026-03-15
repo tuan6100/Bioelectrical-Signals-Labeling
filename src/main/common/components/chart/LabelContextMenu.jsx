@@ -56,10 +56,16 @@ export default function LabelContextMenu({
             ))}
           </div>
           <div className="signal-label-menu__footer">
-            <button
-              className="signal-label-menu__btn"
+            <button className="signal-label-menu__btn"
               onClick={onBackPersistedClick}
-            >Back</button>
+            >
+              Back
+            </button>
+            <button className="signal-label-menu__btn"
+                    onClick={onPlayAudioClick}
+            >
+              Play Sound
+            </button>
           </div>
         </div>
       )}

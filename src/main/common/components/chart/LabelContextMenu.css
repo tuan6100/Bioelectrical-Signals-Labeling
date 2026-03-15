@@ -72,8 +72,10 @@
 }
 
 .signal-label-menu__footer {
+  display: flex;
+  justify-content: space-between;
   margin-top: 5px;
-  padding-top: 5px;
+  padding: 5px;
   border-top: 1px solid #eee;
 }
 
