@@ -58,7 +58,10 @@ app.whenReady().then(async() => {
     try {
         autoUpdater.autoDownload = false;
         autoUpdater.autoRunAppAfterInstall = true
-        autoUpdater.allowPrerelease = true
+        const isAlpha = app.getVersion().includes('alpha')
+        const isBeta = app.getVersion().includes('beta')
+        autoUpdater.allowPrerelease = isAlpha || isBeta
+        autoUpdater.channel = isAlpha ? 'alpha' : isBeta ? 'beta' : 'latest'
         if (process.env.NODE_ENV === 'dev') {
             const updateForDevEnv =  appConfig.has('update.force') ? Boolean(appConfig.get('update.force')) : false
             if (updateForDevEnv) {
@@ -115,17 +118,16 @@ autoUpdater.on('update-available', (updateInfo) => {
     dialog.showMessageBox({
         type: 'info',
         title: 'Found Updates',
-        message: `Found updates from version ${app.getVersion()} to ${updateInfo.version} , do you want update now?`,
+        message: `Found updates from version ${app.getVersion()} to ${updateInfo.version}, do you want to update now?`,
         buttons: ['Yes', 'Maybe Later'],
         noLink: true
-    }).then( async (buttonIndex) =>  {
-        if (buttonIndex.response === 0) {
+    }).then(async (result) => {
+        if (result.response === 0) {
             await autoUpdater.downloadUpdate()
         }
     })
 })
 
-// Auto Updater Events
 autoUpdater.on('update-downloaded', () => {
     dialog.showMessageBoxSync({
         type: 'info',
