@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import {useMemo, useState} from 'react';
 
 export function useTableSort(data, initialKey = null, initialDirection = 'asc') {
     const [sortConfig, setSortConfig] = useState(
@@ -8,7 +8,7 @@ export function useTableSort(data, initialKey = null, initialDirection = 'asc') 
     const sortedData = useMemo(() => {
         if (!sortConfig) return data;
 
-        const sorted = [...data].sort((a, b) => {
+        return [...data].sort((a, b) => {
             let aValue, bValue;
 
             switch (sortConfig.key) {
@@ -48,8 +48,6 @@ export function useTableSort(data, initialKey = null, initialDirection = 'asc') 
             }
             return 0;
         });
-
-        return sorted;
     }, [data, sortConfig]);
 
     const handleSort = (key) => {

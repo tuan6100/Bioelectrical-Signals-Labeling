@@ -110,6 +110,16 @@
   border-color: #0062cc;
 }
 
+.signal-label-menu__btn--secondary {
+  border-color: #6c757d;
+  background-color: #6c757d;
+  color: #fff;
+}
+.signal-label-menu__btn--secondary:hover {
+  background-color: #5a6268;
+  border-color: #545b62;
+}
+
 .signal-label-menu__btn--danger {
   border-color: #dc3545;
   background-color: #dc3545;
