@@ -8,7 +8,6 @@ export default function SessionRow({ session, index, onOpenSession, onDelete }) 
     const patientId = session.patient?.id ?? session.patientId ?? '-';
     const patientName = session.patient?.name ?? session.patientName ?? '-';
     const isChecked = ['STUDENT_COMPLETED', 'DOCTOR_COMPLETED'].includes(statusRaw);
-    const isDoubleChecked = session.isDoubleChecked || false;
 
     const handleDelete = (e) => {
         e.stopPropagation();
