@@ -20,7 +20,7 @@ export function processAndPersistData(inputFileName, data, contentHash) {
     return asTransaction(function (data, contentHash) {
         let patientId = findKeyValue(data, 'Patient ID')
         const firstName = findKeyValue(data, 'First Name')
-        const gender = findKeyValue(data, 'Gender').toString().toUpperCase() === 'MALE' ? 'M' : 'F'
+        const gender = findKeyValue(data, 'Gender').toString().toUpperCase() === 'M' ? 'M' : 'F'
         patientId = insertPatient(patientId, firstName, gender)
         let measurementType = findKeyValue(data, "Test").toString()
         measurementType = measurementType.toUpperCase().includes("ECG") ? "ECG" :
