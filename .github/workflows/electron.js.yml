@@ -48,8 +48,6 @@ jobs:
           pnpm install
         env:
           CI: true
-        if: failure()
-        
 
       - name: Setup pnpm cache
         uses: actions/cache@v3
