@@ -29,7 +29,6 @@ export function processAndPersistData(inputFileName, data, contentHash) {
         const startTime = findKeyValue(data, "Acquisition Start Time")
         const endTime = findKeyValue(data, "Acquisition End Time")
         const sessionId = insertSession(patientId, measurementType, startTime, endTime, inputFileName, contentHash)
-
         const channels  = extractChannelsFromJson(data, sessionId)
         Channel.insertBatch(channels)
         return sessionId
@@ -155,17 +154,18 @@ export function persistExcelData(data) {
                     channelId: ch.channelId,
                     sessionId: sessionId,
                     channelNumber: ch.channelNumber,
+                    dataType: ch.dataType || 'Trace Data',
                     rawSamplesUv: ch.rawSamplesUv,
                     samplingFrequencyKhz: ch.samplingFrequencyKhz,
                     subsampledKhz: ch.subsampledKhz,
-                    durationMs: ch.durationMs,
-                    dataKind: 'EEG'
+                    durationMs: ch.durationMs
                 }))
                 for(const ch of channelEntities) {
                     new Channel(
                         ch.channelId,
                         ch.sessionId,
                         ch.channelNumber,
+                        ch.dataType,
                         ch.rawSamplesUv,
                         ch.samplingFrequencyKhz,
                         ch.subsampledKhz,

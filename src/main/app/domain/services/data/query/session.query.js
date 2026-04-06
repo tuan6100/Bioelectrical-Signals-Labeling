@@ -1,15 +1,20 @@
 import Channel from "../../../../persistence/dao/channel.dao.js";
 import Session from "../../../../persistence/dao/session.dao.js";
 
-export function getSessionInfo(sessionId) {
-    const sessionInfo =  Session.findAllRelatedById(sessionId)
+export function getDefaultSession(sessionId) {
+    const session =  Session.findAllRelatedById(sessionId)
     const defaultChannelId = Channel.findChannelIdBySessionIdAndChanelNumber(sessionId, 1)
     const defaultChannelSignal = defaultChannelId ? getChannelSignal(defaultChannelId) : null
+    let dataType = 'Unknown'
+    if (defaultChannelId) {
+        const ch = Channel.findOneById(defaultChannelId)
+        if (ch) dataType = ch.dataType
+    }
     return {
-        session: sessionInfo,
+        session: session,
         defaultChannel: {
             channelId: defaultChannelId,
-            name: 'Averaged Data',
+            name: dataType,
             signal: defaultChannelSignal
         }
     }
