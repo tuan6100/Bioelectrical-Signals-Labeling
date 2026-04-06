@@ -133,7 +133,7 @@ export default class Session {
             p.patient_id, p.first_name AS patient_first_name, p.gender AS patient_gender,
             s.start_time AS session_start_time, s.end_time AS session_end_time, s.measurement_type,
             s.status, s.updated_at AS session_updated_at, s.input_file_name,
-            c.channel_id, c.channel_number
+            c.channel_id, c.channel_number, c.data_type
         FROM sessions AS s
         INNER JOIN patients AS p ON s.patient_id = p.patient_id
         INNER JOIN channels AS c ON s.session_id = c.session_id
@@ -160,6 +160,7 @@ export default class Session {
         for (const row of rows) {
             result.channels.push({
                 channelId: row.channel_id,
+                channelDataType: row.data_type,
                 channelNumber: row.channel_number
             })
         }

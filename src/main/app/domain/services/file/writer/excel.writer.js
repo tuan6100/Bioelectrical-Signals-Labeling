@@ -45,7 +45,6 @@ export async function saveSessionToExcel(sessionId, filePath) {
         const channelSheet = workbook.addWorksheet(sheetNameChannel)
 
         channelSheet.columns = [
-            { header: 'data_kind', key: 'dataKind', width: 15 },
             { header: 'raw_samples', key: 'rawSamples', width: 20, style: { alignment: { wrapText: true } } },
             { header: 'raw_sample_unit', key: 'rawSampleUnit', width: 15 },
             { header: 'sampling_frequency', key: 'samplingFrequency', width: 20 },
@@ -54,13 +53,13 @@ export async function saveSessionToExcel(sessionId, filePath) {
             { header: 'duration', key: 'duration', width: 15 },
             { header: 'duration_unit', key: 'durationUnit', width: 15 },
             { header: 'channel_id', key: 'channelId', width: 10 },
-            { header: 'channel_number', key: 'channelNumber', width: 10 }
+            { header: 'channel_number', key: 'channelNumber', width: 10 },
+            { header: 'data_type', key: 'data_type', width: 10}
         ]
 
         if (samplesArray.length > 0) {
             for (let i = 0; i < samplesArray.length; i++) {
                 channelSheet.addRow({
-                    dataKind: (i === 0) ? 'EEG' : null,
                     rawSamples: samplesArray[i],
                     rawSampleUnit: (i === 0) ? 'uV' : null,
                     samplingFrequency: (i === 0) ? channel.samplingFrequencyKhz : null,
@@ -69,7 +68,8 @@ export async function saveSessionToExcel(sessionId, filePath) {
                     duration: (i === 0) ? channel.durationMs : null,
                     durationUnit: (i === 0) ? 'ms' : null,
                     channelId: (i === 0) ? channel.channelId : null,
-                    channelNumber: (i === 0) ? channel.channelNumber : null
+                    channelNumber: (i === 0) ? channel.channelNumber : null,
+                    dataType: (i === 0) ? channel.dataType : null
                 })
             }
         } else {

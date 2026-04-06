@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useMemo } from 'react'
 
 import './LabelTable.css'
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
@@ -96,7 +96,7 @@ const LabelTable = ({ channelId, annotations, sessionStatus }) => {
         return map
     }
 
-    const overlapGroupMap = React.useMemo(() => computeOverlapGroups(annotations), [annotations])
+    const overlapGroupMap = useMemo(() => computeOverlapGroups(annotations), [annotations])
 
     useEffect(() => {
         selectedIdRef.current = selectedId
@@ -126,7 +126,9 @@ const LabelTable = ({ channelId, annotations, sessionStatus }) => {
             currMap.set(id, sig)
         }
         if (prevLength == null) { if (firstId && selectedId !== firstId) setSelectedId(firstId) }
-        else if (annotations.length > prevLength) { if (lastId && selectedId !== lastId) setSelectedId(lastId) }
+        else if (annotations.length > prevLength) {
+            if (lastId && selectedId !== lastId) setSelectedId(lastId)
+        }
         else {
             if (selectedStillExists) {
                 try {
@@ -142,7 +144,9 @@ const LabelTable = ({ channelId, annotations, sessionStatus }) => {
                         }
                     }
                 } catch (_) {}
-            } else { if (firstId && selectedId !== firstId) setSelectedId(firstId) }
+            } else {
+                if (firstId && selectedId !== firstId) setSelectedId(firstId)
+            }
         }
         prevLengthRef.current = annotations.length
         prevRowsMapRef.current = currMap
@@ -176,9 +180,11 @@ const LabelTable = ({ channelId, annotations, sessionStatus }) => {
             if (t.isContentEditable || ['INPUT','SELECT','TEXTAREA','BUTTON','A','LABEL'].includes(tag)) return
             if (t.closest('.icon-btn')) return
         }
-        if (id === selectedId) return
-        setSelectedId(id)
-        try { const evt = new CustomEvent('annotation-select', { detail: { id } })
+        if (id !== selectedId) {
+            setSelectedId(id)
+        }
+        try {
+            const evt = new CustomEvent('annotation-select', { detail: { id } })
             window.dispatchEvent(evt)
         } catch (_) {}
     }
@@ -197,7 +203,6 @@ const LabelTable = ({ channelId, annotations, sessionStatus }) => {
     }
 
     const handleDoubleClick = (e, row, field) => {
-        e.preventDefault()
         e.stopPropagation()
         startEditing(row, field)
         requestAnimationFrame(() => {
@@ -343,7 +348,17 @@ const LabelTable = ({ channelId, annotations, sessionStatus }) => {
             console.error('Failed to delete annotation:', err)
         }
     }
-    const handleHeaderSort = (key) => { setSort(prev => { if (prev.key === key) { return { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' } } return { key, dir: 'asc' } }) }
+    const handleHeaderSort = (key) => {
+        setSort(prev => {
+            if (prev.key === key) {
+                return {
+                    key,
+                    dir: prev.dir === 'asc' ? 'desc' : 'asc'
+                }
+            }
+            return { key, dir: 'asc' }
+        })
+    }
 
     const handleReload = async () => {
         setSort({ key: 'startTimeMs', dir: 'asc' })
@@ -360,7 +375,7 @@ const LabelTable = ({ channelId, annotations, sessionStatus }) => {
         }
     }
 
-    const filteredSortedData = React.useMemo(() => {
+    const filteredSortedData = useMemo(() => {
         if (!Array.isArray(annotations)) return annotations
         const safeData = annotations.filter(r => r !== null && r !== undefined)
         const ft = removeVietnameseTones((filterText || '').trim().toLowerCase())
