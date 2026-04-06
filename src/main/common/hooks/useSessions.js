@@ -41,7 +41,7 @@ export function useSessions() {
                 setHasLoaded(true);
             }
         }
-    }, []); // ✅ Không có dependencies
+    }, []);
 
     useEffect(() => {
         fetchSessions();

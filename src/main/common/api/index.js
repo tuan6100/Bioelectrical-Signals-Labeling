@@ -185,30 +185,6 @@ export async function fetchAllSessions() {
 }
 
 /**
- * Fetches all sessions that belong to a given patient.
- *
- * @async
- * @function fetchSessionsByPatientId
- * @param {number} patientId - The unique patient identifier.
- * @returns {Promise<Array<{
- *   sessionId: number,
- *   patientId: number,
- *   measurementType: string,
- *   startTime: string,
- *   endTime: string,
- *   inputFileName: string,
- *   updatedAt: string
- * }>>} A promise that resolves to an array of the patient's sessions (possibly empty).
- */
-export async function fetchSessionsByPatientId(patientId) {
-    if (isDesktopEnv()) {
-        return await getSessionsByPatientIdAppApi(patientId);
-    } else {
-        // TODO: Implement web version
-    }
-}
-
-/**
  * Updates the status of a session.
  *
  * @async
