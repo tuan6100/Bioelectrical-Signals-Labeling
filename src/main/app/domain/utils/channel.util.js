@@ -102,7 +102,7 @@ export function extractChannelsFromJson(jsonData, sessionId) {
                 const data = value["Trace Data"]
                 const channelNumber = parseInt(findDataKey(data, 'Channel number')) || lastChannelNumber || 1
                 lastChannelNumber = channelNumber
-                const found = findDataKey(data, "Sweep  Data")
+                const found = findDataKey(data, "Sweep Data")
                 const scale = deriveScale(found?.key || null, data, value)
                 const samples = parseRawSamples(found?.value, scale)
                 traceSweeps.push({
@@ -112,12 +112,30 @@ export function extractChannelsFromJson(jsonData, sessionId) {
                     subsampled: toNumber(data["Subsampled(kHz)"]) ?? null,
                     duration: toNumber(data["Sweep Duration(ms)"]) ?? null,
                 })
+            } else if ("Store Data" in value) /*TODO: Change this logic to read all types of data in the near future */  {
+                const data = value["Store Data"];
+                const channelNumber = parseInt(data["Channel Number"]) || 0;
+                lastChannelNumber = channelNumber || lastChannelNumber;
+                const found = findDataKey(data, "Averaged Data")
+                const scale = deriveScale(found?.key || null, data, value)
+                const samples = parseRawSamples(found?.value, scale)
+                const ch = new Channel(
+                    null,
+                    sessionId,
+                    channelNumber,
+                    "Averaged Data",
+                    JSON.stringify(samples),
+                    parseFloat(data["Sampling Frequency(kHz)"]) || null,
+                    parseFloat(data["Subsampled(kHz)"]) || null,
+                    parseFloat(data["Sweep Duration(ms)"]) || null,
+                    null,
+                );
+                channels.push(ch);
             }
 
             walk(value)
         }
     }
-
     walk(jsonData)
 
     if (traceSweeps.length > 0) {
@@ -128,6 +146,7 @@ export function extractChannelsFromJson(jsonData, sessionId) {
             null,
             sessionId,
             firstTrace.channelNumber,
+            'Trace Data',
             JSON.stringify(combinedSamples),
             firstTrace.samplingFrequency,
             firstTrace.subsampled,

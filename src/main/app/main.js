@@ -1,4 +1,4 @@
-import {app, BrowserWindow, dialog, globalShortcut, shell} from 'electron'
+import {app, BrowserWindow, dialog, globalShortcut} from 'electron'
 import path from 'node:path'
 import {fileURLToPath} from 'node:url'
 import './api/handlers/index.js'

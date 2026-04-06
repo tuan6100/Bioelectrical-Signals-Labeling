@@ -1,10 +1,5 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {
-    fetchCreateAnnotation,
-    fetchDeleteAnnotation,
-    fetchGetAllLabels,
-    fetchUpdateAnnotation
-} from '../../api';
+import {fetchCreateAnnotation, fetchDeleteAnnotation, fetchGetAllLabels, fetchUpdateAnnotation} from '../../api';
 import './SignalChart.css';
 import LabelContextMenu from './LabelContextMenu.jsx';
 import {NavControl} from "../control/NavControl.jsx";
@@ -94,20 +89,22 @@ export default function SignalChart({
         const leftEdge = MARGIN.left;
         const rightEdge = MARGIN.left + chartWidth;
         if (chartWidth <= 0) return { dir: 0, intensity: 0 };
-
-        // allow being outside bounds; intensity ramps up within EDGE_PAN_ZONE_PX
         const distLeft = canvasX - leftEdge;
         if (distLeft < EDGE_PAN_ZONE_PX) {
             const intensity = Math.max(0, (EDGE_PAN_ZONE_PX - distLeft) / EDGE_PAN_ZONE_PX);
-            return { dir: -1, intensity: Math.min(1, intensity) };
+            return {
+                dir: -1,
+                intensity: Math.min(1, intensity)
+            };
         }
-
         const distRight = rightEdge - canvasX;
         if (distRight < EDGE_PAN_ZONE_PX) {
             const intensity = Math.max(0, (EDGE_PAN_ZONE_PX - distRight) / EDGE_PAN_ZONE_PX);
-            return { dir: 1, intensity: Math.min(1, intensity) };
+            return {
+                dir: 1,
+                intensity: Math.min(1, intensity)
+            };
         }
-
         return { dir: 0, intensity: 0 };
     }, [MARGIN.left, chartWidth]);
 
@@ -135,10 +132,7 @@ export default function SignalChart({
             let newStart = vp.startMs + deltaMs;
             newStart = Math.max(0, Math.min(maxStart, newStart));
             const newEnd = newStart + span;
-
-            // Keep ms/pixel stable while chart size is stable.
             if (chartWidth > 0) msPerPixelRef.current = span / chartWidth;
-
             onViewportChange({ startMs: newStart, endMs: newEnd });
             autoPanRafRef.current = requestAnimationFrame(step);
         };
@@ -217,15 +211,17 @@ export default function SignalChart({
         }
         if (maxAbsValue > 10000) maxAbsValue = 10000;
         if (maxAbsValue === 0) maxAbsValue = 100;
-
         let displayMax;
         if (manualYMax !== null) {
             displayMax = manualYMax;
         } else {
             displayMax = VOLTAGE_LEVELS.find(v => v >= maxAbsValue) || 10000;
         }
-
-        return { min: -displayMax, max: displayMax, step: displayMax };
+        return {
+            min: -displayMax,
+            max: displayMax,
+            step: displayMax
+        };
     }, [samples, manualYMax, VOLTAGE_LEVELS]);
 
     const handleZoomYIn = useCallback(() => {
@@ -258,7 +254,10 @@ export default function SignalChart({
         let newStart = center - newRange / 2;
         let newEnd = center + newRange / 2;
         if (newStart < 0) { newEnd -= newStart; newStart = 0; }
-        if (newEnd > effectiveDurationMs) { newStart -= (newEnd - effectiveDurationMs); newEnd = effectiveDurationMs; }
+        if (newEnd > effectiveDurationMs) {
+            newStart -= (newEnd - effectiveDurationMs);
+            newEnd = effectiveDurationMs;
+        }
         onViewportChange({ startMs: newStart, endMs: newEnd });
     }, [renderViewport, effectiveDurationMs, onViewportChange]);
 
@@ -337,7 +336,13 @@ export default function SignalChart({
         const maxStart = Math.max(0, effectiveDurationMs - viewportSpan);
         const proportion = maxStart > 0 ? (viewport.startMs / maxStart) : 0;
         programmaticScrollRef.current = true;
-        try { container.scrollLeft = Math.round(proportion * maxScroll); } finally { window.setTimeout(() => { programmaticScrollRef.current = false; }, 30); }
+        try {
+            container.scrollLeft = Math.round(proportion * maxScroll);
+        } finally {
+            window.setTimeout(
+                () => programmaticScrollRef.current = false ,
+                30);
+        }
     }, [dimensions.width, effectiveDurationMs, renderViewport.startMs, renderViewport.endMs, viewport.startMs]);
 
     const handleTopScroll = (e) => {
@@ -470,25 +475,17 @@ export default function SignalChart({
             }
         });
 
-        const timeRange = renderViewport.endMs - renderViewport.startMs;
-        const targetGridPx = 25;
-        const minStepMs = (timeRange / chartWidth) * targetGridPx;
-        const magnitude = Math.pow(10, Math.floor(Math.log10(minStepMs)));
-        const residual = minStepMs / magnitude;
-        let timeStep;
-        if (residual > 5) timeStep = 10 * magnitude;
-        else if (residual > 2.2) timeStep = 5 * magnitude;
-        else if (residual > 0.8) timeStep = 2 * magnitude;
-        else timeStep = magnitude;
-        timeStep = Math.max(timeStep, 1);
-        ctx.strokeStyle = '#ddd';
+        const GRID_SIZE_X = 80;
+        const GRID_SIZE_Y = 60;
+
+        ctx.strokeStyle = '#e8e8e8';
         ctx.lineWidth = 1;
         ctx.save();
         ctx.beginPath();
         ctx.rect(MARGIN.left, MARGIN.top, chartWidth, chartHeight);
         ctx.clip();
-        const pxPerStep = (timeStep / timeRange) * chartWidth;
-        for (let x = MARGIN.left; x <= MARGIN.left + chartWidth; x += pxPerStep) {
+
+        for (let x = MARGIN.left; x <= MARGIN.left + chartWidth; x += GRID_SIZE_X) {
             ctx.beginPath();
             const drawX = Math.floor(x) + 0.5;
             ctx.moveTo(drawX, MARGIN.top);
@@ -496,19 +493,27 @@ export default function SignalChart({
             ctx.stroke();
         }
 
-        const viewMin = dataRange.min + verticalOffset;
-        const viewMax = dataRange.max + verticalOffset;
-        const startGridY = Math.floor(viewMin / dataRange.step) * dataRange.step;
-        for (let v = startGridY; v <= viewMax; v += dataRange.step) {
-            const y = valueToY(v);
+        const centerY = MARGIN.top + chartHeight / 2;
+        for (let y = centerY; y >= MARGIN.top; y -= GRID_SIZE_Y) {
             ctx.beginPath();
-            ctx.moveTo(MARGIN.left, y);
-            ctx.lineTo(MARGIN.left + chartWidth, y);
+            const drawY = Math.floor(y) + 0.5;
+            ctx.moveTo(MARGIN.left, drawY);
+            ctx.lineTo(MARGIN.left + chartWidth, drawY);
             ctx.stroke();
         }
+
+        for (let y = centerY + GRID_SIZE_Y; y <= MARGIN.top + chartHeight; y += GRID_SIZE_Y) {
+            ctx.beginPath();
+            const drawY = Math.floor(y) + 0.5;
+            ctx.moveTo(MARGIN.left, drawY);
+            ctx.lineTo(MARGIN.left + chartWidth, drawY);
+            ctx.stroke();
+        }
+
         drawWaveform(ctx, samples);
         ctx.restore();
 
+        // Vẽ các phần đánh dấu phụ (Drag & Hover)
         if (dragState.active) {
             const s = Math.min(dragState.startTime, dragState.endTime);
             const e = Math.max(dragState.startTime, dragState.endTime);
@@ -555,22 +560,23 @@ export default function SignalChart({
         ctx.fillStyle = '#000';
         ctx.font = '11px sans-serif';
         ctx.textAlign = 'center';
-        for (let x = MARGIN.left; x <= MARGIN.left + chartWidth; x += pxPerStep) {
+        const timeRange = renderViewport.endMs - renderViewport.startMs;
+        const msPerDivX = GRID_SIZE_X * (timeRange / chartWidth);
+        for (let x = MARGIN.left; x <= MARGIN.left + chartWidth + 1; x += GRID_SIZE_X) {
             const t = xToTime(x);
             let labelText;
-            if (timeStep >= 1000) {
-                labelText = (t / 1000).toFixed(1) + 's';
+            if (msPerDivX >= 1000) {
+                labelText = (t / 1000).toFixed(2) + 's';
+            } else if (msPerDivX >= 10) {
+                labelText = t.toFixed(0);
             } else {
-                labelText = Math.round(t).toString();
+                labelText = t.toFixed(1);
             }
-            if (x <= MARGIN.left + chartWidth + 1) {
-                ctx.fillText(labelText, x, MARGIN.top + chartHeight + 20);
-            }
+            ctx.fillText(labelText, x, MARGIN.top + chartHeight + 20);
         }
 
         const currentDuration = Math.max(1, renderViewport.endMs - renderViewport.startMs);
         const zoomLevel = effectiveDurationMs / currentDuration;
-        const zoomPercent = Math.round(zoomLevel);
         ctx.font = '12px sans-serif';
         ctx.fillText(
             `Total ${durationMs} ms`,
@@ -578,13 +584,27 @@ export default function SignalChart({
             dimensions.height - 10
         );
 
+        // --- VẼ NHÃN TEXT TRỤC Y ---
         ctx.textAlign = 'right';
         ctx.font = '11px sans-serif';
-        for (let v = startGridY; v <= viewMax; v += dataRange.step) {
-            const y = valueToY(v);
-            if (y >= MARGIN.top - 10 && y <= MARGIN.top + chartHeight + 10) {
-                ctx.fillText(v.toFixed(0), MARGIN.left - 10, y + 4);
-            }
+
+        // Cần quy ngược Pixel màn hình sang giá trị điện áp (Inverse của ValueToY)
+        const yToValue = (y) => {
+            const range = dataRange.max - dataRange.min;
+            const currentMin = dataRange.min + verticalOffset;
+            if (chartHeight === 0) return currentMin;
+            return currentMin + ((MARGIN.top + chartHeight - y) / chartHeight) * range;
+        };
+
+        for (let y = centerY; y >= MARGIN.top - 10; y -= GRID_SIZE_Y) {
+            if (y > MARGIN.top + chartHeight + 10) continue;
+            const v = yToValue(y);
+            ctx.fillText(v.toFixed(0), MARGIN.left - 10, y + 4);
+        }
+
+        for (let y = centerY + GRID_SIZE_Y; y <= MARGIN.top + chartHeight + 10; y += GRID_SIZE_Y) {
+            const v = yToValue(y);
+            ctx.fillText(v.toFixed(0), MARGIN.left - 10, y + 4);
         }
 
         ctx.save();
@@ -658,9 +678,7 @@ export default function SignalChart({
     };
 
     const handlePointerDown = async (e) => {
-        // "Bắt" con trỏ chuột, ép mọi sự kiện di chuyển tiếp theo phải gửi vào canvas này
         try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
-
         const rect = canvasRef.current.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
@@ -683,7 +701,12 @@ export default function SignalChart({
                 const id = hit.annotationId ?? hit.id;
                 if (id != null) {
                     setHoveredLabelId(hit.annotationId);
-                    try { const evt = new CustomEvent('annotation-select', { detail: { id } }); window.dispatchEvent(evt); } catch (_) {}
+                    try {
+                        const evt = new CustomEvent('annotation-select', {
+                            detail: { id }
+                        });
+                        window.dispatchEvent(evt);
+                    } catch (_) {}
                 }
                 return;
             }
@@ -714,12 +737,10 @@ export default function SignalChart({
         const stableMsPerPx = msPerPixelRef.current || ((renderViewport.endMs - renderViewport.startMs) / Math.max(1, chartWidth));
         const anchorX = dragStartCanvasXRef.current;
         const anchorT = dragStartTimeRef.current;
-        const stableTime = (anchorX != null && anchorT != null)
+        const time = (anchorX != null && anchorT != null)
             ? (anchorT + (x - anchorX) * stableMsPerPx)
             : xToTime(x);
-        const time = stableTime;
 
-        // Xử lý auto-pan (cuộn biểu đồ tự động) khi kéo sát mép
         if (!contextMenu.visible && !interactionStateRef.current.isPanning && (interactionStateRef.current.isDragging || interactionStateRef.current.isResizing)) {
             const { dir, intensity } = computeEdgePan(x);
             if (dir !== 0 && intensity > 0) {
@@ -733,7 +754,6 @@ export default function SignalChart({
             stopAutoPan();
         }
 
-        // Cập nhật hover (chỉ khi con trỏ vẫn nằm trong canvas)
         if (x >= MARGIN.left && x <= MARGIN.left + chartWidth && y >= MARGIN.top && y <= MARGIN.top + chartHeight && !interactionStateRef.current.isPanning && !interactionStateRef.current.isResizing) {
             const nearest = findNearestSample(time);
             if (nearest) {
@@ -799,9 +819,9 @@ export default function SignalChart({
 
     const handlePointerUp = async (e) => {
         stopAutoPan();
-
-        // Giải phóng con trỏ khi đã nhả chuột
-        try { if (e && e.pointerId != null) e.currentTarget.releasePointerCapture(e.pointerId); } catch (err) {}
+        try {
+            if (e && e.pointerId != null) e.currentTarget.releasePointerCapture(e.pointerId);
+        } catch (err) {}
 
         if (interactionStateRef.current.isResizing) {
             interactionStateRef.current.isResizing = false;
@@ -825,7 +845,10 @@ export default function SignalChart({
                     }
                 } catch(e) {
                     console.error('Failed to update annotation, rolling back UI.', e);
-                    setLabels(prev => prev.map(l => l.annotationId === resizeState.label.annotationId ? {...l, startTimeMs: resizeState.originalStart, endTimeMs: resizeState.originalEnd} : l));
+                    setLabels(prev => prev.map(l =>
+                        l.annotationId === resizeState.label.annotationId ? {
+                        ...l, startTimeMs: resizeState.originalStart, endTimeMs: resizeState.originalEnd} : l
+                    ));
                 }
             }
             setResizeState({ active: false, label: null, edge: null, originalStart: null, originalEnd: null });
@@ -870,7 +893,10 @@ export default function SignalChart({
             dragStartCanvasXRef.current = null;
             dragStartTimeRef.current = null;
         }
-        if (interactionStateRef.current.isPanning) { interactionStateRef.current.isPanning = false; setPanState({ active: false, startX: null, startViewport: null }); }
+        if (interactionStateRef.current.isPanning) {
+            interactionStateRef.current.isPanning = false;
+            setPanState({ active: false, startX: null, startViewport: null });
+        }
     };
 
     const handlePointerLeave = () => {
@@ -893,15 +919,28 @@ export default function SignalChart({
         const zoomFactor = e.deltaY > 0 ? 1.1 : 0.9;
         const currentRange = renderViewport.endMs - renderViewport.startMs;
         let newRange = currentRange * zoomFactor;
-        if (newRange < minViewportSpanMs) { if (zoomFactor < 1) newRange = minViewportSpanMs; }
+        if (newRange < minViewportSpanMs) {
+            if (zoomFactor < 1) newRange = minViewportSpanMs;
+        }
         const mouseTime = xToTime(x);
         const mouseRatio = (mouseTime - renderViewport.startMs) / currentRange;
         let newStart = mouseTime - newRange * mouseRatio;
         let newEnd = mouseTime + newRange * (1 - mouseRatio);
-        if (newStart < 0) { newEnd -= newStart; newStart = 0; }
-        if (newEnd > effectiveDurationMs) { newStart -= (newEnd - effectiveDurationMs); newEnd = effectiveDurationMs; }
-        if (chartWidth > 0) { msPerPixelRef.current = (newEnd - newStart) / chartWidth; }
-        onViewportChange({ startMs: Math.max(0, newStart), endMs: Math.min(effectiveDurationMs, newEnd) });
+        if (newStart < 0) {
+            newEnd -= newStart;
+            newStart = 0;
+        }
+        if (newEnd > effectiveDurationMs) {
+            newStart -= (newEnd - effectiveDurationMs);
+            newEnd = effectiveDurationMs;
+        }
+        if (chartWidth > 0) {
+            msPerPixelRef.current = (newEnd - newStart) / chartWidth;
+        }
+        onViewportChange({
+            startMs: Math.max(0, newStart),
+            endMs: Math.min(effectiveDurationMs, newEnd)
+        });
     };
 
     const handleContextMenu = async (e) => {
@@ -945,7 +984,9 @@ export default function SignalChart({
             const updated = await fetchUpdateAnnotation(label.annotationId, { labelName: option.value });
             if(updated) {
                 setLabels(prev => {
-                    const next = prev.map(l => l.annotationId === label.annotationId ? {...l, name: updated.labelName, labelName: updated.labelName} : l);
+                    const next = prev.map(l => l.annotationId === label.annotationId ? {
+                        ...l, name: updated.labelName, labelName: updated.labelName} : l
+                    );
                     dispatchAnnotationsUpdated(next);
                     return next;
                 });
@@ -1094,21 +1135,19 @@ export default function SignalChart({
             }
             e.preventDefault();
             e.stopPropagation();
-
             const range = renderViewport.endMs - renderViewport.startMs;
             if (range <= 0) return;
             const step = range * 0.1;
-
             if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
                 let newStart = renderViewport.startMs;
                 let newEnd = renderViewport.endMs;
-
                 if (e.key === 'ArrowLeft') { newStart -= step; newEnd -= step; }
                 if (e.key === 'ArrowRight') { newStart += step; newEnd += step; }
-
                 if (newStart < 0) { newEnd -= newStart; newStart = 0; }
-                if (newEnd > effectiveDurationMs) { newStart -= (newEnd - effectiveDurationMs); newEnd = effectiveDurationMs; }
-
+                if (newEnd > effectiveDurationMs) {
+                    newStart -= (newEnd - effectiveDurationMs);
+                    newEnd = effectiveDurationMs;
+                }
                 onViewportChange({ startMs: newStart, endMs: newEnd });
             }
             else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
@@ -1184,7 +1223,10 @@ export default function SignalChart({
             {hoverSample && (
                 <div
                     className="hover-tooltip"
-                    style={{ top: Math.max(MARGIN.top, Math.min(hoverSample.canvasY - 28, dimensions.height - 55)), left: Math.min(Math.max(hoverSample.canvasX + 8, MARGIN.left), dimensions.width - 160) }}
+                    style={{
+                        top: Math.max(MARGIN.top, Math.min(hoverSample.canvasY - 28, dimensions.height - 55)),
+                        left: Math.min(Math.max(hoverSample.canvasX + 8, MARGIN.left), dimensions.width - 160)
+                    }}
                 >
                     <div>time: {hoverSample.timeMs.toFixed(3)} ms</div>
                     <div>volt: {typeof hoverSample.value === 'number' ? hoverSample.value.toFixed(1) : hoverSample.value} µV</div>

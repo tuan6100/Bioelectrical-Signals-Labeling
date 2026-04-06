@@ -1,3 +1,5 @@
+import appConfig from "../../config.js";
+
 const migrateTablePatients = `
     ALTER TABLE patients RENAME TO patients_old;
     CREATE TABLE patients (
@@ -58,7 +60,6 @@ const migrateTableChannels = `
            raw_samples_uv, sampling_frequency_khz,
            subsampled_khz, duration_ms, double_checked
     FROM channels_old;
---     WHERE data_kind = 'trace';
     CREATE INDEX IF NOT EXISTS channel_session_channel_number_idx ON channels(session_id, channel_number);
 
     DROP TABLE channels_old;
@@ -104,7 +105,7 @@ export function migrate113to120(db) {
             migrateTableList.forEach(migrationSQL => {
                 db.exec(migrationSQL);
             })
-            db.pragma('user_version = 120');
+            db.pragma(`user_version = ${appConfig.get('database.version')}`);
         })();
     } finally {
         db.pragma('foreign_keys = ON')

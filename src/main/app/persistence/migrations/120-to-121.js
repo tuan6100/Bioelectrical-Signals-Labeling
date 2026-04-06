@@ -1,3 +1,5 @@
+import appConfig from "../../config.js";
+
 const newLabels = [
     "Bình thường",
     "Nghi ngờ",
@@ -7,4 +9,5 @@ export function migrate120to121(db) {
     for (const label of newLabels) {
         stmt.run(label)
     }
+    db.pragma(`user_version = ${appConfig.get('database.version')}`);
 }

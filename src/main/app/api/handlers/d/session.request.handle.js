@@ -1,7 +1,7 @@
 import {ipcMain, dialog, app, BrowserWindow} from "electron";
 import {
     getAllSessions,
-    getSessionInfo,
+    getDefaultSession,
     getSessionsByPatientId
 } from "../../../domain/services/data/query/session.query.js";
 import {
@@ -18,7 +18,7 @@ import fs from "node:fs";
 ipcMain.removeHandler('session:getInfo')
 ipcMain.handle('session:getInfo', (event, sessionId) => {
     try {
-        return getSessionInfo(sessionId)
+        return getDefaultSession(sessionId)
     } catch (error) {
         dialog.showErrorBox('Error when loading workspace data of the session', error.message || String(error))
     }
