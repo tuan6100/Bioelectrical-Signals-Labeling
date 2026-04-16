@@ -43,19 +43,9 @@ jobs:
           cache: "pnpm"
 
       - name: Install dependencies
-        run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-          pnpm install
+        run: pnpm install
         env:
           CI: true
-
-      - name: Setup pnpm cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
 
       - name: Lint
         if: hashFiles('**/eslint.config.*', '**/.eslintrc*') != ''
