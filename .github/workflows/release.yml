@@ -24,13 +24,17 @@ concurrency:
 jobs:
   build:
     name: Build & Test (Node ${{ matrix.node-version }} on ${{ matrix.os }})
-    runs-on: windows-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest]
+        node-version: [24]
     permissions:
       contents: write
 
     steps:
       - uses: actions/checkout@v4
-
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -47,7 +51,7 @@ jobs:
         run: pnpm config set node-linker hoisted
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --no-frozen-lockfile
         env:
           CI: true
 
