@@ -49,9 +49,6 @@ jobs:
           cache: "pnpm"
           cache-dependency-path: pnpm-lock.yaml
 
-      - name: Configure pnpm
-        run: pnpm config set node-linker hoisted
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
         env:
