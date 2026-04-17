@@ -32,6 +32,8 @@ jobs:
         node-version: [24]
     permissions:
       contents: write
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - uses: actions/checkout@v4
@@ -51,9 +53,7 @@ jobs:
         run: pnpm config set node-linker hoisted
 
       - name: Install dependencies
-        run: |
-          pnpm cache delete
-          pnpm install --no-frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
         env:
           CI: true
 
