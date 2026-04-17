@@ -34,10 +34,7 @@
     "electron-log": "^5.4.3",
     "electron-store": "^11.0.2",
     "electron-updater": "^6.6.2",
-    "exceljs": "^4.4.0",
-    "util-deprecate": "^1.0.2",
-    "process-nextick-args": "^2.0.1",
-    "isarray": "^2.0.5"
+    "exceljs": "^4.4.0"
   },
   "devDependencies": {
     "@electron/fuses": "^1.8.0",
@@ -78,36 +75,14 @@
       "buildResources": "public"
     },
     "asar": true,
+    "npmRebuild": true,
+    "nodeGypRebuild": false,
     "files": [
       "dist/**/*",
       "src/main/app/**/*",
       "config/**/production.json",
       "!src/main/common/**/*",
-      "!*.map",
-      "!package.json",
-      "!package-lock.json",
-      "!yarn.lock",
-      "!pnpm-lock.yaml",
-      "node_modules/**/*",
-      "!node_modules/**react**/**/*",
-      "!node_modules/**vite**/**/*",
-      "!node_modules/**babel**/**/*",
-      "!node_modules/@emotion/**/*",
-      "!node_modules/@fortawesome**/**/*",
-      "!node_modules/scheduler/**/*",
-      "!node_modules/sinon**/**/*",
-      "!node_modules/mocha**/**/*",
-      "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
-      "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
-      "!**/node_modules/*.d.ts",
-      "!**/node_modules/.bin",
-      "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}",
-      "!.editorconfig",
-      "!**/._*",
-      "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}",
-      "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}",
-      "!**/{appveyor.yml,.travis.yml,circle.yml}",
-      "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
+      "!*.map"
     ],
     "extraResources": [
       {
