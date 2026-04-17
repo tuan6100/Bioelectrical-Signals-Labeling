@@ -51,7 +51,7 @@ jobs:
         run: pnpm config set node-linker hoisted
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --no-frozen-lockfile
         env:
           CI: true
 
