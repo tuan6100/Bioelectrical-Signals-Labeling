@@ -49,6 +49,7 @@ const migrateTableList = [
 
 export function migrate121to122(db) {
     try {
+        if (db.pragma('user_version', { simple: true }) === 120) db.pragma('user_version = 121')
         db.pragma('legacy_alter_table = ON')
         db.pragma('foreign_keys = OFF')
         db.transaction(() => {
