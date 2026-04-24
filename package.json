@@ -60,6 +60,10 @@
     "vite": "^8.0.10",
     "wait-on": "^7.0.1"
   },
+  "overrides": {
+    "minimatch": "^10.2.5",
+    "uuid": "^14.0.0"
+  },
   "build": {
     "appId": "vn.edu.hust.ibme.biosignal",
     "productName": "Biosignal Labeling",
