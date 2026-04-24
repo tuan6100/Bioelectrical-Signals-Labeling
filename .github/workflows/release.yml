@@ -37,31 +37,33 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10
-
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      - name: Ensure npm lockfile is present
+        shell: pwsh
+        run: |
+          if (-not (Test-Path -Path "package-lock.json")) { throw "package-lock.json is missing (required for npm ci)." }
+          if (Test-Path -Path "pnpm-lock.yaml") { throw "pnpm-lock.yaml is present; remove it to avoid confusion after switching to npm." }
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --shamefully-hoist
+        run: npm install
         env:
           CI: true
 
       - name: Lint
         if: hashFiles('**/eslint.config.*', '**/.eslintrc*') != ''
-        run: pnpm lint
+        run: npm run lint
 
       - name: Run tests
-        run: pnpm test --if-present
+        run: npm run test --if-present
         env:
           CI: true
 
       - name: Build and publish desktop application
-        run: pnpm run publish:app --win --x64
+        run: npm run publish:app -- --win --x64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
