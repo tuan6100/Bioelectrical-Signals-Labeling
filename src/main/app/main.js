@@ -117,6 +117,15 @@ app.on('window-all-closed', () => {
 })
 
 autoUpdater.on('update-available', (updateInfo) => {
+    const currentVersion = app.getVersion();
+    const isCurrentBeta = currentVersion.includes('beta');
+    const isUpdateBeta = updateInfo.version.includes('beta');
+    const isCurrentAlpha = currentVersion.includes('alpha');
+    const isUpdateAlpha = updateInfo.version.includes('alpha');
+    if (isCurrentBeta !== isUpdateBeta || isCurrentAlpha !== isUpdateAlpha) {
+        log.info(`[Update Blocked] Chặn update chéo channel. Hiện tại: ${currentVersion} -> Update: ${updateInfo.version}`);
+        return;
+    }
     dialog.showMessageBox({
         type: 'info',
         title: 'Found Updates',
