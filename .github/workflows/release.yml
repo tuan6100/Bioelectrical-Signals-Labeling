@@ -50,7 +50,7 @@ jobs:
           if (Test-Path -Path "pnpm-lock.yaml") { throw "pnpm-lock.yaml is present; remove it to avoid confusion after switching to npm." }
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
         env:
           CI: true
 
