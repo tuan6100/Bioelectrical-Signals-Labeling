@@ -7,13 +7,23 @@ export default function RightPanel({
       session,
       annotations,
       channelId,
-      currentChannel
+      currentChannel,
+      loading
 }) {
     const hasPendingRevisions = Array.isArray(annotations) && annotations.some(a => a.needsRevision);
 
     return (
         <div className="right-panel-root">
-            {session ? (
+            {loading ? (
+                <div className="right-panel-content">
+                    <div className="panel-box panel-table">
+                        <div className="table-placeholder">
+                            <div className="table-spinner" />
+                            <div>Loading labels...</div>
+                        </div>
+                    </div>
+                </div>
+            ) : session ? (
                 <>
                     <TopControl sessionId={session.sessionId} />
 
@@ -33,6 +43,7 @@ export default function RightPanel({
                                 channelId={channelId}
                                 annotations={annotations}
                                 sessionStatus={session.sessionStatus}
+                                loading={loading}
                             />
                         </div>
                         <BottomControl

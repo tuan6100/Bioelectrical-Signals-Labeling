@@ -165,6 +165,7 @@ export default function Workspace({ sessionId }) {
                             defaultSignal={defaultSignal}
                             onChannelSelected={setChannelId}
                             labels={hookLabels}
+                            loading={loading}
                         />
                     </div>
                 )}
@@ -181,6 +182,7 @@ export default function Workspace({ sessionId }) {
                             channelId={channelId}
                             startPosition={startPosition}
                             onStartPositionChange={setStartPosition}
+                            loading={loading}
                         />
                     </div>
                 )}

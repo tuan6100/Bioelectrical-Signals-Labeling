@@ -4,8 +4,7 @@ import {
     updateAnnotationAppApi,
     deleteAnnotationAppApi,
     getSessionInfoAppApi,
-    isDesktopEnv, getAllSessionsAppApi, getSessionsByPatientIdAppApi,
-    updateSessionStatusAppApi, exportToExcelAppApi, enableDoubleCheckAppApi, setChannelDoubleCheckedAppApi,
+    isDesktopEnv, getAllSessionsAppApi, updateSessionStatusAppApi, exportToExcelAppApi, enableDoubleCheckAppApi, setChannelDoubleCheckedAppApi,
     deleteSessionAppApi, disableDoubleCheckAppApi
 } from '../../app/api/provider';
 

@@ -83,15 +83,22 @@ export default function LeftPanel({
             </div>
 
             <div className="chart-wrapper">
-                <SignalChart
-                    samples={samples}
-                    existingLabels={labels}
-                    samplingRateHz={samplingRate}
-                    durationMs={durationMs}
-                    viewport={viewport}
-                    onViewportChange={updateViewport}
-                    channelId={channelId}
-                />
+                {loading ? (
+                    <div className="table-placeholder">
+                        <div className="table-spinner" />
+                        <div>Loading signal...</div>
+                    </div>
+                ) : (
+                    <SignalChart
+                        samples={samples}
+                        existingLabels={labels}
+                        samplingRateHz={samplingRate}
+                        durationMs={durationMs}
+                        viewport={viewport}
+                        onViewportChange={updateViewport}
+                        channelId={channelId}
+                    />
+                )}
                 {/*<ChartToolbar*/}
                 {/*    sessionId={sessionId}*/}
                 {/*    channelId={channelId}*/}

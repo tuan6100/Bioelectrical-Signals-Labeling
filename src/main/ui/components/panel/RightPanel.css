@@ -28,6 +28,11 @@
     margin: 12px;
 }
 
+.panel-box.panel-table {
+    display: flex;
+    flex: 1 1 auto;
+}
+
 .patient-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -48,4 +53,9 @@
 
 .panel-table {
     overflow: hidden;
+    display: flex;
+}
+
+.panel-table .table-placeholder {
+    flex: 1 1 auto;
 }
