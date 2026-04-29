@@ -25,12 +25,14 @@ contextBridge.exposeInMainWorld("biosignalApi", {
             sessionId
         ),
 
-        sessionsPage: (page, size) => ipcRenderer.invoke(
-            "sessions:getPage", page, size
+        channelSignal: (sessionId, channelId) => ipcRenderer.invoke(
+            "channel:getSignal",
+            sessionId,
+            channelId
         ),
 
-        sessionsByPatient: (patientId) => ipcRenderer.invoke(
-            "sessions:getByPatient", patientId
+        sessionsPage: (page, size) => ipcRenderer.invoke(
+            "sessions:getPage", page, size
         ),
 
         allLabels: () => ipcRenderer.invoke(

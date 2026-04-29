@@ -1,20 +1,25 @@
 import { useState } from "react";
 import { useNavigate } from 'react-router-dom';
+import { useSelector, useDispatch } from 'react-redux';
 import "./Dashboard.css";
-import { fetchDeleteSession } from "../api/index.js";
 
 import DashboardHeader from "../components/DashboardHeader";
 import SearchToolbar from "../components/SearchToolbar";
 import SessionsTable from "../components/SessionsTable";
 import ActionToolbar from "../components/ActionToolbar";
-import { useSessions } from "../hooks/useSessions";
 import { useSessionFilter } from "../hooks/useSessionFilter";
 import { useTableSort } from "../hooks/useTableSort";
+import { useGetAllSessionsQuery, useDeleteSessionMutation } from "../redux/api/index.js";
 
 export default function Dashboard() {
     const navigate = useNavigate();
+    const dispatch = useDispatch();
     const [query, setQuery] = useState("");
-    const { sessions, loading, error, hasLoaded, fetchSessions, removeSession } = useSessions();
+
+    // Use RTK Query to fetch sessions
+    const { data: sessions = [], isLoading: loading, error, refetch } = useGetAllSessionsQuery();
+    const [deleteSession] = useDeleteSessionMutation();
+
     const filteredSessions = useSessionFilter(sessions, query);
 
     const {
@@ -29,14 +34,11 @@ export default function Dashboard() {
 
     const handleDeleteSession = async (sessionId) => {
         try {
-            const removedSessionId = await fetchDeleteSession(sessionId)
-            console.log("Delete session result:", removedSessionId);
-            if (!removedSessionId) return
-            removeSession(removedSessionId);
-            window.alert('Session deleted successfully.')
+            await deleteSession(sessionId).unwrap();
+            window.alert('Session deleted successfully.');
         } catch (e) {
-            window.alert('Failed to delete session.')
-            console.error(e)
+            window.alert('Failed to delete session.');
+            console.error(e);
         }
     };
 
@@ -88,7 +90,7 @@ export default function Dashboard() {
                         <SearchToolbar
                             query={query}
                             onQueryChange={setQuery}
-                            onRefresh={fetchSessions}
+                            onRefresh={refetch}
                             loading={loading}
                         />
 
@@ -98,7 +100,7 @@ export default function Dashboard() {
                             <div className="start-page-placeholder">Loading sessions…</div>
                         )}
 
-                        {!loading && hasLoaded && sessions.length === 0 && (
+                        {!loading && sessions.length === 0 && (
                             <div className="start-page-placeholder">No sessions found.</div>
                         )}
 

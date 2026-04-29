@@ -31,7 +31,7 @@ const removeVietnameseTones = (str) => {
     str = str.replace(/[ÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴ]/g, "A");
     str = str.replace(/[ÈÉẸẺẼÊỀẾỆỂỄ]/g, "E");
     str = str.replace(/[ÌÍỊỈĨ]/g, "I");
-    str = str.replace(/[ÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠ]/g, "O");
+    str = str.replace(/[ÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỬ]/g, "O");
     str = str.replace(/[ÙÚỤỦŨƯỪỨỰỬỮ]/g, "U");
     str = str.replace(/[ỲÝỴỶỸ]/g, "Y");
     str = str.replace(/Đ/g, "D");
@@ -40,7 +40,7 @@ const removeVietnameseTones = (str) => {
     return str;
 }
 
-const LabelTable = ({ channelId, annotations, sessionStatus }) => {
+const LabelTable = ({ channelId, annotations, sessionStatus, loading = false }) => {
     const [selectedId, setSelectedId] = useState(null)
     const selectedIdRef = useRef(selectedId)
     const prevLengthRef = useRef(null)
@@ -517,11 +517,14 @@ const LabelTable = ({ channelId, annotations, sessionStatus }) => {
 
     return (
         <div className="table-container">
-
-            {(() => {
-                return (
-                    <div className={'table-viewport'}>
-                        <table>
+            {loading ? (
+                <div className="table-placeholder">
+                    <div className="table-spinner" />
+                    <div>Loading labels…</div>
+                </div>
+            ) : (
+                <div className={'table-viewport'}>
+                    <table>
                             <thead>
                             <tr>
                                 <th onClick={() => handleHeaderSort('startTimeMs')} style={{cursor:'pointer', verticalAlign: 'top'}}>
@@ -742,31 +745,28 @@ const LabelTable = ({ channelId, annotations, sessionStatus }) => {
                             </tbody>
                         </table>
                     </div>
-                )
-            })()}
+            )}
 
-            {activeDropdown && (() => {
-                return (
-                    <div ref={dropdownRef} className="custom-dropdown-list" style={{ position: 'fixed', top: dropdownPosition.top, left: dropdownPosition.left, width: dropdownPosition.width, zIndex: 1000 }}>
-                        {displayLabels.length > 0 ? displayLabels.map((l, index) => (
-                                <div key={l.labelId}
-                                     className="dropdown-item"
-                                     onClick={(e) => {
-                                         e.stopPropagation()
-                                         selectLabelFromDropdown(l.name, activeDropdown === 'NEW')
-                                     }}
-                                     style={index === highlightedIndex ? { backgroundColor: '#e6f7ff', color: '#1890ff' } : {}}
-                                >
-                                    {l.name}
-                                </div>
-                            )) :
-                            <div className="dropdown-item" style={{color:'#999', cursor:'default'}}>
-                                No labels match
+            {!loading && activeDropdown && (
+                <div ref={dropdownRef} className="custom-dropdown-list" style={{ position: 'fixed', top: dropdownPosition.top, left: dropdownPosition.left, width: dropdownPosition.width, zIndex: 1000 }}>
+                    {displayLabels.length > 0 ? displayLabels.map((l, index) => (
+                            <div key={l.labelId}
+                                 className="dropdown-item"
+                                 onClick={(e) => {
+                                     e.stopPropagation()
+                                     selectLabelFromDropdown(l.name, activeDropdown === 'NEW')
+                                 }}
+                                 style={index === highlightedIndex ? { backgroundColor: '#e6f7ff', color: '#1890ff' } : {}}
+                            >
+                                {l.name}
                             </div>
-                        }
-                    </div>
-                );
-            })()}
+                        )) :
+                        <div className="dropdown-item" style={{color:'#999', cursor:'default'}}>
+                            No labels match
+                        </div>
+                    }
+                </div>
+            )}
         </div>
     )
 }
