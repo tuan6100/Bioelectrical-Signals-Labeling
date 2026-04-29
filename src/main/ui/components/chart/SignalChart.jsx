@@ -163,12 +163,14 @@ export default function SignalChart({
     }, [chartWidth, viewport.startMs, onViewportChange]);
 
     const dispatchAnnotationsUpdated = useCallback((next) => {
-        try {
-            const persisted = (next || labels || [])
-                .map(l => ({ annotationId: l.annotationId, startTimeMs: Number(l.startTimeMs), endTimeMs: Number(l.endTimeMs), labelName: l.labelName || l.name || (l.label?.name) || 'Unknown', note: l.note ?? null, label: l.label ?? null }));
-            const evt = new CustomEvent('annotations-updated', { detail: { channelId, annotations: persisted } });
-            window.dispatchEvent(evt);
-        } catch (_) {}
+        setTimeout(() => {
+            try {
+                const persisted = (next || labels || [])
+                    .map(l => ({ annotationId: l.annotationId, startTimeMs: Number(l.startTimeMs), endTimeMs: Number(l.endTimeMs), labelName: l.labelName || l.name || (l.label?.name) || 'Unknown', note: l.note ?? null, label: l.label ?? null }));
+                const evt = new CustomEvent('annotations-updated', { detail: { channelId, annotations: persisted } });
+                window.dispatchEvent(evt);
+            } catch (_) {}
+        }, 0);
     }, [labels, channelId]);
 
     const buildLabelOptions = useCallback((raw) => {
@@ -1052,80 +1054,83 @@ export default function SignalChart({
             return () => document.removeEventListener('mousedown', h); }
     }, [contextMenu.visible, contextMenu.isNewlyCreated]);
 
-    useEffect(() => {
-        const norm = (existingLabels || []).map(l => ({
+    const normalizedExistingLabels = useMemo(() => {
+        return (existingLabels || []).map(l => ({
             annotationId: l.annotationId,
             startTimeMs: Number(l.startTimeMs),
             endTimeMs: Number(l.endTimeMs),
             name: l.labelName || l.name || l.label?.name || 'Unknown',
-            note: l.note??null, state: 'persisted'
+            note: l.note ?? null,
+            state: 'persisted'
         }));
-        setLabels(prev => [
-            ...norm,
-            ...prev.filter(x => x.state === 'pending' || x.state === 'temporary')
-        ]);
     }, [existingLabels]);
 
+    const normalizedExistingLabelsRef = useRef([]);
     useEffect(() => {
-        const h = (e) => {
+        normalizedExistingLabelsRef.current = normalizedExistingLabels;
+    }, [normalizedExistingLabels]);
+
+    const existingLabelsSig = useMemo(() => {
+        return normalizedExistingLabels
+            .map(l => `${l.annotationId}|${l.startTimeMs}|${l.endTimeMs}|${l.name}|${l.note ?? ''}`)
+            .join('~');
+    }, [normalizedExistingLabels]);
+
+    const lastExistingLabelsSigRef = useRef(null);
+
+    useEffect(() => {
+        if (lastExistingLabelsSigRef.current === existingLabelsSig) return;
+        lastExistingLabelsSigRef.current = existingLabelsSig;
+        const normalized = normalizedExistingLabelsRef.current;
+        setLabels(prev => {
+            const next = [
+                ...normalized,
+                ...prev.filter(x => x.state === 'pending' || x.state === 'temporary')
+            ];
+
+            const prevSig = (prev || [])
+                .filter(x => x.state === 'persisted')
+                .map(l => `${l.annotationId}|${Number(l.startTimeMs)}|${Number(l.endTimeMs)}|${l.name}|${l.note ?? ''}`)
+                .join('~');
+
+            if (prevSig === existingLabelsSig) return prev;
+            return next;
+        });
+    }, [existingLabelsSig]);
+
+    useEffect(() => {
+        const handleRemoteSelect = (e) => {
             const id = e?.detail?.id;
             if (id == null) return;
-            const match = labels.find( l => ( l.annotationId??l.id) === id);
-            if (!match) return;
-            const s = match.startTimeMs, eTime = match.endTimeMs, vs = renderViewport.startMs, ve= renderViewport.endMs;
-            if (eTime < vs || s > ve) {
-                const c = (s + eTime) / 2, w = ve - vs;
-                let ns = c - w / 2, ne = c + w /2;
-                if (ns < 0) {
-                    ne -= ns;
-                    ns = 0;
+            setHoveredLabelId(id);
+            const targetLabel = labels.find(l => (l.annotationId ?? l.id) === id);
+            if (!targetLabel) return;
+            const labelStart = targetLabel.startTimeMs;
+            const labelEnd = targetLabel.endTimeMs;
+            const currentStart = renderViewport.startMs;
+            const currentEnd = renderViewport.endMs;
+            if (labelStart < currentStart || labelEnd > currentEnd) {
+                const range = currentEnd - currentStart;
+                const center = (labelStart + labelEnd) / 2;
+                let newStart = center - range / 2;
+                let newEnd = center + range / 2;
+                if (newStart < 0) {
+                    newEnd -= newStart;
+                    newStart = 0;
                 }
-                if (ne > effectiveDurationMs) {
-                    ns -= (ne - effectiveDurationMs);
-                    ne = effectiveDurationMs;
+                if (newEnd > effectiveDurationMs) {
+                    newStart -= (newEnd - effectiveDurationMs);
+                    newEnd = effectiveDurationMs;
                 }
                 onViewportChange({
-                    startMs: Math.max(0,ns),
-                    endMs: Math.min(effectiveDurationMs,ne)
+                    startMs: Math.max(0, newStart),
+                    endMs: Math.min(effectiveDurationMs, newEnd)
                 });
             }
-            setHoveredLabelId(match.annotationId);
         };
-        window.addEventListener('annotation-select', h);
-        return () => window.removeEventListener('annotation-select', h)
+        window.addEventListener('annotation-select', handleRemoteSelect);
+        return () => window.removeEventListener('annotation-select', handleRemoteSelect);
     }, [labels, renderViewport, effectiveDurationMs, onViewportChange]);
-
-    useEffect(() => {
-        const h = (e)=> {
-            if (e?.detail?.channelId !== channelId)
-                return;
-            const norm= (e.detail.annotations || []).map(a=>({
-                annotationId: a.annotationId??a.id,
-                startTimeMs: Number(a.startTimeMs),
-                endTimeMs: Number(a.endTimeMs),
-                name: a.labelName || a.name || a.label?.name || 'Unknown',
-                note: a.note??null,
-                state:'persisted'
-            }));
-            setLabels(prev=>[
-                ...norm,
-                ...prev.filter(x=>x.state==='pending'||x.state==='temporary')
-            ]);
-        };
-        window.addEventListener('annotations-updated', h);
-        return () => window.removeEventListener('annotations-updated', h)
-    }, [channelId]);
-
-    const autoFitDoneRef = useRef(false);
-    useEffect(() => {
-        if(!effectiveDurationMs || autoFitDoneRef.current) return;
-        onViewportChange({
-            startMs: 0,
-            endMs: effectiveDurationMs
-        });
-        autoFitDoneRef.current = true
-    }, [effectiveDurationMs, onViewportChange]);
-
 
     useEffect(() => {
         const handleKeyDown = (e) => {

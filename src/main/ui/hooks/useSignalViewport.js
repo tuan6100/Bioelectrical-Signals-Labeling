@@ -1,23 +1,24 @@
-import {useState, useCallback, useEffect} from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 
+// Đưa mức zoom mặc định về lại đúng 100ms (Chuẩn tỷ lệ hiển thị điện cơ)
 const INITIAL_ZOOM_MS = 100;
 
 export function useSignalViewport(durationMs) {
-    const [viewport, setViewport] = useState(() => ({
+    const [viewport, setViewport] = useState({
         startMs: 0,
-        endMs: durationMs || INITIAL_ZOOM_MS
-    }));
+        endMs: INITIAL_ZOOM_MS
+    });
+
+    const lastDurationRef = useRef(null);
 
     useEffect(() => {
-        if (durationMs && isFinite(durationMs)) {
-            setViewport(vp => {
-                const newEnd = Math.min(vp.endMs, durationMs);
-                const newStart = Math.min(vp.startMs, Math.max(0, newEnd - 1));
-                if (newStart === vp.startMs && newEnd === vp.endMs) {
-                    return vp;
-                }
-                return { startMs: newStart, endMs: newEnd };
+        if (durationMs && durationMs !== lastDurationRef.current) {
+            setViewport({
+                startMs: 0,
+                // Đảm bảo lấy đúng scale 100ms, trừ khi file tín hiệu quá ngắn (< 100ms)
+                endMs: Math.min(durationMs, INITIAL_ZOOM_MS)
             });
+            lastDurationRef.current = durationMs;
         }
     }, [durationMs]);
 
@@ -29,17 +30,10 @@ export function useSignalViewport(durationMs) {
     }, []);
 
     const resetViewport = useCallback(() => {
-        if (durationMs > INITIAL_ZOOM_MS) {
-            setViewport({
-                startMs: 0,
-                endMs: INITIAL_ZOOM_MS
-            });
-        } else {
-            setViewport({
-                startMs: 0,
-                endMs: durationMs || INITIAL_ZOOM_MS
-            });
-        }
+        setViewport({
+            startMs: 0,
+            endMs: Math.min(durationMs || INITIAL_ZOOM_MS, INITIAL_ZOOM_MS)
+        });
     }, [durationMs]);
 
     return { viewport, updateViewport, resetViewport };

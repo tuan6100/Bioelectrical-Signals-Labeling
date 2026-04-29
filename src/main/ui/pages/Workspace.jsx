@@ -1,36 +1,71 @@
 import React, { useRef, useState, useMemo, useEffect, useCallback } from 'react'
 import './Workspace.css'
-import {useFetchSession} from "../hooks/useFetchSession.js";
+import { useDispatch } from 'react-redux'
 import LeftPanel from "../components/panel/LeftPanel.jsx";
 import RightPanel from "../components/panel/RightPanel.jsx";
-import {useNavigate} from "react-router-dom";
-
+import { useNavigate } from "react-router-dom";
+import { useGetSessionWorkspaceQuery } from '../redux/api/index.js';
+import { setChannel } from '../redux/slices/workspaceSlice.js';
 
 const COLLAPSE_BREAKPOINT = 1100
 const RESIZER_WIDTH_PX = 6
 
+const formatAnnotations = (list) => {
+    if (!Array.isArray(list)) return [];
+    return list.map(a => ({
+        annotationId: a.annotationId,
+        startTimeMs: a.startTimeMs ?? a.startTime,
+        endTimeMs: a.endTimeMs ?? a.endTime,
+        labelName: a.label?.name || a.labelName || 'Unknown',
+        note: a.note || null,
+        needsRevision: a.needsRevision || false,
+        label: a.label || null
+    }));
+};
+
+const processAnnotations = (signal) => {
+    if (signal?.annotations) {
+        const ann = Array.isArray(signal.annotations) ? signal.annotations : [signal.annotations];
+        return formatAnnotations(ann);
+    }
+    return [];
+};
+
 export default function Workspace({ sessionId }) {
     const containerRef = useRef(null)
-    const navigate = useNavigate();
+    const navigate = useNavigate()
+    const dispatch = useDispatch()
+    const { data: workspaceData, isLoading: loading, error } = useGetSessionWorkspaceQuery(sessionId, {
+        skip: !sessionId
+    });
 
-    const {
-        loading,
-        error,
-        session,
-        channels,
-        channelId,
-        defaultSignal,
-        labels: hookLabels,
-        setChannelId
-    } = useFetchSession(sessionId)
-
+    const session = workspaceData?.session || null;
+    const channels = workspaceData?.session?.channels || [];
+    const defaultSignal = workspaceData?.defaultChannel?.signal || null;
+    const defaultChannelId = workspaceData?.defaultChannel?.channelId || (channels.length ? channels[0].channelId : null);
+    const hookLabels = useMemo(() => {
+        return processAnnotations(defaultSignal);
+    }, [defaultSignal]);
     const [annotations, setAnnotations] = useState([])
     const [layoutMode, setLayoutMode] = useState('split')
     const [startPosition, setStartPosition] = useState(1)
     const [leftPercent, setLeftPercent] = useState(50)
+    const [channelId, setChannelId] = useState(defaultChannelId)
     const isDraggingRef = useRef(false)
     const startXRef = useRef(0)
     const startPercentRef = useRef(50)
+
+    useEffect(() => {
+        if (hookLabels.length > 0) {
+            setAnnotations(hookLabels);
+        }
+    }, [hookLabels]);
+
+    useEffect(() => {
+        if (defaultChannelId) {
+            setChannelId(defaultChannelId)
+        }
+    }, [defaultChannelId])
 
     useEffect(() => {
         setAnnotations(Array.isArray(hookLabels) ? hookLabels : [])
@@ -48,16 +83,15 @@ export default function Workspace({ sessionId }) {
         return () => window.removeEventListener('annotations-updated', onUpdated);
     }, [channelId])
 
-    const applyAutoLayout = useCallback(() => {
-        const small = window.innerWidth < COLLAPSE_BREAKPOINT
-        setLayoutMode(prev => small ? (prev === 'right' ? 'right' : 'left') : 'split')
-    }, [])
-
     useEffect(() => {
+        const applyAutoLayout = () => {
+            const small = window.innerWidth < COLLAPSE_BREAKPOINT
+            setLayoutMode(prev => small ? (prev === 'right' ? 'right' : 'left') : 'split')
+        }
         applyAutoLayout()
         window.addEventListener('resize', applyAutoLayout)
         return () => window.removeEventListener('resize', applyAutoLayout)
-    }, [applyAutoLayout])
+    }, [])
 
     const gridTemplateColumns = useMemo(() => {
         if (layoutMode !== 'split') return '1fr'
@@ -65,14 +99,6 @@ export default function Workspace({ sessionId }) {
         const right = 100 - left
         return `calc(${left}% - ${RESIZER_WIDTH_PX/2}px) ${RESIZER_WIDTH_PX}px calc(${right}% - ${RESIZER_WIDTH_PX/2}px)`
     }, [layoutMode, leftPercent])
-
-    const endResize = useCallback(() => {
-        if (!isDraggingRef.current) return
-        isDraggingRef.current = false
-        document.body.classList.remove('dragging')
-        window.removeEventListener('mousemove', onMouseMove)
-        window.removeEventListener('mouseup', endResize)
-    }, [])
 
     const onMouseMove = useCallback((e) => {
         if (!isDraggingRef.current || !containerRef.current) return
@@ -85,6 +111,14 @@ export default function Workspace({ sessionId }) {
         const next = Math.max(10, Math.min(90, startPercentRef.current + deltaPercent))
         setLeftPercent(next)
     }, [])
+
+    const endResize = useCallback(() => {
+        if (!isDraggingRef.current) return
+        isDraggingRef.current = false
+        document.body.classList.remove('dragging')
+        window.removeEventListener('mousemove', onMouseMove)
+        window.removeEventListener('mouseup', endResize)
+    }, [onMouseMove])
 
     const startResize = useCallback((e) => {
         if (layoutMode !== 'split') return
@@ -104,7 +138,7 @@ export default function Workspace({ sessionId }) {
                 window.removeEventListener('mouseup', endResize)
             }
         }
-    }, [onMouseMove, endResize])
+    }, [])
 
     const rootClass = `dashboard-root ${layoutMode === 'split' ? 'split' : 'single'}`
 
@@ -113,6 +147,11 @@ export default function Workspace({ sessionId }) {
             ? { gridTemplateColumns, columnGap: 0 }
             : { gridTemplateColumns }
     }, [layoutMode, gridTemplateColumns])
+
+    const handleSetChannelId = (newChannelId) => {
+        setChannelId(newChannelId)
+        dispatch(setChannel(newChannelId))
+    }
 
     return (
         <div className={rootClass}>
@@ -163,7 +202,7 @@ export default function Workspace({ sessionId }) {
                             channels={channels}
                             channelId={channelId}
                             defaultSignal={defaultSignal}
-                            onChannelSelected={setChannelId}
+                            onChannelSelected={handleSetChannelId}
                             labels={hookLabels}
                             loading={loading}
                         />
