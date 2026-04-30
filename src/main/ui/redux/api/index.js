@@ -10,7 +10,6 @@ export const biosignalApi = createApi({
     baseQuery: fakeBaseQuery(),
     tagTypes: ['Sessions', 'SessionWorkspace'],
     endpoints: (builder) => ({
-        // Fetch all sessions with optional filters
         getAllSessions: builder.query({
             queryFn: async () => {
                 try {
@@ -24,11 +23,9 @@ export const biosignalApi = createApi({
                 }
             },
             providesTags: ['Sessions'],
-            // Keep cached data for 5 minutes
             keepUnusedDataFor: 300
         }),
 
-        // Fetch a single session workspace
         getSessionWorkspace: builder.query({
             queryFn: async (sessionId) => {
                 try {
@@ -41,11 +38,9 @@ export const biosignalApi = createApi({
             providesTags: (result, error, sessionId) => [
                 { type: 'SessionWorkspace', id: sessionId }
             ],
-            // Keep cached data for 5 minutes
             keepUnusedDataFor: 300
         }),
 
-        // Delete a session
         deleteSession: builder.mutation({
             queryFn: async (sessionId) => {
                 try {

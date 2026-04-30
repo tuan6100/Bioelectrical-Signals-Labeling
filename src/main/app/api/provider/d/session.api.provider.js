@@ -1,11 +1,6 @@
 export async function getSessionInfoAppApi(sessionId) {
     return window.biosignalApi.get.sessionInfo(sessionId)
 }
-
-export async function getChannelSignalAppApi(sessionId, channelId) {
-    return window.biosignalApi.get.channelSignal(sessionId, channelId)
-}
-
 export async function getAllSessionsAppApi(page = 1, size = 10) {
     return window.biosignalApi.get.sessionsPage(page, size)
 }

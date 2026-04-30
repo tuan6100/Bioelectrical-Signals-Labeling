@@ -24,10 +24,8 @@ Function un.RemoveAppDataPageLeave
   DetailPrint "Checkbox state saved: $ShouldRemoveAppData"
 FunctionEnd
 
-!insertmacro MUI_UNPAGE_WELCOME
+; Đã xóa các lệnh !insertmacro dư thừa. Chỉ giữ lại trang Custom để hỏi xóa AppData
 UninstPage custom un.RemoveAppDataPage un.RemoveAppDataPageLeave
-!insertmacro MUI_UNPAGE_CONFIRM
-!insertmacro MUI_UNPAGE_INSTFILES
 
 Section "Uninstall"
     DetailPrint "Checking saved state: $ShouldRemoveAppData"
@@ -46,9 +44,8 @@ Section "Uninstall"
             RMDir /r "$LOCALAPPDATA\Biosignal Labeling"
 
         DetailPrint "AppData removal done."
-    ${Else}
-        DetailPrint "Keeping AppData (state = $ShouldRemoveAppData)"
     ${EndIf}
+    ; Khối ${Else} in ra thông báo "Keeping AppData..." đã bị xóa bỏ
 
     Delete "$INSTDIR\*.*"
     RMDir /r "$INSTDIR"
