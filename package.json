@@ -1,6 +1,6 @@
 {
   "name": "biosignal-tool",
-  "productName": "Biosignal Labeling",
+  "productName": "Biosignal Labeler",
   "homepage": "",
   "version": "1.3.3",
   "packageManager": "npm@11.6.1",
