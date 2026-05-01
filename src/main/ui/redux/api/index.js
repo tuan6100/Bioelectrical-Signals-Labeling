@@ -51,6 +51,24 @@ export const biosignalApi = createApi({
                 }
             },
             invalidatesTags: ['Sessions']
+        }),
+
+        updateSessionWorkspaceCache: builder.mutation({
+            queryFn: () => ({ data: null }),
+            onQueryStarted: async ({ sessionId, channelId, newAnnotations }, { dispatch, queryFulfilled }) => {
+                const patchResult = dispatch(
+                    biosignalApi.util.updateQueryData('getSessionWorkspace', sessionId, (draft) => {
+                        if (draft.defaultChannel?.channelId === channelId && draft.defaultChannel?.signal) {
+                            draft.defaultChannel.signal.annotations = newAnnotations;
+                        }
+                    })
+                );
+                try {
+                    await queryFulfilled;
+                } catch {
+                    patchResult.undo();
+                }
+            }
         })
     })
 });
@@ -58,6 +76,7 @@ export const biosignalApi = createApi({
 export const {
     useGetAllSessionsQuery,
     useGetSessionWorkspaceQuery,
-    useDeleteSessionMutation
+    useDeleteSessionMutation,
+    useUpdateSessionWorkspaceCacheMutation
 } = biosignalApi;
 

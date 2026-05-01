@@ -4,7 +4,7 @@ import { useDispatch } from 'react-redux'
 import LeftPanel from "../components/panel/LeftPanel.jsx";
 import RightPanel from "../components/panel/RightPanel.jsx";
 import { useNavigate } from "react-router-dom";
-import { useGetSessionWorkspaceQuery } from '../redux/api/index.js';
+import { biosignalApi, useGetSessionWorkspaceQuery, useUpdateSessionWorkspaceCacheMutation } from '../redux/api/index.js';
 import { setChannel } from '../redux/slices/workspaceSlice.js';
 
 const COLLAPSE_BREAKPOINT = 1100
@@ -35,6 +35,7 @@ export default function Workspace({ sessionId }) {
     const containerRef = useRef(null)
     const navigate = useNavigate()
     const dispatch = useDispatch()
+
     const { data: workspaceData, isLoading: loading, error } = useGetSessionWorkspaceQuery(sessionId, {
         skip: !sessionId
     });
@@ -43,23 +44,18 @@ export default function Workspace({ sessionId }) {
     const channels = workspaceData?.session?.channels || [];
     const defaultSignal = workspaceData?.defaultChannel?.signal || null;
     const defaultChannelId = workspaceData?.defaultChannel?.channelId || (channels.length ? channels[0].channelId : null);
-    const hookLabels = useMemo(() => {
+
+    const annotations = useMemo(() => {
         return processAnnotations(defaultSignal);
     }, [defaultSignal]);
-    const [annotations, setAnnotations] = useState([])
+
     const [layoutMode, setLayoutMode] = useState('split')
     const [startPosition, setStartPosition] = useState(1)
     const [leftPercent, setLeftPercent] = useState(50)
     const [channelId, setChannelId] = useState(defaultChannelId)
     const isDraggingRef = useRef(false)
     const startXRef = useRef(0)
-    const startPercentRef = useRef(50)
-
-    useEffect(() => {
-        if (hookLabels.length > 0) {
-            setAnnotations(hookLabels);
-        }
-    }, [hookLabels]);
+    const [updateWorkspaceCache] = useUpdateSessionWorkspaceCacheMutation();
 
     useEffect(() => {
         if (defaultChannelId) {
@@ -67,22 +63,47 @@ export default function Workspace({ sessionId }) {
         }
     }, [defaultChannelId])
 
-    useEffect(() => {
-        setAnnotations(Array.isArray(hookLabels) ? hookLabels : [])
-    }, [hookLabels])
-
+    // --- 2. VÁ CACHE KHI CÓ EVENT TỪ SIGNAL CHART / LABEL TABLE ---
     useEffect(() => {
         const onUpdated = (e) => {
             const detail = e?.detail;
             if (!detail) return;
             if (detail.channelId != null && detail.channelId !== channelId) return;
             const anns = Array.isArray(detail.annotations) ? detail.annotations : [];
-            setAnnotations(anns);
+            if (sessionId) {
+                updateWorkspaceCache({
+                    sessionId: sessionId,
+                    channelId: detail.channelId,
+                    newAnnotations: anns
+                });
+            }
         };
         window.addEventListener('annotations-updated', onUpdated);
         return () => window.removeEventListener('annotations-updated', onUpdated);
-    }, [channelId])
+    }, [channelId, sessionId, updateWorkspaceCache]);
 
+    // --- 3. VÁ CACHE KHI NHẬN IPC STATUS TỪ ELECTRON ---
+    useEffect(() => {
+        let cleanupStatus;
+        if (window.biosignalApi?.on) {
+            cleanupStatus = window.biosignalApi.on.sessionStatusUpdated((updatedSession) => {
+                if (!updatedSession?.sessionId || updatedSession.sessionId !== sessionId) return;
+                dispatch(
+                    biosignalApi.util.updateQueryData('getSessionWorkspace', sessionId, (draft) => {
+                        if (draft.session) {
+                            draft.session.status = updatedSession.status;
+                            draft.session.updatedAt = updatedSession.updatedAt;
+                        }
+                    })
+                );
+            });
+        }
+        return () => {
+            if (typeof cleanupStatus === 'function') cleanupStatus();
+        };
+    }, [dispatch, sessionId]);
+
+    // Các phần AutoLayout, Grid, Move, Resize... giữ nguyên
     useEffect(() => {
         const applyAutoLayout = () => {
             const small = window.innerWidth < COLLAPSE_BREAKPOINT
@@ -203,7 +224,7 @@ export default function Workspace({ sessionId }) {
                             channelId={channelId}
                             defaultSignal={defaultSignal}
                             onChannelSelected={handleSetChannelId}
-                            labels={hookLabels}
+                            labels={annotations} // TRUYỀN THẲNG BIẾN ANNOTATIONS TỪ USEMEMO
                             loading={loading}
                         />
                     </div>
@@ -217,7 +238,7 @@ export default function Workspace({ sessionId }) {
                     <div className="panel panel-right">
                         <RightPanel
                             session={session}
-                            annotations={annotations}
+                            annotations={annotations} // TRUYỀN THẲNG BIẾN ANNOTATIONS TỪ USEMEMO
                             channelId={channelId}
                             startPosition={startPosition}
                             onStartPositionChange={setStartPosition}
