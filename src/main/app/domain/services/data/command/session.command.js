@@ -308,6 +308,9 @@ export async function deleteSession(sessionId) {
         } else if (wantToExport === 2) {
             return
         }
+        await dialog.showMessageBox({
+            message: "Session deleted successfully."
+        })
     }
 
     return asTransaction(function (sessionId) {

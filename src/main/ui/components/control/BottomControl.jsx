@@ -140,7 +140,7 @@ export default function BottomControl({ session, channelId, channelDoubleChecked
                     checked={isTopButtonChecked}
                     onChange={(e) => onToggleTopButton(e.target.checked)}
                     disabled={isTopButtonDisabled}
-                    style={{ cursor: isTopButtonDisabled ? 'not-allowed' : 'pointer' }}
+                    style={{ cursor: isTopButtonDisabled && hasPendingRevisions ? 'not-allowed' : 'pointer' }}
                     title={isTopButtonDisabled && hasPendingRevisions ? "Please resolve all revision requests first" : ""}
                 />
             </div>
