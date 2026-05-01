@@ -1,13 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import {fetchExportAllLabelInChannel} from '../../api/index.js';
 import { useSignalViewport } from '../../hooks/useSignalViewport.js';
 import './LeftPanel.css';
 import SignalChart from "../chart/SignalChart.jsx";
 
-// LeftPanel.jsx
 export default function LeftPanel({
     sessionId,
     channelId,
+    channels,
     defaultSignal,
     onChannelSelected,
     loading,
@@ -33,7 +33,29 @@ export default function LeftPanel({
 
     return (
         <div className="left-panel">
-            {/* ... Toolbar giữ nguyên ... */}
+            <div className="left-panel-toolbar">
+                <div className="toolbar-group">
+                    {channels.length > 0 && (
+                        <div className="channel-selector">
+                            <label htmlFor="channel-select">Channel:</label>
+                            <select
+                                id="channel-select"
+                                value={channelId || ''}
+                                onChange={handleChannelChange}
+                                disabled={loading || channels.length === 0}
+                            >
+                                {channels.map(ch => (
+                                    <option key={ch.channelId} value={ch.channelId}>
+                                        {ch.channelNumber}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+                    <button onClick={resetViewport}>Reset Zoom</button>
+                    <button onClick={handleExport}>Export Labels</button>
+                </div>
+            </div>
             <div className="chart-wrapper">
                 {loading || !defaultSignal ? (
                     <div className="table-placeholder">
@@ -42,10 +64,10 @@ export default function LeftPanel({
                     </div>
                 ) : (
                     <SignalChart
-                        samples={defaultSignal.samples || []} // Dùng trực tiếp
-                        existingLabels={propLabels}          // Dùng trực tiếp
-                        samplingRateHz={defaultSignal.samplingRateHz} // Dùng trực tiếp
-                        durationMs={defaultSignal.durationMs}        // Dùng trực tiếp
+                        samples={defaultSignal.samples || []}
+                        existingLabels={propLabels}
+                        samplingRateHz={defaultSignal.samplingRateHz}
+                        durationMs={defaultSignal.durationMs}
                         viewport={viewport}
                         onViewportChange={updateViewport}
                         channelId={channelId}

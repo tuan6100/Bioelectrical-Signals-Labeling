@@ -59,7 +59,6 @@ export default function Dashboard() {
     const handleDeleteSession = async (sessionId) => {
         try {
             await deleteSession(sessionId).unwrap();
-            window.alert('Session deleted successfully.');
         } catch (e) {
             window.alert('Failed to delete session.');
             console.error(e);

@@ -1,6 +1,7 @@
 import {app, BrowserWindow, dialog, globalShortcut} from 'electron'
 import path from 'node:path'
 import {fileURLToPath} from 'node:url'
+import fs from 'fs';
 import './api/handlers/index.js'
 import {db} from "./persistence/connection/sqlite.connection.js";
 import pkg from 'electron-updater';
@@ -62,6 +63,7 @@ const createWindow = () => {
 // initialization and is ready to create browser windows.
 app.whenReady().then(async() => {
     try {
+        renameApp();
         autoUpdater.autoDownload = false;
         autoUpdater.autoRunAppAfterInstall = true
         if (process.env.NODE_ENV === 'dev') {
@@ -99,6 +101,22 @@ app.whenReady().then(async() => {
         app.quit()
     }
 })
+
+function renameApp() {
+    const appDataPath = app.getPath('appData');
+    const oldUserDataPath = path.join(appDataPath, 'Biosignal Labeling');
+    const newUserDataPath = app.getPath('userData');
+    const oldDbPath = path.join(oldUserDataPath, 'biosignal.db');
+    const newDbPath = path.join(newUserDataPath, 'biosignal.db');
+    if (fs.existsSync(oldDbPath) && !fs.existsSync(newDbPath)) {
+        try {
+            fs.renameSync(oldDbPath, newDbPath);
+            console.log('Successfully migrated database to new app name.');
+        } catch (error) {
+            console.error('Failed to migrate database:', error);
+        }
+    }
+}
 
 // Quit when all windows are closed, except on macOS.
 app.on('window-all-closed', () => {
