@@ -125,10 +125,13 @@ export function toggleSessionExported(sessionId, exported) {
 export function persistExcelData(data) {
     return asTransaction(() => {
         const { session, annotations, channels } = data
-        const sessionId = session.session_id
+        let sessionId = session.session_id
+        let inputFileName = session.input_file_name
         let targetStatus = session.status
-        const existingSession = Session.findOneById(sessionId)
-        if (existingSession) {
+        const foundById = Session.findOneById(sessionId)?.sessionId
+        const foundFyInputFileName = Session.findSessionIdByInputFileName(inputFileName)
+        sessionId = foundById != null? foundById: foundFyInputFileName != null? foundFyInputFileName: null
+        if (sessionId != null) {
             Session.update(sessionId, {
                 status: targetStatus,
                 updated_at: session.updated_at

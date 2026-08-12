@@ -2,8 +2,8 @@ import ExcelJS from "exceljs"
 import {shell} from "electron"
 import {exportSessionData} from "../../data/query/label.query.js"
 
-export async function saveSessionToExcel(sessionId, filePath) {
-    const data = exportSessionData(sessionId)
+export async function saveSessionToExcel(sessionId, channelId, filePath) {
+    const data = exportSessionData(sessionId, channelId)
     if (!data || !data.session) {
         console.error("Session not found")
         return null
@@ -14,7 +14,6 @@ export async function saveSessionToExcel(sessionId, filePath) {
     }
     const workbook = new ExcelJS.Workbook()
     const sessionSheet = workbook.addWorksheet('Session Info')
-
     sessionSheet.columns = [
         { header: 'session_id', key: 'session_id', width: 15 },
         { header: 'patient_id', key: 'patient_id', width: 20 },
@@ -40,6 +39,7 @@ export async function saveSessionToExcel(sessionId, filePath) {
     for (const item of channelsData) {
         const { channel, samplesArray, annotations } = item
         const chNum = channel.channelNumber
+        console.log(item)
         const sheetNameChannel = `Channel_${chNum}`
         const sheetNameLabel = `Labels_${chNum}`
         const channelSheet = workbook.addWorksheet(sheetNameChannel)
