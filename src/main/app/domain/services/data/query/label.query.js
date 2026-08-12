@@ -55,19 +55,23 @@ function prepareChannelData(channel) {
     }
 }
 
-export function exportSessionData(sessionId) {
+export function exportSessionData(sessionId, channelId) {
     const relatedInfo = Session.findAllRelatedById(sessionId)
     if (!relatedInfo) {
         throw new Error("Session not found")
     }
     const channelsData = []
-    if (relatedInfo && relatedInfo.channels) {
-        for (const chRef of relatedInfo.channels) {
-            const fullChannel = Channel.findOneById(chRef.channelId, true)
-            if (fullChannel) {
-                channelsData.push(prepareChannelData(fullChannel))
-            }
-        }
+    // if (relatedInfo && relatedInfo.channels) {
+    //     for (const chRef of relatedInfo.channels) {
+    //         const fullChannel = Channel.findOneById(chRef.channelId, true)
+    //         if (fullChannel) {
+    //             channelsData.push(prepareChannelData(fullChannel))
+    //         }
+    //     }
+    // }
+    const channel = Channel.findOneById(channelId, true)
+    if (channel) {
+        channelsData.push(prepareChannelData(channel))
     }
     const session = new Session(
         relatedInfo.sessionId,

@@ -57,7 +57,7 @@ ipcMain.handle('annotation:delete', (event, annotationId) => {
 })
 
 ipcMain.removeHandler('label:exportExcel')
-ipcMain.on('label:exportExcel', async (event, sessionId) => {
+ipcMain.on('label:exportExcel', async (event, sessionId, channelId) => {
     const inputFileName = getInputFileName(sessionId)
         .replace(path.extname(getInputFileName(sessionId)), '')
     const lastExportDir = store.get('lastExportDir');
@@ -67,7 +67,7 @@ ipcMain.on('label:exportExcel', async (event, sessionId) => {
     }
 
     const fileManager = await dialog.showSaveDialog({
-        title: 'Export Labels to CSV',
+        title: 'Export current data to excel file',
         defaultPath: defaultPath,
         filters: [
             { name: 'Excel Files', extensions: ['xlsx'] }
@@ -87,7 +87,7 @@ ipcMain.on('label:exportExcel', async (event, sessionId) => {
     await fs.promises.mkdir(targetDir, { recursive: true })
     const targetPath = path.join(targetDir, baseName)
     try {
-        await saveSessionToExcel(sessionId, targetPath)
+        await saveSessionToExcel(sessionId, channelId, targetPath)
         toggleSessionExported(sessionId, true)
     } catch (error) {
         if (error.code === 'EBUSY' || error.code === 'EPERM') {

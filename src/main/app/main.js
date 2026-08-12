@@ -1,6 +1,7 @@
 import {app, BrowserWindow, dialog, globalShortcut} from 'electron'
 import path from 'node:path'
 import {fileURLToPath} from 'node:url'
+import fs from 'fs';
 import './api/handlers/index.js'
 import {db} from "./persistence/connection/sqlite.connection.js";
 import pkg from 'electron-updater';
@@ -62,6 +63,7 @@ const createWindow = () => {
 // initialization and is ready to create browser windows.
 app.whenReady().then(async() => {
     try {
+        renameApp();
         autoUpdater.autoDownload = false;
         autoUpdater.autoRunAppAfterInstall = true
         if (process.env.NODE_ENV === 'dev') {
@@ -72,15 +74,11 @@ app.whenReady().then(async() => {
             }
         }
         await autoUpdater.checkForUpdates()
-        const migrationEnabled = appConfig.get('database.migration.require', false);
         if (!isDbInitialized()) {
-            console.log('Database not initialized → initSchema()')
+            console.log('Database not initialized')
             initSchema()
-        } else if (migrationEnabled) {
-            console.log('Database exists → migrateSchema()')
-            await migrateSchema()
         } else {
-            console.log('Migration disabled → skip')
+            await migrateSchema();
         }
 
         const win = createWindow()
@@ -104,6 +102,22 @@ app.whenReady().then(async() => {
     }
 })
 
+function renameApp() {
+    const appDataPath = app.getPath('appData');
+    const oldUserDataPath = path.join(appDataPath, 'Biosignal Labeling');
+    const newUserDataPath = app.getPath('userData');
+    const oldDbPath = path.join(oldUserDataPath, 'biosignal.db');
+    const newDbPath = path.join(newUserDataPath, 'biosignal.db');
+    if (fs.existsSync(oldDbPath) && !fs.existsSync(newDbPath)) {
+        try {
+            fs.renameSync(oldDbPath, newDbPath);
+            console.log('Successfully migrated database to new app name.');
+        } catch (error) {
+            console.error('Failed to migrate database:', error);
+        }
+    }
+}
+
 // Quit when all windows are closed, except on macOS.
 app.on('window-all-closed', () => {
     try {
@@ -117,6 +131,15 @@ app.on('window-all-closed', () => {
 })
 
 autoUpdater.on('update-available', (updateInfo) => {
+    const currentVersion = app.getVersion();
+    const isCurrentBeta = currentVersion.includes('beta');
+    const isUpdateBeta = updateInfo.version.includes('beta');
+    const isCurrentAlpha = currentVersion.includes('alpha');
+    const isUpdateAlpha = updateInfo.version.includes('alpha');
+    if (isCurrentBeta !== isUpdateBeta || isCurrentAlpha !== isUpdateAlpha) {
+        log.info(`[Update Blocked] Chặn update chéo channel. Hiện tại: ${currentVersion} -> Update: ${updateInfo.version}`);
+        return;
+    }
     dialog.showMessageBox({
         type: 'info',
         title: 'Found Updates',

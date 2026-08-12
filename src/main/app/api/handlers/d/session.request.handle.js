@@ -2,7 +2,8 @@ import {ipcMain, dialog, app, BrowserWindow} from "electron";
 import {
     getAllSessions,
     getDefaultSession,
-    getSessionsByPatientId
+    getSessionsByPatientId,
+    getChannelSignal
 } from "../../../domain/services/data/query/session.query.js";
 import {
     updateSessionStatus,
@@ -21,6 +22,16 @@ ipcMain.handle('session:getInfo', (event, sessionId) => {
         return getDefaultSession(sessionId)
     } catch (error) {
         dialog.showErrorBox('Error when loading workspace data of the session', error.message || String(error))
+    }
+})
+
+ipcMain.removeHandler('channel:getSignal')
+ipcMain.handle('channel:getSignal', (event, sessionId, channelId) => {
+    try {
+        const signalData = getChannelSignal(channelId);
+        return { signal: signalData };
+    } catch (error) {
+        dialog.showErrorBox('Error when loading channel signal data', error.message || String(error))
     }
 })
 

@@ -1,11 +1,6 @@
 import {db as sqliteDb} from "../connection/sqlite.connection.js";
 
-let db = sqliteDb;
-
-export function useDb(dbInstance) {
-    db = dbInstance;
-}
-
+const db = sqliteDb;
 const begin = db.prepare('BEGIN');
 const commit = db.prepare('COMMIT');
 const rollback = db.prepare('ROLLBACK');

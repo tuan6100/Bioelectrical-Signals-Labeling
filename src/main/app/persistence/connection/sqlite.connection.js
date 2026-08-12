@@ -52,6 +52,7 @@ const ddl = `
         channel_id INTEGER PRIMARY KEY NOT NULL,
         session_id INTEGER NOT NULL,
         channel_number INTEGER NOT NULL,
+        data_type TEXT,
         raw_samples_uv TEXT NOT NULL,
         sampling_frequency_khz REAL,
         subsampled_khz REAL,
