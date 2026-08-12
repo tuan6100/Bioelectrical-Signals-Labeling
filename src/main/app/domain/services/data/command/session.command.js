@@ -122,11 +122,10 @@ export function toggleSessionExported(sessionId, exported) {
     })()
 }
 
-export function persistExcelData(data) {
+export function persistExcelData(session, channels, annotations) {
     return asTransaction(() => {
-        const { session, annotations, channels } = data
-        let sessionId = session.session_id
-        let inputFileName = session.input_file_name
+        let sessionId = session.sessionId
+        let inputFileName = session.inputFileName
         let targetStatus = session.status
         const foundById = Session.findOneById(sessionId)?.sessionId
         const foundFyInputFileName = Session.findSessionIdByInputFileName(inputFileName)
@@ -134,23 +133,24 @@ export function persistExcelData(data) {
         if (sessionId != null) {
             Session.update(sessionId, {
                 status: targetStatus,
-                updated_at: session.updated_at
+                updated_at: session.updatedAt
             })
         } else {
-            let patient = Patient.findOneById(session.patient_id)
+            sessionId = session.sessionId
+            let patient = Patient.findOneById(session.patientId)
             if (!patient) {
-                new Patient(session.patient_id, "Unknown", "U").insert()
+                new Patient(session.patientId, "Unknown", "U").insert()
             }
             new Session(
                 sessionId,
-                session.patient_id,
-                session.measurement_type,
-                session.start_time,
-                session.end_time,
+                session.patientId,
+                session.measurementType,
+                session.startTime,
+                session.endTime,
                 targetStatus,
-                session.input_file_name,
+                session.inputFileName,
                 null,
-                new Date(session.updated_at).toISOString()
+                new Date(session.updatedAt).toISOString()
             ).insert()
             if (channels && channels.length > 0) {
                 const channelEntities = channels.map(ch => ({

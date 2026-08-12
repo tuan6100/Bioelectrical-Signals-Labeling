@@ -11,6 +11,7 @@ export default class Session {
         inputFileName,
         contentHash,
         updatedAt,
+        exported = 0
     ) {
         this.sessionId = sessionId
         this.patientId = patientId
@@ -21,7 +22,7 @@ export default class Session {
         this.inputFileName = inputFileName
         this.contentHash = contentHash
         this.updatedAt = updatedAt
-        this.exported = 0
+        this.exported = exported
     }
 
     static db = sqliteDb
@@ -74,13 +75,13 @@ export default class Session {
     static findOneById(sessionId) {
         const stmt = Session.db.prepare(`
             SELECT 
-                session_id, patient_id, measurement_type, start_time, end_time, status, input_file_name, content_hash, updated_at
+                session_id, patient_id, measurement_type, start_time, end_time, status, input_file_name, content_hash, updated_at, exported
             FROM sessions 
             WHERE session_id = ?
         `)
         const row = stmt.get(sessionId)
         if (!row) return null
-        return new Session(
+        const session =  new Session(
             row.session_id,
             row.patient_id,
             row.measurement_type,
@@ -88,8 +89,12 @@ export default class Session {
             row.end_time,
             row.status,
             row.input_file_name,
-            row.updated_at
+            row.content_hash,
+            row.updated_at,
+            row.exported
         )
+        console.log(`Session.exported = ${session.exported}, row.exported = ${row.exported}`)
+        return session
     }
 
     static findSessionIdByInputFileName(inputFileName) {

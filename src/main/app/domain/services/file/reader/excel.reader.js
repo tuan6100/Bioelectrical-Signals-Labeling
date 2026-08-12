@@ -12,20 +12,22 @@ export async function readExcelSession(filePath) {
         throw new Error("Invalid Excel file: Missing 'Session Info' sheet");
     }
 
-    const sessionData = {};
+    let sessionData = {};
     const headerRow = sessionSheet.getRow(1);
     const dataRow = sessionSheet.getRow(2);
-
     headerRow.eachCell((cell, colNumber) => {
         const header = cell.value;
         if (header) {
             sessionData[header] = dataRow.getCell(colNumber).value;
         }
     });
+    const toCamelCase = (str) => str.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+    sessionData = Object.fromEntries(
+        Object.entries(sessionData).map(([key, value]) => [toCamelCase(key), value])
+    );
 
     const annotations = [];
     const channels = [];
-
     for (const sheet of workbook.worksheets) {
         if (sheet.name.startsWith('Labels_')) {
             const channelNumber = parseInt(sheet.name.split('_')[1]);
@@ -33,7 +35,6 @@ export async function readExcelSession(filePath) {
             sheet.getRow(1).eachCell((cell, colNumber) => {
                 headers[cell.value] = colNumber;
             });
-
             sheet.eachRow((row, rowNumber) => {
                 if (rowNumber > 1) {
                     let labelName = row.getCell(headers['label_name']).value;
@@ -88,8 +89,8 @@ export async function readExcelSession(filePath) {
 
     return {
         session: sessionData,
-        annotations: annotations,
-        channels: channels
+        channels: channels,
+        annotations: annotations
     };
 }
 
@@ -100,7 +101,8 @@ export async function processExcelFiles(window, filePaths) {
     for (const filePath of filePaths) {
         try {
             const excelData = await readExcelSession(filePath);
-            persistExcelData(excelData);
+            const {session, channels, annotations} = excelData
+            persistExcelData(session, channels, annotations);
             successCount++;
         } catch (err) {
             console.error(`Error processing Excel ${filePath}:`, err);

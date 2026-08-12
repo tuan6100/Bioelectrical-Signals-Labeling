@@ -89,7 +89,7 @@ function parseRawSamples(raw, scale = 1.0) {
     return arr.map(v => Number((v * scale).toFixed(8)))
 }
 
-export function extractChannelsFromJson(jsonData, sessionId) {
+export function     extractChannelsFromJson(jsonData, sessionId) {
     const channels = []
     const traceSweeps = []
     let lastChannelNumber = null
