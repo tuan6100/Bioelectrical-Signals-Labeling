@@ -1,4 +1,4 @@
-import {db as sqliteDb} from "../connection/sqlite.connection.js";
+import { db as sqliteDb } from "../connection/sqlite.connection.js";
 
 export default class Session {
     constructor(
@@ -31,7 +31,7 @@ export default class Session {
     }
 
     insert() {
-        const now = this.updatedAt?? new Date().toISOString()
+        const now = this.updatedAt ?? new Date().toISOString()
         const stmt = Session.db.prepare(`
             INSERT INTO sessions (
                 session_id, patient_id, measurement_type, start_time, end_time, status, input_file_name, content_hash, updated_at
@@ -175,7 +175,7 @@ export default class Session {
             WHERE patient_id = ?
             ORDER BY start_time DESC
         `)
-        return  stmt.all(patientId)
+        return stmt.all(patientId)
     }
     static findSessionIdByContentHash(contentHash) {
         const stmt = Session.db.prepare(`

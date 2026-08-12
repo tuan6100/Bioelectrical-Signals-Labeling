@@ -1,6 +1,6 @@
 import ExcelJS from "exceljs";
-import {persistExcelData} from "../../data/command/session.command.js";
-import {dialog} from "electron";
+import { persistExcelData } from "../../data/command/session.command.js";
+import { dialog } from "electron";
 import path from "node:path";
 
 export async function readExcelSession(filePath) {

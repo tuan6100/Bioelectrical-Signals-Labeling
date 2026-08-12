@@ -1,4 +1,4 @@
-import {db as sqliteDb} from "../connection/sqlite.connection.js";
+import { db as sqliteDb } from "../connection/sqlite.connection.js";
 
 export default class Channel {
     constructor(
@@ -8,7 +8,7 @@ export default class Channel {
         dataType,
         rawSamplesUv,
         samplingFrequencyKhz,
-        subsampledKhz ,
+        subsampledKhz,
         durationMs,
         doubleChecked
     ) {
@@ -37,12 +37,13 @@ export default class Channel {
             )
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `)
+        const samplesStr = typeof this.rawSamplesUv === 'string' ? this.rawSamplesUv : JSON.stringify(this.rawSamplesUv)
         const resultingChanges = stmt.run(
             this.channelId,
             this.sessionId,
             this.channelNumber,
             this.dataType,
-            JSON.stringify(this.rawSamplesUv),
+            samplesStr,
             this.samplingFrequencyKhz,
             this.subsampledKhz,
             this.durationMs
@@ -61,12 +62,13 @@ export default class Channel {
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             `)
             for (const channel of channelList) {
+                const samplesStr = typeof channel.rawSamplesUv === 'string' ? channel.rawSamplesUv : JSON.stringify(channel.rawSamplesUv)
                 stmt.run(
                     channel.channelId,
                     channel.sessionId,
                     channel.channelNumber,
                     channel.dataType,
-                    JSON.stringify(channel.rawSamplesUv),
+                    samplesStr,
                     channel.samplingFrequencyKhz,
                     channel.subsampledKhz,
                     channel.durationMs
@@ -112,7 +114,12 @@ export default class Channel {
             FROM channels
             WHERE session_id = ? AND channel_number = ?
             ORDER BY
-                CASE WHEN data_type = 'Trace Data' THEN 1 ELSE 2 END
+                CASE 
+                    WHEN data_type = 'LongTrace Data' THEN 1
+                    WHEN data_type = 'Trace Data' THEN 2
+                    WHEN data_type = 'Averaged Data' THEN 3
+                    ELSE 4
+                END
             LIMIT 1
         `)
         const row = stmt.get(sessionId, channelNumber)
@@ -120,7 +127,7 @@ export default class Channel {
     }
 
     static findBySessionId(sessionId) {
-        const stmt  = Channel.db.prepare(`
+        const stmt = Channel.db.prepare(`
             SELECT 
                 channel_id, session_id, channel_number,
                 sampling_frequency_khz, subsampled_khz, duration_ms, double_checked

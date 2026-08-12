@@ -107,7 +107,7 @@ ipcMain.handle('session:delete', (event, sessionId) => {
 
 ipcMain.removeHandler('file:importRaw')
 ipcMain.handle("file:importRaw", async (event) => {
-    const window = BrowserWindow.getFocusedWindow()
+    const window = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0]
     const store = new Store();
     const defaultDir = app.getPath('documents');
     let lastOpenedDir = store.get('userPreferences.lastRawDir') ?? defaultDir;
@@ -124,7 +124,7 @@ ipcMain.handle("file:importRaw", async (event) => {
 
 ipcMain.removeHandler('file:importReviewed')
 ipcMain.handle("file:importReviewed", async (event) => {
-    const window = BrowserWindow.getFocusedWindow()
+    const window = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0]
     const store = new Store();
     const defaultDir = app.getPath('documents');
     let lastOpenedDir = store.get('userPreferences.lastExcelDir') ?? defaultDir;
@@ -141,7 +141,7 @@ ipcMain.handle("file:importReviewed", async (event) => {
 
 ipcMain.removeHandler('file:openFolder')
 ipcMain.handle("file:openFolder", async (event) => {
-    const window = BrowserWindow.getFocusedWindow()
+    const window = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0]
     const store = new Store()
     const defaultDir = app.getPath('documents')
     let lastOpenedDir = store.get('userPreferences.lastOpenedDir')?? defaultDir
@@ -152,7 +152,8 @@ ipcMain.handle("file:openFolder", async (event) => {
             if (entry.isDirectory()) {
                 return getAllFiles(res)
             }
-            return res.endsWith('.txt') ? res : null
+            const ext = path.extname(res).toLowerCase();
+            return (ext === '.txt' || ext === '.xlsx') ? res : null
         }))
         return files.flat().filter(Boolean)
     }

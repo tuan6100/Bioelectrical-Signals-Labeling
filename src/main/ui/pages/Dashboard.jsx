@@ -65,11 +65,16 @@ export default function Dashboard() {
         }
     };
 
-    const handleFileAction = async (apiCall) => {
+    const handleFileAction = async (actionFn) => {
         if (loading) return;
+        if (!window.biosignalApi?.head) {
+            window.alert("Chức năng Import / Open Folder chỉ hoạt động trong ứng dụng Desktop (Electron).\nVui lòng khởi chạy ứng dụng bằng lệnh: npm run dev:app");
+            return;
+        }
         try {
-            await apiCall;
-        } finally {
+            await actionFn();
+        } catch (e) {
+            console.error("File action error:", e);
         }
     };
 
@@ -110,9 +115,9 @@ export default function Dashboard() {
                         </div>
 
                         <ActionToolbar
-                            onImportRaw={() => handleFileAction(window.biosignalApi.head.importRaw())}
-                            onImportReviewed={() => handleFileAction(window.biosignalApi.head.importReviewed())}
-                            onOpenFolder={() => handleFileAction(window.biosignalApi.head.openFolder())}
+                            onImportRaw={() => handleFileAction(() => window.biosignalApi?.head?.importRaw())}
+                            onImportReviewed={() => handleFileAction(() => window.biosignalApi?.head?.importReviewed())}
+                            onOpenFolder={() => handleFileAction(() => window.biosignalApi?.head?.openFolder())}
                         />
                     </div>
                 </div>
