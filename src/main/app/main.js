@@ -8,6 +8,7 @@ import pkg from 'electron-updater';
 import {initSchema, isDbInitialized, migrateSchema} from "./domain/utils/version-management.util.js";
 import log from 'electron-log';
 import appConfig from "./config.js";
+import {lookup} from "node:dns/promises";
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -18,12 +19,6 @@ log.transports.file.getFile()
 Object.assign(console, log.functions)
 
 const MAIN_WINDOW_VITE_DEV_SERVER_URL = process.env.NODE_ENV === 'dev' ? 'http://localhost:5173' : null
-
-const { autoUpdater } = pkg
-const isAlpha = app.getVersion().includes('alpha')
-const isBeta = app.getVersion().includes('beta')
-autoUpdater.allowPrerelease = isAlpha || isBeta
-autoUpdater.channel = isAlpha ? 'alpha' : isBeta ? 'beta' : 'latest'
 
 const createWindow = () => {
     // Create the browser window.
@@ -102,22 +97,6 @@ app.whenReady().then(async() => {
     }
 })
 
-function renameApp() {
-    const appDataPath = app.getPath('appData');
-    const oldUserDataPath = path.join(appDataPath, 'Biosignal Labeling');
-    const newUserDataPath = app.getPath('userData');
-    const oldDbPath = path.join(oldUserDataPath, 'biosignal.db');
-    const newDbPath = path.join(newUserDataPath, 'biosignal.db');
-    if (fs.existsSync(oldDbPath) && !fs.existsSync(newDbPath)) {
-        try {
-            fs.renameSync(oldDbPath, newDbPath);
-            console.log('Successfully migrated database to new app name.');
-        } catch (error) {
-            console.error('Failed to migrate database:', error);
-        }
-    }
-}
-
 // Quit when all windows are closed, except on macOS.
 app.on('window-all-closed', () => {
     try {
@@ -130,28 +109,22 @@ app.on('window-all-closed', () => {
     }
 })
 
-autoUpdater.on('update-available', (updateInfo) => {
-    const currentVersion = app.getVersion();
-    const isCurrentBeta = currentVersion.includes('beta');
-    const isUpdateBeta = updateInfo.version.includes('beta');
-    const isCurrentAlpha = currentVersion.includes('alpha');
-    const isUpdateAlpha = updateInfo.version.includes('alpha');
-    if (isCurrentBeta !== isUpdateBeta || isCurrentAlpha !== isUpdateAlpha) {
-        log.info(`[Update Blocked] Chặn update chéo channel. Hiện tại: ${currentVersion} -> Update: ${updateInfo.version}`);
-        return;
+async function checkInternet() {
+    try {
+        await lookup('google.com')
+        return true;
+    } catch (error) {
+        return false;
     }
-    dialog.showMessageBox({
-        type: 'info',
-        title: 'Found Updates',
-        message: `Found updates from version ${app.getVersion()} to ${updateInfo.version}, do you want to update now?`,
-        buttons: ['Yes', 'Maybe Later'],
-        noLink: true
-    }).then(async (result) => {
-        if (result.response === 0) {
-            await autoUpdater.downloadUpdate()
-        }
-    })
-})
+}
+
+const { autoUpdater } = pkg
+
+checkInternet().then(() => {
+
+
+}).catch(() => console.warn("Network is unreachable. Skip update check"))
+
 
 autoUpdater.on('update-downloaded', () => {
     dialog.showMessageBoxSync({
