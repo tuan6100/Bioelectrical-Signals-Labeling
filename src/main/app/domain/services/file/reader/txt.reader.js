@@ -1,10 +1,10 @@
 import fs from "fs/promises"
 import path from "node:path"
-import {saveJson} from "../writer/json.writer.js"
-import {isNatusSignature} from "../../../utils/natus.validation.util.js";
-import {checkFileImported} from "../../../utils/check-imported.util.js";
-import {app, dialog} from "electron";
-import {processAndPersistData} from "../../data/command/session.command.js";
+import { saveJson } from "../writer/json.writer.js"
+import { isNatusSignature } from "../../../utils/natus.validation.util.js";
+import { checkFileImported } from "../../../utils/check-imported.util.js";
+import { app, dialog } from "electron";
+import { processAndPersistData } from "../../data/command/session.command.js";
 
 function isTxt(filePath) {
     return path.extname(filePath).toLowerCase() === '.txt'
@@ -24,13 +24,6 @@ export async function readFile(inputPath, outputPath) {
     }
     const inputFileName = path.basename(inputPath)
     const result = checkFileImported(inputFileName, content)
-    if (result.imported) {
-        return {
-            inputFileName: null,
-            json: null,
-            sessionCode: result.metadata
-        }
-    }
     const jsonParsed = parseText(content)
     await saveJson(jsonParsed, outputPath)
     return {
@@ -41,9 +34,15 @@ export async function readFile(inputPath, outputPath) {
 }
 
 
+function parseValue(val) {
+    if (/^-?\d+,\d+$/.test(val)) {
+        return val.replace(',', '.');
+    }
+    return val;
+}
+
 function parseText(text) {
     text = text.replace(/\/\r?\n/g, ",");
-    text = text.replace(/(-?\d+),(\d{2})/g, "$1.$2");
     const lines = text.split(/\r?\n/);
     const result = {};
     let currentObj = null;
@@ -61,7 +60,7 @@ function parseText(text) {
                 const kvInline = rest.match(/^([^=]+)=(.*)$/);
                 if (kvInline) {
                     const [, key, value] = kvInline;
-                    currentObj[key.trim()] = value.trim();
+                    currentObj[key.trim()] = parseValue(value.trim());
                 }
             }
             continue;
@@ -69,8 +68,8 @@ function parseText(text) {
         const kvMatch = line.match(/^([^=]+)=(.*)$/);
         if (kvMatch) {
             const [, key, value] = kvMatch;
-            if (currentObj) currentObj[key.trim()] = value.trim();
-            else result[key.trim()] = value.trim();
+            if (currentObj) currentObj[key.trim()] = parseValue(value.trim());
+            else result[key.trim()] = parseValue(value.trim());
         }
     }
     return result;
@@ -90,16 +89,14 @@ function setDeepByName(obj, pathStr, sectionName) {
     return current[lastPart];
 }
 
-export async function processTxtFiles(window, filePaths){
+export async function processTxtFiles(window, filePaths) {
     if (!filePaths || filePaths.length === 0) {
         return
     }
     try {
         const outputBaseDir = app.getPath('userData')
         const outputStorageDir = path.join(outputBaseDir, 'Local Storage')
-        if (!await fs.access(outputStorageDir)) {
-            await fs.mkdir(outputStorageDir, {recursive: true})
-        }
+        await fs.mkdir(outputStorageDir, { recursive: true })
         const fileReadPromises = filePaths.map(filePath => {
             const tempOutputPath = path.join(outputStorageDir, `temp-${path.basename(filePath)}-${Date.now()}.json`)
             return readFile(filePath, tempOutputPath)

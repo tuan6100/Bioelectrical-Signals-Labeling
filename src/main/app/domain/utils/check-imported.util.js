@@ -22,6 +22,6 @@ export function checkFileImported(inputFileName, content) {
 }
 
 function calculateCRC32(text) {
-    const crc = CRC32.buf(text);
+    const crc = CRC32.str(text);
     return (crc >>> 0).toString(16).padStart(8, '0');
 }
