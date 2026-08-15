@@ -1,7 +1,6 @@
 import {app, BrowserWindow, dialog, globalShortcut} from 'electron'
 import path from 'node:path'
 import {fileURLToPath} from 'node:url'
-import fs from 'fs';
 import './api/handlers/index.js'
 import {db} from "./persistence/connection/sqlite.connection.js";
 import pkg from 'electron-updater';
@@ -13,6 +12,7 @@ import {lookup} from "node:dns/promises";
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
+const { autoUpdater } = pkg
 
 log.initialize()
 log.transports.file.getFile()
@@ -54,21 +54,51 @@ const createWindow = () => {
     return mainWindow
 }
 
+// Check for update if network is available
+const isAlpha = app.getVersion().includes('alpha')
+const isBeta = app.getVersion().includes('beta')
+autoUpdater.allowPrerelease = isAlpha || isBeta
+autoUpdater.channel = isAlpha ? 'alpha' : isBeta ? 'beta' : 'latest'
+autoUpdater.on('update-available', (updateInfo) => {
+    const currentVersion = app.getVersion();
+    const isCurrentBeta = currentVersion.includes('beta');
+    const isUpdateBeta = updateInfo.version.includes('beta');
+    const isCurrentAlpha = currentVersion.includes('alpha');
+    const isUpdateAlpha = updateInfo.version.includes('alpha');
+    if (isCurrentBeta !== isUpdateBeta || isCurrentAlpha !== isUpdateAlpha) {
+        log.info(`[Update Blocked] Cross-channel updates are not permitted: ${currentVersion} -> Update: ${updateInfo.version}`);
+        return;
+    }
+    dialog.showMessageBox({
+        type: 'info',
+        title: 'Found Updates',
+        message: `Found updates from version ${app.getVersion()} to ${updateInfo.version}, do you want to update now?`,
+        buttons: ['Yes', 'Maybe Later'],
+        noLink: true
+    }).then(async (result) => {
+        if (result.response === 0) {
+            await autoUpdater.downloadUpdate()
+        }
+    })
+})
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 app.whenReady().then(async() => {
     try {
-        renameApp();
-        autoUpdater.autoDownload = false;
-        autoUpdater.autoRunAppAfterInstall = true
-        if (process.env.NODE_ENV === 'dev') {
-            const updateForDevEnv =  appConfig.has('update.force') ? Boolean(appConfig.get('update.force')) : false
-            if (updateForDevEnv) {
-                autoUpdater.forceDevUpdateConfig = updateForDevEnv
-                autoUpdater.updateConfigPath = path.join(__dirname, '..', '..','..', 'dev-app-update.yml')
+        lookup('github.com').then(async () => {
+            autoUpdater.autoDownload = false;
+            autoUpdater.autoRunAppAfterInstall = true
+            if (process.env.NODE_ENV === 'dev') {
+                const updateForDevEnv =  appConfig.has('update.force') ? Boolean(appConfig.get('update.force')) : false
+                if (updateForDevEnv) {
+                    autoUpdater.forceDevUpdateConfig = updateForDevEnv
+                    autoUpdater.updateConfigPath = path.join(__dirname, '..', '..','..', 'dev-app-update.yml')
+                }
             }
-        }
-        await autoUpdater.checkForUpdates()
+            await autoUpdater.checkForUpdates()
+        }).catch(() => console.warn("Network is unreachable. Skip update check"))
+
         if (!isDbInitialized()) {
             console.log('Database not initialized')
             initSchema()
@@ -97,6 +127,18 @@ app.whenReady().then(async() => {
     }
 })
 
+autoUpdater.on('update-downloaded', () => {
+    dialog.showMessageBoxSync({
+        type: 'info',
+        title: 'Update Ready',
+        message: 'A new version has been downloaded. The application will now restart to apply the update.',
+        buttons: ['OK']
+    })
+    migrateSchema().finally(() => {
+        autoUpdater.quitAndInstall()
+    })
+})
+
 // Quit when all windows are closed, except on macOS.
 app.on('window-all-closed', () => {
     try {
@@ -109,31 +151,4 @@ app.on('window-all-closed', () => {
     }
 })
 
-async function checkInternet() {
-    try {
-        await lookup('google.com')
-        return true;
-    } catch (error) {
-        return false;
-    }
-}
 
-const { autoUpdater } = pkg
-
-checkInternet().then(() => {
-
-
-}).catch(() => console.warn("Network is unreachable. Skip update check"))
-
-
-autoUpdater.on('update-downloaded', () => {
-    dialog.showMessageBoxSync({
-        type: 'info',
-        title: 'Update Ready',
-        message: 'A new version has been downloaded. The application will now restart to apply the update.',
-        buttons: ['OK']
-    })
-    migrateSchema().finally(() => {
-        autoUpdater.quitAndInstall()
-    })
-})
