@@ -6,6 +6,6 @@
     }
   },
   "update": {
-    "force": false
+    "force": true
   }
 }

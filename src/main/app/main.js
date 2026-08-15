@@ -1,29 +1,24 @@
 import {app, BrowserWindow, dialog, globalShortcut} from 'electron'
 import path from 'node:path'
 import {fileURLToPath} from 'node:url'
-import fs from 'fs';
 import './api/handlers/index.js'
 import {db} from "./persistence/connection/sqlite.connection.js";
 import pkg from 'electron-updater';
 import {initSchema, isDbInitialized, migrateSchema} from "./domain/utils/version-management.util.js";
 import log from 'electron-log';
 import appConfig from "./config.js";
+import {lookup} from "node:dns/promises";
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
+const { autoUpdater } = pkg
 
 log.initialize()
 log.transports.file.getFile()
 Object.assign(console, log.functions)
 
 const MAIN_WINDOW_VITE_DEV_SERVER_URL = process.env.NODE_ENV === 'dev' ? 'http://localhost:5173' : null
-
-const { autoUpdater } = pkg
-const isAlpha = app.getVersion().includes('alpha')
-const isBeta = app.getVersion().includes('beta')
-autoUpdater.allowPrerelease = isAlpha || isBeta
-autoUpdater.channel = isAlpha ? 'alpha' : isBeta ? 'beta' : 'latest'
 
 const createWindow = () => {
     // Create the browser window.
@@ -59,21 +54,51 @@ const createWindow = () => {
     return mainWindow
 }
 
+// Check for update if network is available
+const isAlpha = app.getVersion().includes('alpha')
+const isBeta = app.getVersion().includes('beta')
+autoUpdater.allowPrerelease = isAlpha || isBeta
+autoUpdater.channel = isAlpha ? 'alpha' : isBeta ? 'beta' : 'latest'
+autoUpdater.on('update-available', (updateInfo) => {
+    const currentVersion = app.getVersion();
+    const isCurrentBeta = currentVersion.includes('beta');
+    const isUpdateBeta = updateInfo.version.includes('beta');
+    const isCurrentAlpha = currentVersion.includes('alpha');
+    const isUpdateAlpha = updateInfo.version.includes('alpha');
+    if (isCurrentBeta !== isUpdateBeta || isCurrentAlpha !== isUpdateAlpha) {
+        log.info(`[Update Blocked] Cross-channel updates are not permitted: ${currentVersion} -> Update: ${updateInfo.version}`);
+        return;
+    }
+    dialog.showMessageBox({
+        type: 'info',
+        title: 'Found Updates',
+        message: `Found updates from version ${app.getVersion()} to ${updateInfo.version}, do you want to update now?`,
+        buttons: ['Yes', 'Maybe Later'],
+        noLink: true
+    }).then(async (result) => {
+        if (result.response === 0) {
+            await autoUpdater.downloadUpdate()
+        }
+    })
+})
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 app.whenReady().then(async() => {
     try {
-        renameApp();
-        autoUpdater.autoDownload = false;
-        autoUpdater.autoRunAppAfterInstall = true
-        if (process.env.NODE_ENV === 'dev') {
-            const updateForDevEnv =  appConfig.has('update.force') ? Boolean(appConfig.get('update.force')) : false
-            if (updateForDevEnv) {
-                autoUpdater.forceDevUpdateConfig = updateForDevEnv
-                autoUpdater.updateConfigPath = path.join(__dirname, '..', '..','..', 'dev-app-update.yml')
+        lookup('github.com').then(async () => {
+            autoUpdater.autoDownload = false;
+            autoUpdater.autoRunAppAfterInstall = true
+            if (process.env.NODE_ENV === 'dev') {
+                const updateForDevEnv =  appConfig.has('update.force') ? Boolean(appConfig.get('update.force')) : false
+                if (updateForDevEnv) {
+                    autoUpdater.forceDevUpdateConfig = updateForDevEnv
+                    autoUpdater.updateConfigPath = path.join(__dirname, '..', '..','..', 'dev-app-update.yml')
+                }
             }
-        }
-        await autoUpdater.checkForUpdates()
+            await autoUpdater.checkForUpdates()
+        }).catch(() => console.warn("Network is unreachable. Skip update check"))
+
         if (!isDbInitialized()) {
             console.log('Database not initialized')
             initSchema()
@@ -102,21 +127,17 @@ app.whenReady().then(async() => {
     }
 })
 
-function renameApp() {
-    const appDataPath = app.getPath('appData');
-    const oldUserDataPath = path.join(appDataPath, 'Biosignal Labeling');
-    const newUserDataPath = app.getPath('userData');
-    const oldDbPath = path.join(oldUserDataPath, 'biosignal.db');
-    const newDbPath = path.join(newUserDataPath, 'biosignal.db');
-    if (fs.existsSync(oldDbPath) && !fs.existsSync(newDbPath)) {
-        try {
-            fs.renameSync(oldDbPath, newDbPath);
-            console.log('Successfully migrated database to new app name.');
-        } catch (error) {
-            console.error('Failed to migrate database:', error);
-        }
-    }
-}
+autoUpdater.on('update-downloaded', () => {
+    dialog.showMessageBoxSync({
+        type: 'info',
+        title: 'Update Ready',
+        message: 'A new version has been downloaded. The application will now restart to apply the update.',
+        buttons: ['OK']
+    })
+    migrateSchema().finally(() => {
+        autoUpdater.quitAndInstall()
+    })
+})
 
 // Quit when all windows are closed, except on macOS.
 app.on('window-all-closed', () => {
@@ -130,37 +151,4 @@ app.on('window-all-closed', () => {
     }
 })
 
-autoUpdater.on('update-available', (updateInfo) => {
-    const currentVersion = app.getVersion();
-    const isCurrentBeta = currentVersion.includes('beta');
-    const isUpdateBeta = updateInfo.version.includes('beta');
-    const isCurrentAlpha = currentVersion.includes('alpha');
-    const isUpdateAlpha = updateInfo.version.includes('alpha');
-    if (isCurrentBeta !== isUpdateBeta || isCurrentAlpha !== isUpdateAlpha) {
-        log.info(`[Update Blocked] Chặn update chéo channel. Hiện tại: ${currentVersion} -> Update: ${updateInfo.version}`);
-        return;
-    }
-    dialog.showMessageBox({
-        type: 'info',
-        title: 'Found Updates',
-        message: `Found updates from version ${app.getVersion()} to ${updateInfo.version}, do you want to update now?`,
-        buttons: ['Yes', 'Maybe Later'],
-        noLink: true
-    }).then(async (result) => {
-        if (result.response === 0) {
-            await autoUpdater.downloadUpdate()
-        }
-    })
-})
 
-autoUpdater.on('update-downloaded', () => {
-    dialog.showMessageBoxSync({
-        type: 'info',
-        title: 'Update Ready',
-        message: 'A new version has been downloaded. The application will now restart to apply the update.',
-        buttons: ['OK']
-    })
-    migrateSchema().finally(() => {
-        autoUpdater.quitAndInstall()
-    })
-})

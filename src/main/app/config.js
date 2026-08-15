@@ -11,9 +11,12 @@ try {
     console.log('Loading config from:', configPath);
     const data = readFileSync(configPath, 'utf8');
     configData = JSON.parse(data);
-    console.log('Loaded config:', JSON.stringify(configData, null, 2));
+    if (process.env.NODE_ENV === 'dev') {
+        console.log('Loaded config:', JSON.stringify(configData, null, 2));
+    }
 } catch (error) {
-    console.warn('Could not load config, using empty config:', error.message);
+    console.error('Could not load config, using empty config:', error.message);
+    throw error
 }
 
 export const appConfig = {
