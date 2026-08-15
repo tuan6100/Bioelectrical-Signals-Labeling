@@ -1,33 +1,42 @@
-import {BrowserWindow, dialog} from "electron"
+import { BrowserWindow, dialog } from "electron"
 import asTransaction from "../../../../persistence/transaction/index.js"
-import {findKeyValue} from "../../../utils/json.util.js"
-import {extractChannelsFromJson} from "../../../utils/channel.util.js"
+import { findKeyValue } from "../../../utils/json.util.js"
+import { extractChannelsFromJson } from "../../../utils/channel.util.js"
 import Channel from "../../../../persistence/dao/channel.dao.js"
 import Session from "../../../../persistence/dao/session.dao.js"
 import Patient from "../../../../persistence/dao/patient.dao.js"
-import {parseVietnameseDateTime} from "../../../utils/parse-time.util.js"
+import { parseVietnameseDateTime } from "../../../utils/parse-time.util.js"
 import Annotation from "../../../../persistence/dao/annotation.dao.js"
 import Label from "../../../../persistence/dao/label.dao.js"
-import { warnDeletionBeforeExport} from "../../../utils/warning.util.js"
-import {saveSessionToExcel} from "../../file/writer/excel.writer.js"
+import { warnDeletionBeforeExport } from "../../../utils/warning.util.js"
+import { saveSessionToExcel } from "../../file/writer/excel.writer.js"
 import fs from "node:fs"
 import path from "node:path"
 import Store from "electron-store";
-import {getInputFileName} from "../query/session.query.js";
+import { getInputFileName } from "../query/session.query.js";
 
 
 export function processAndPersistData(inputFileName, data, contentHash) {
     return asTransaction(function (data, contentHash) {
         let patientId = findKeyValue(data, 'Patient ID')
         const firstName = findKeyValue(data, 'First Name')
-        const gender = findKeyValue(data, 'Gender').toString().toUpperCase() === 'M' ? 'M' : 'F'
+        const gender = findKeyValue(data, 'Gender')?.toString()?.toUpperCase() === 'M' ? 'M' : 'F'
         patientId = insertPatient(patientId, firstName, gender)
-        let measurementType = findKeyValue(data, "Test").toString()
+        let measurementType = findKeyValue(data, "Test")?.toString() || ""
         measurementType = measurementType.toUpperCase().includes("ECG") ? "ECG" :
             measurementType.toUpperCase().includes("EEG") ? "EEG" :
                 measurementType.toUpperCase().includes("EMG") ? "EMG" : "UNKNOWN"
         const startTime = findKeyValue(data, "Acquisition Start Time")
         const endTime = findKeyValue(data, "Acquisition End Time")
+
+        let existingSessionId = Session.findSessionIdByInputFileName(inputFileName)
+        if (existingSessionId) {
+            Channel.deleteBySessionId(existingSessionId)
+            const channels = extractChannelsFromJson(data, existingSessionId)
+            Channel.insertBatch(channels)
+            return existingSessionId
+        }
+
         const sessionId = insertSession(patientId, measurementType, startTime, endTime, inputFileName, contentHash)
         const channels  = extractChannelsFromJson(data, sessionId)
         Channel.insertBatch(channels)
@@ -106,7 +115,7 @@ export function updateSessionStatus(sessionId, status) {
             throw new Error(`Cannot change status of a completed/in-progress session to ${status}`)
         }
 
-        Session.update(sessionId, {status: status})
+        Session.update(sessionId, { status: status })
         notifySessionUpdate(sessionId)
     })()
 }
@@ -117,37 +126,40 @@ export function toggleSessionExported(sessionId, exported) {
         if (!currentSession) {
             throw new Error(`Session with ID ${sessionId} not found`)
         }
-        Session.update(sessionId, {exported: exported ? 1 : 0})
+        Session.update(sessionId, { exported: exported ? 1 : 0 })
         notifySessionUpdate(sessionId)
     })()
 }
 
-export function persistExcelData(data) {
+export function persistExcelData(session, channels, annotations) {
     return asTransaction(() => {
-        const { session, annotations, channels } = data
-        const sessionId = session.session_id
+        let sessionId = session.sessionId
+        let inputFileName = session.inputFileName
         let targetStatus = session.status
-        const existingSession = Session.findOneById(sessionId)
-        if (existingSession) {
+        const foundById = Session.findOneById(sessionId)?.sessionId
+        const foundFyInputFileName = Session.findSessionIdByInputFileName(inputFileName)
+        sessionId = foundById != null? foundById: foundFyInputFileName != null? foundFyInputFileName: null
+        if (sessionId != null) {
             Session.update(sessionId, {
                 status: targetStatus,
-                updated_at: session.updated_at
+                updated_at: session.updatedAt
             })
         } else {
-            let patient = Patient.findOneById(session.patient_id)
+            sessionId = session.sessionId
+            let patient = Patient.findOneById(session.patientId)
             if (!patient) {
-                new Patient(session.patient_id, "Unknown", "U").insert()
+                new Patient(session.patientId, "Unknown", "U").insert()
             }
             new Session(
                 sessionId,
-                session.patient_id,
-                session.measurement_type,
-                session.start_time,
-                session.end_time,
+                session.patientId,
+                session.measurementType,
+                session.startTime,
+                session.endTime,
                 targetStatus,
-                session.input_file_name,
+                session.inputFileName,
                 null,
-                new Date(session.updated_at).toISOString()
+                new Date(session.updatedAt).toISOString()
             ).insert()
             if (channels && channels.length > 0) {
                 const channelEntities = channels.map(ch => ({
@@ -160,7 +172,7 @@ export function persistExcelData(data) {
                     subsampledKhz: ch.subsampledKhz,
                     durationMs: ch.durationMs
                 }))
-                for(const ch of channelEntities) {
+                for (const ch of channelEntities) {
                     new Channel(
                         ch.channelId,
                         ch.sessionId,
@@ -234,7 +246,7 @@ export function disableDoubleCheckMode(channelId) {
 
 export function setChannelDoubleChecked(sessionId, channelId, isChecked) {
     asTransaction(() => {
-        Channel.updateDoubleChecked(channelId, isChecked? 1 : 0)
+        Channel.updateDoubleChecked(channelId, isChecked ? 1 : 0)
         if (isChecked && Channel.countPendingDoubleCheck(sessionId) === 0) {
             Session.update(sessionId, { status: 'DOCTOR_COMPLETED' })
         }

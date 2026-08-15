@@ -89,48 +89,76 @@ function parseRawSamples(raw, scale = 1.0) {
     return arr.map(v => Number((v * scale).toFixed(8)))
 }
 
-export function extractChannelsFromJson(jsonData, sessionId) {
+export function     extractChannelsFromJson(jsonData, sessionId) {
     const channels = []
     const traceSweeps = []
+    const longTraceSweeps = []
     let lastChannelNumber = null
 
     function walk(obj) {
         if (!obj || typeof obj !== "object") return
         for (const [_, value] of Object.entries(obj)) {
             if (!value || typeof value !== "object") continue
-            if ("Trace Data" in value) {
+
+            if ("LongTrace Data" in value) {
+                const data = value["LongTrace Data"]
+                const chKey = findDataKey(data, 'Channel number')?.value || findDataKey(value, 'Channel number')?.value
+                const channelNumber = parseInt(chKey) || lastChannelNumber || 1
+                lastChannelNumber = channelNumber
+                const found = findDataKey(data, "LongTrace Data") || findDataKey(data, "Sweep Data")
+                if (found && found.value) {
+                    const scale = deriveScale(found?.key || null, data, value)
+                    const samples = parseRawSamples(found?.value, scale)
+                    if (samples.length > 0) {
+                        const subKhz = toNumber(data["Subsampled(kHz)"]) ?? toNumber(data["Sampling Frequency(kHz)"]) ?? null
+                        const durationMs = subKhz ? (samples.length / subKhz) : (toNumber(data["Sweep Duration(ms)"]) ?? null)
+                        longTraceSweeps.push({
+                            channelNumber,
+                            samples,
+                            subsampledKhz: subKhz,
+                            samplingFrequencyKhz: toNumber(data["Sampling Frequency(kHz)"]) ?? subKhz,
+                            durationMs
+                        })
+                    }
+                }
+            } else if ("Trace Data" in value) {
                 const data = value["Trace Data"]
-                const channelNumber = parseInt(findDataKey(data, 'Channel number')) || lastChannelNumber || 1
+                const chKey = findDataKey(data, 'Channel number')?.value || findDataKey(value, 'Channel number')?.value
+                const channelNumber = parseInt(chKey) || lastChannelNumber || 1
                 lastChannelNumber = channelNumber
                 const found = findDataKey(data, "Sweep Data")
-                const scale = deriveScale(found?.key || null, data, value)
-                const samples = parseRawSamples(found?.value, scale)
-                traceSweeps.push({
-                    channelNumber,
-                    samples,
-                    samplingFrequency: toNumber(data["Sampling Frequency(kHz)"]) ?? null,
-                    subsampled: toNumber(data["Subsampled(kHz)"]) ?? null,
-                    duration: toNumber(data["Sweep Duration(ms)"]) ?? null,
-                })
-            } else if ("Store Data" in value) /*TODO: Change this logic to read all types of data in the near future */  {
+                if (found && found.value) {
+                    const scale = deriveScale(found?.key || null, data, value)
+                    const samples = parseRawSamples(found?.value, scale)
+                    traceSweeps.push({
+                        channelNumber,
+                        samples,
+                        samplingFrequency: toNumber(data["Sampling Frequency(kHz)"]) ?? null,
+                        subsampled: toNumber(data["Subsampled(kHz)"]) ?? null,
+                        duration: toNumber(data["Sweep Duration(ms)"]) ?? null,
+                    })
+                }
+            } else if ("Store Data" in value) {
                 const data = value["Store Data"];
-                const channelNumber = parseInt(data["Channel Number"]) || 0;
-                lastChannelNumber = channelNumber || lastChannelNumber;
+                const channelNumber = parseInt(data["Channel Number"]) || lastChannelNumber || 1;
+                lastChannelNumber = channelNumber;
                 const found = findDataKey(data, "Averaged Data")
-                const scale = deriveScale(found?.key || null, data, value)
-                const samples = parseRawSamples(found?.value, scale)
-                const ch = new Channel(
-                    null,
-                    sessionId,
-                    channelNumber,
-                    "Averaged Data",
-                    JSON.stringify(samples),
-                    parseFloat(data["Sampling Frequency(kHz)"]) || null,
-                    parseFloat(data["Subsampled(kHz)"]) || null,
-                    parseFloat(data["Sweep Duration(ms)"]) || null,
-                    null,
-                );
-                channels.push(ch);
+                if (found && found.value) {
+                    const scale = deriveScale(found?.key || null, data, value)
+                    const samples = parseRawSamples(found?.value, scale)
+                    const ch = new Channel(
+                        null,
+                        sessionId,
+                        channelNumber,
+                        "Averaged Data",
+                        JSON.stringify(samples),
+                        parseFloat(data["Sampling Frequency(kHz)"]) || null,
+                        parseFloat(data["Subsampled(kHz)"]) || null,
+                        parseFloat(data["Sweep Duration(ms)"]) || null,
+                        null,
+                    );
+                    channels.push(ch);
+                }
             }
 
             walk(value)
@@ -138,21 +166,55 @@ export function extractChannelsFromJson(jsonData, sessionId) {
     }
     walk(jsonData)
 
-    if (traceSweeps.length > 0) {
-        const firstTrace = traceSweeps[0]
-        const combinedSamples = traceSweeps.flatMap(sweep => sweep.samples)
-        const totalDuration = traceSweeps.reduce((sum, sweep) => sum + (sweep.duration || 0), 0)
-        const combinedTraceChannel = new Channel(
-            null,
-            sessionId,
-            firstTrace.channelNumber,
-            'Trace Data',
-            JSON.stringify(combinedSamples),
-            firstTrace.samplingFrequency,
-            firstTrace.subsampled,
-            totalDuration
-        )
-        channels.push(combinedTraceChannel)
+    if (longTraceSweeps.length > 0) {
+        const longTraceByChannel = {}
+        for (const lt of longTraceSweeps) {
+            const chNum = lt.channelNumber
+            if (!longTraceByChannel[chNum]) longTraceByChannel[chNum] = []
+            longTraceByChannel[chNum].push(lt)
+        }
+        for (const [chNumStr, lts] of Object.entries(longTraceByChannel)) {
+            const first = lts[0]
+            const combinedSamples = lts.flatMap(s => s.samples)
+            const subKhz = first.subsampledKhz || 19.2
+            const totalDurationMs = combinedSamples.length / subKhz
+            const ltChannel = new Channel(
+                null,
+                sessionId,
+                parseInt(chNumStr),
+                'LongTrace Data',
+                JSON.stringify(combinedSamples),
+                first.samplingFrequencyKhz,
+                first.subsampledKhz,
+                totalDurationMs
+            )
+            channels.push(ltChannel)
+        }
+    } else if (traceSweeps.length > 0) {
+        const sweepsByChannel = {}
+        for (const sweep of traceSweeps) {
+            const chNum = sweep.channelNumber
+            if (!sweepsByChannel[chNum]) sweepsByChannel[chNum] = []
+            sweepsByChannel[chNum].push(sweep)
+        }
+
+        for (const [chNumStr, sweeps] of Object.entries(sweepsByChannel)) {
+            const firstTrace = sweeps[0]
+            const combinedSamples = sweeps.flatMap(sweep => sweep.samples)
+            const subKhz = firstTrace.subsampled || 19.2
+            const totalDurationMs = combinedSamples.length / subKhz
+            const combinedTraceChannel = new Channel(
+                null,
+                sessionId,
+                parseInt(chNumStr),
+                'Trace Data',
+                JSON.stringify(combinedSamples),
+                firstTrace.samplingFrequency,
+                firstTrace.subsampled,
+                totalDurationMs
+            )
+            channels.push(combinedTraceChannel)
+        }
     }
 
     return channels

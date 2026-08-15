@@ -44,6 +44,7 @@ export default function Workspace({ sessionId }) {
     const channels = workspaceData?.session?.channels || [];
     const defaultSignal = workspaceData?.defaultChannel?.signal || null;
     const defaultChannelId = workspaceData?.defaultChannel?.channelId || (channels.length ? channels[0].channelId : null);
+    const name = workspaceData?.defaultChannel?.name
 
     const annotations = useMemo(() => {
         return processAnnotations(defaultSignal);
@@ -55,6 +56,7 @@ export default function Workspace({ sessionId }) {
     const [channelId, setChannelId] = useState(defaultChannelId)
     const isDraggingRef = useRef(false)
     const startXRef = useRef(0)
+    const startPercentRef = useRef(50)
     const [updateWorkspaceCache] = useUpdateSessionWorkspaceCacheMutation();
 
     useEffect(() => {
@@ -63,7 +65,6 @@ export default function Workspace({ sessionId }) {
         }
     }, [defaultChannelId])
 
-    // --- 2. VÁ CACHE KHI CÓ EVENT TỪ SIGNAL CHART / LABEL TABLE ---
     useEffect(() => {
         const onUpdated = (e) => {
             const detail = e?.detail;
@@ -82,7 +83,6 @@ export default function Workspace({ sessionId }) {
         return () => window.removeEventListener('annotations-updated', onUpdated);
     }, [channelId, sessionId, updateWorkspaceCache]);
 
-    // --- 3. VÁ CACHE KHI NHẬN IPC STATUS TỪ ELECTRON ---
     useEffect(() => {
         let cleanupStatus;
         if (window.biosignalApi?.on) {
@@ -103,7 +103,6 @@ export default function Workspace({ sessionId }) {
         };
     }, [dispatch, sessionId]);
 
-    // Các phần AutoLayout, Grid, Move, Resize... giữ nguyên
     useEffect(() => {
         const applyAutoLayout = () => {
             const small = window.innerWidth < COLLAPSE_BREAKPOINT
@@ -221,10 +220,11 @@ export default function Workspace({ sessionId }) {
                             session={session}
                             sessionId={sessionId}
                             channels={channels}
+                            name={name}
                             channelId={channelId}
                             defaultSignal={defaultSignal}
                             onChannelSelected={handleSetChannelId}
-                            labels={annotations} // TRUYỀN THẲNG BIẾN ANNOTATIONS TỪ USEMEMO
+                            labels={annotations}
                             loading={loading}
                         />
                     </div>
