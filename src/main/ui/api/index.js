@@ -4,6 +4,7 @@ import {
     updateAnnotationAppApi,
     deleteAnnotationAppApi,
     getSessionInfoAppApi,
+    getChannelSignalAppApi,
     isDesktopEnv, getAllSessionsAppApi, updateSessionStatusAppApi, exportToExcelAppApi, enableDoubleCheckAppApi, setChannelDoubleCheckedAppApi,
     deleteSessionAppApi, disableDoubleCheckAppApi
 } from '../../app/api/provider';
@@ -50,6 +51,23 @@ import {
 export async function fetchSessionWorkspace(sessionId) {
     if (isDesktopEnv()) {
         return await getSessionInfoAppApi(sessionId);
+    } else {
+        // TODO: Implement web version
+    }
+}
+
+/**
+ * Fetches a single channel's signal payload for the currently selected channel.
+ *
+ * @async
+ * @function fetchChannelSignal
+ * @param {number} sessionId - The ID of the session that owns the channel.
+ * @param {number} channelId - The ID of the channel to fetch.
+ * @returns {Promise<{signal: object|null}>}
+ */
+export async function fetchChannelSignal(sessionId, channelId) {
+    if (isDesktopEnv()) {
+        return await getChannelSignalAppApi(sessionId, channelId);
     } else {
         // TODO: Implement web version
     }

@@ -51,11 +51,6 @@ export const initWorkspaceIpc = () => (dispatch) => {
             dispatch(sessionStatusUpdated(updatedSession));
         });
     }
-    if (window.biosignalApi?.on?.sessionDoubleCheckedUpdated) {
-        window.biosignalApi.on.sessionDoubleCheckedUpdated((updatedSession) => {
-            dispatch(sessionDoubleCheckUpdated(updatedSession));
-        });
-    }
 };
 
 const workspaceSlice = createSlice({
@@ -80,16 +75,6 @@ const workspaceSlice = createSlice({
             state.session = {
                 ...state.session,
                 sessionStatus: upd.status,
-                updatedAt: upd.updatedAt
-            };
-        },
-        sessionDoubleCheckUpdated(state, action) {
-            const upd = action.payload;
-            if (!upd?.sessionId || upd.sessionId !== state.sessionId) return;
-            if (!state.session) return;
-            state.session = {
-                ...state.session,
-                isDoubleChecked: upd.isDoubleChecked,
                 updatedAt: upd.updatedAt
             };
         }
@@ -119,8 +104,7 @@ const workspaceSlice = createSlice({
 
 export const {
     setChannel,
-    sessionStatusUpdated,
-    sessionDoubleCheckUpdated
+    sessionStatusUpdated
 } = workspaceSlice.actions;
 
 export default workspaceSlice.reducer;

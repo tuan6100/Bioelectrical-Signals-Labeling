@@ -39,7 +39,6 @@ export async function saveSessionToExcel(sessionId, channelId, filePath) {
     for (const item of channelsData) {
         const { channel, samplesArray, annotations } = item
         const chNum = channel.channelNumber
-        console.log(item)
         const sheetNameChannel = `Channel_${chNum}`
         const sheetNameLabel = `Labels_${chNum}`
         const channelSheet = workbook.addWorksheet(sheetNameChannel)
