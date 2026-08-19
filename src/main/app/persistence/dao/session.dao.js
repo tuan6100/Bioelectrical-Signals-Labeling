@@ -1,4 +1,4 @@
-import { db as sqliteDb } from "../connection/sqlite.connection.js";
+import {db as sqliteDb} from "../connection/sqlite.connection.js";
 
 export default class Session {
     constructor(
@@ -81,7 +81,7 @@ export default class Session {
         `)
         const row = stmt.get(sessionId)
         if (!row) return null
-        const session =  new Session(
+        return new Session(
             row.session_id,
             row.patient_id,
             row.measurement_type,
@@ -93,8 +93,6 @@ export default class Session {
             row.updated_at,
             row.exported
         )
-        console.log(`Session.exported = ${session.exported}, row.exported = ${row.exported}`)
-        return session
     }
 
     static findSessionIdByInputFileName(inputFileName) {

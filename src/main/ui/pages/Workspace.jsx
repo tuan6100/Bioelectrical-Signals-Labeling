@@ -5,10 +5,19 @@ import LeftPanel from "../components/panel/LeftPanel.jsx";
 import RightPanel from "../components/panel/RightPanel.jsx";
 import { useNavigate } from "react-router-dom";
 import { biosignalApi, useGetSessionWorkspaceQuery, useUpdateSessionWorkspaceCacheMutation } from '../redux/api/index.js';
+import { fetchChannelSignal } from '../api/index.js';
 import { setChannel } from '../redux/slices/workspaceSlice.js';
+import { replaceAll } from '../redux/slices/annotationsSlice.js';
 
 const COLLAPSE_BREAKPOINT = 1100
 const RESIZER_WIDTH_PX = 6
+
+const applyWorkspaceLayoutMode = (setLayoutMode) => {
+    const small = window.innerWidth < COLLAPSE_BREAKPOINT
+    setLayoutMode(prev => small ? (prev === 'right' ? 'right' : 'left') : 'split')
+}
+
+const sessionStatusUpdatedListener = window.biosignalApi?.on?.sessionStatusUpdated;
 
 const formatAnnotations = (list) => {
     if (!Array.isArray(list)) return [];
@@ -46,9 +55,12 @@ export default function Workspace({ sessionId }) {
     const defaultChannelId = workspaceData?.defaultChannel?.channelId || (channels.length ? channels[0].channelId : null);
     const name = workspaceData?.defaultChannel?.name
 
+    const [selectedSignal, setSelectedSignal] = useState(defaultSignal)
+    const [channelLoading, setChannelLoading] = useState(false)
+
     const annotations = useMemo(() => {
-        return processAnnotations(defaultSignal);
-    }, [defaultSignal]);
+        return processAnnotations(selectedSignal || defaultSignal);
+    }, [selectedSignal, defaultSignal]);
 
     const [layoutMode, setLayoutMode] = useState('split')
     const [startPosition, setStartPosition] = useState(1)
@@ -64,6 +76,50 @@ export default function Workspace({ sessionId }) {
             setChannelId(defaultChannelId)
         }
     }, [defaultChannelId])
+
+    useEffect(() => {
+        setSelectedSignal(defaultSignal || null)
+        setChannelLoading(false)
+    }, [defaultSignal, defaultChannelId, sessionId])
+
+    useEffect(() => {
+        if (!sessionId || channelId == null) {
+            setSelectedSignal(null)
+            setChannelLoading(false)
+            return;
+        }
+
+        let cancelled = false;
+        const applySignal = (signal) => {
+            if (cancelled) return;
+            setSelectedSignal(signal || null);
+            dispatch(replaceAll({
+                channelId,
+                annotations: processAnnotations(signal)
+            }));
+            setChannelLoading(false);
+        };
+
+        if (channelId === defaultChannelId) {
+            applySignal(defaultSignal);
+            return () => { cancelled = true; };
+        }
+
+        setChannelLoading(true);
+        fetchChannelSignal(sessionId, channelId)
+            .then((data) => applySignal(data?.signal || null))
+            .catch((err) => {
+                if (cancelled) return;
+                console.error('Failed to load selected channel signal:', err);
+                setSelectedSignal(null);
+                dispatch(replaceAll({ channelId, annotations: [] }));
+                setChannelLoading(false);
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [sessionId, channelId, defaultChannelId, defaultSignal, dispatch]);
 
     useEffect(() => {
         const onUpdated = (e) => {
@@ -83,35 +139,29 @@ export default function Workspace({ sessionId }) {
         return () => window.removeEventListener('annotations-updated', onUpdated);
     }, [channelId, sessionId, updateWorkspaceCache]);
 
-    useEffect(() => {
-        let cleanupStatus;
-        if (window.biosignalApi?.on) {
-            cleanupStatus = window.biosignalApi.on.sessionStatusUpdated((updatedSession) => {
-                if (!updatedSession?.sessionId || updatedSession.sessionId !== sessionId) return;
-                dispatch(
-                    biosignalApi.util.updateQueryData('getSessionWorkspace', sessionId, (draft) => {
-                        if (draft.session) {
-                            draft.session.status = updatedSession.status;
-                            draft.session.updatedAt = updatedSession.updatedAt;
-                        }
-                    })
-                );
-            });
-        }
-        return () => {
-            if (typeof cleanupStatus === 'function') cleanupStatus();
-        };
-    }, [dispatch, sessionId]);
+    const handleSessionStatusUpdated = useCallback((updatedSession) => {
+        if (!updatedSession?.sessionId || updatedSession.sessionId !== sessionId) return;
+        dispatch(
+            biosignalApi.util.updateQueryData('getSessionWorkspace', sessionId, (draft) => {
+                if (draft.session) {
+                    draft.session.status = updatedSession.status;
+                    draft.session.updatedAt = updatedSession.updatedAt;
+                }
+            })
+        );
+    }, [biosignalApi, dispatch, sessionId]);
 
     useEffect(() => {
-        const applyAutoLayout = () => {
-            const small = window.innerWidth < COLLAPSE_BREAKPOINT
-            setLayoutMode(prev => small ? (prev === 'right' ? 'right' : 'left') : 'split')
-        }
-        applyAutoLayout()
-        window.addEventListener('resize', applyAutoLayout)
-        return () => window.removeEventListener('resize', applyAutoLayout)
-    }, [])
+        if (typeof sessionStatusUpdatedListener !== 'function') return undefined;
+        return sessionStatusUpdatedListener(handleSessionStatusUpdated);
+    }, [handleSessionStatusUpdated, sessionStatusUpdatedListener]);
+
+    useEffect(() => {
+        const handleResize = () => applyWorkspaceLayoutMode(setLayoutMode)
+        handleResize()
+        window.addEventListener('resize', handleResize)
+        return () => window.removeEventListener('resize', handleResize)
+    }, [setLayoutMode])
 
     const gridTemplateColumns = useMemo(() => {
         if (layoutMode !== 'split') return '1fr'
@@ -173,6 +223,8 @@ export default function Workspace({ sessionId }) {
         dispatch(setChannel(newChannelId))
     }
 
+    const isPanelLoading = loading || channelLoading;
+
     return (
         <div className={rootClass}>
             <div className="workspace-header">
@@ -222,10 +274,10 @@ export default function Workspace({ sessionId }) {
                             channels={channels}
                             name={name}
                             channelId={channelId}
-                            defaultSignal={defaultSignal}
+                            defaultSignal={selectedSignal || defaultSignal}
                             onChannelSelected={handleSetChannelId}
                             labels={annotations}
-                            loading={loading}
+                            loading={isPanelLoading}
                         />
                     </div>
                 )}
@@ -242,7 +294,7 @@ export default function Workspace({ sessionId }) {
                             channelId={channelId}
                             startPosition={startPosition}
                             onStartPositionChange={setStartPosition}
-                            loading={loading}
+                            loading={isPanelLoading}
                         />
                     </div>
                 )}
