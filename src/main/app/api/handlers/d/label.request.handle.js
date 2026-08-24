@@ -37,7 +37,6 @@ ipcMain.handle('annotation:create', (event, labelDto) => {
 ipcMain.removeHandler('annotation:update')
 ipcMain.handle('annotation:update', (event, annotationId, updateFields) => {
     try {
-        console.log(`Update field: ${JSON.stringify(updateFields)}`)
         return updateAnnotation(annotationId, updateFields)
     } catch (error) {
         if (!(error instanceof OverlapError)) {

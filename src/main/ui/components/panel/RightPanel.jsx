@@ -30,7 +30,7 @@ export default function RightPanel({
                     <div className="panel-box">
                         <div className="patient-grid">
                             <div><strong>Patient name:</strong> {session.patientFirstName}</div>
-                            <div><strong>Gender:</strong> {session.patientGender === 'M' ? 'Male' : 'Female'}</div>
+                            <div><strong>Gender:</strong> {session.patientGender === "M" ? 'Male' : 'Female'}</div>
                             <div><strong>Start time:</strong> {session.sessionStartTime}</div>
                             <div><strong>End time:</strong> {session.sessionEndTime}</div>
                             <div><strong>Status:</strong> {session.sessionStatus}</div>

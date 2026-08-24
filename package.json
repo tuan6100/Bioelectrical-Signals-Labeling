@@ -68,8 +68,8 @@
   },
   "build": {
     "appId": "vn.edu.hust.ibme.biosignal",
-    "productName": "Biosignal Labeling",
-    "artifactName": "biosignal-labeling-${version}-${os}-${arch}.${ext}",
+    "productName": "Biosignal Labeler",
+    "artifactName": "biosignal-labeler-${version}-${os}-${arch}.${ext}",
     "directories": {
       "output": "dist",
       "buildResources": "public"
@@ -106,7 +106,7 @@
       "allowToChangeInstallationDirectory": true,
       "installerIcon": "public/favicon/biosignal.ico",
       "uninstallerIcon": "public/favicon/biosignal.ico",
-      "artifactName": "biosignal-labeling-setup-${version}-win-${arch}-setup.exe",
+      "artifactName": "biosignal-labeler-setup-${version}-win-${arch}-setup.exe",
       "deleteAppDataOnUninstall": false,
       "perMachine": false,
       "runAfterFinish": true,

@@ -190,14 +190,15 @@ export function     extractChannelsFromJson(jsonData, sessionId) {
             )
             channels.push(ltChannel)
         }
-    } else if (traceSweeps.length > 0) {
+    }
+
+    if (traceSweeps.length > 0) {
         const sweepsByChannel = {}
         for (const sweep of traceSweeps) {
             const chNum = sweep.channelNumber
             if (!sweepsByChannel[chNum]) sweepsByChannel[chNum] = []
             sweepsByChannel[chNum].push(sweep)
         }
-
         for (const [chNumStr, sweeps] of Object.entries(sweepsByChannel)) {
             const firstTrace = sweeps[0]
             const combinedSamples = sweeps.flatMap(sweep => sweep.samples)
