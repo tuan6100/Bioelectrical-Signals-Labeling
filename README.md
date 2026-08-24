@@ -66,8 +66,19 @@ npm run dev:app
 ```
 If you want to create an executable file (like .exe), please run "npm run build:${your-os}"  
 
+### Contributing
+Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are greatly appreciated.
+
+1. Fork the Project
+2. Create your own branch (`git checkout -b feature/new-template`)
+3. Commit your changes (`git commit -m 'Add new dataset template'`)
+4. Push to the remote branch (`git push origin feature/new-template`)
+5. Open a pull request to the **develop branch**. The main branch should only be merged from the develop branch after features have undergone thorough review and testing prior to deployment to the CI/CD environment.
+
+
 ## License
 Distributed under the Apache License. See `LICENSE` for more information.
+
 
 [release-shield]: https://img.shields.io/github/v/release/tuan6100/Bioelectrical-Signals-Labeling?include_prereleases&style=plastic&logoColor=green
 [release-url]: https://github.com/tuan6100/Bioelectrical-Signals-Labeling/releases/tag/v1.3.4-beta
