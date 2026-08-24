@@ -11,7 +11,7 @@
   <p align="center">
     A data labeling utility designed for physicians to select, assign label types, and save specific segments of raw EMG signal data
     <br />
-    <a href="https://github.com/tuan6100/Bioelectrical-Signals-Labeling/blob/main/public/doc/HDSD%20Biosignal%20Labeling.pdf"><strong>Explore the docs</strong></a>
+    <a href="https://tun-5qseii.filedrop.me/s/32ab8b39-25c5-4798-a2fd-ba64f52ce185"><strong>Explore the docs</strong></a>
     <br />
     <br />
     <a href="https://github.com/tuan6100/Bioelectrical-Signals-Labeling/releases/tag/v1.3.3">Try Now</a>
