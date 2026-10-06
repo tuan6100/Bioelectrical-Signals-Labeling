@@ -1,23 +1,17 @@
-# Electromyography-Data-Labeling
-
-
-<a id="readme-top"></a>
-
-[![Release][release-shield]][release-url]
-[![Number of downloads][statistics-shield]][statistics-url]
-
-<br />
 <div align="center">
+  <h1 align="center">Bioelectrical Signal Labeler</h1>
+  
   <a href="https://github.com/tuan6100/Bioelectrical-Signals-Labeling/releases/download/v1.3.3/biosignal-labeling-setup-1.3.3-win-x64-setup.exe">
     <img src="public/favicon/biosignal.ico" alt="Logo" width="80" height="80">
   </a>
 
-<h3 align="center">Bioelectrical Signal Labeler</h3>
+  [![Release][release-shield]][release-url]
+  [![Number of downloads][statistics-shield]][statistics-url]
 
   <p align="center">
     A data labeling utility designed for physicians to select, assign label types, and save specific segments of raw EMG signal data
     <br />
-    <a href="https://github.com/tuan6100/Bioelectrical-Signals-Labeling/blob/main/public/doc/HDSD%20Biosignal%20Labeling.pdf"><strong>Explore the docs</strong></a>
+    <a href="https://tun-5qseii.filedrop.me/s/32ab8b39-25c5-4798-a2fd-ba64f52ce185"><strong>Explore the docs</strong></a>
     <br />
     <br />
     <a href="https://github.com/tuan6100/Bioelectrical-Signals-Labeling/releases/tag/v1.3.3">Try Now</a>
