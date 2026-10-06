@@ -75,7 +75,7 @@ Distributed under the Apache License. See `LICENSE` for more information.
 
 
 [release-shield]: https://img.shields.io/github/v/release/tuan6100/Bioelectrical-Signals-Labeling?include_prereleases&style=plastic&logoColor=green
-[release-url]: https://github.com/tuan6100/Bioelectrical-Signals-Labeling/releases/tag/v1.3.4-beta
+[release-url]: https://github.com/tuan6100/Bioelectrical-Signals-Labeling/releases/tag/v1.3.4
 [statistics-shield]: https://img.shields.io/github/downloads/tuan6100/Bioelectrical-Signals-Labeling/latest/total
 [statistics-url]: https://tooomm.github.io/github-release-stats/?username=tuan6100&repository=Bioelectrical-Signals-Labeling
 [product-screenshot]: public/screenshot/demo.png
