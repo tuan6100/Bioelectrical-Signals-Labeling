@@ -18,6 +18,47 @@ import { getInputFileName } from "../query/session.query.js";
 
 export function processAndPersistData(inputFileName, data, contentHash) {
     return asTransaction(function (data, contentHash) {
+        if (data && data._isNative) {
+            let patientId = data.metadata.patientId
+            const firstName = data.metadata.firstName
+            const gender = data.metadata.gender || 'F'
+            patientId = insertPatient(patientId, firstName, gender)
+            const measurementType = data.metadata.measurementType || "UNKNOWN"
+            const startTime = data.metadata.startTime
+            const endTime = data.metadata.endTime
+
+            let existingSessionId = Session.findSessionIdByInputFileName(inputFileName)
+            if (existingSessionId) {
+                Channel.deleteBySessionId(existingSessionId)
+                const channels = data.channels.map(c => new Channel(
+                    null,
+                    existingSessionId,
+                    c.channelNumber,
+                    c.dataType,
+                    c.rawSamplesJson,
+                    c.samplingFrequencyKhz,
+                    c.subsampledKhz,
+                    c.durationMs
+                ))
+                Channel.insertBatch(channels)
+                return existingSessionId
+            }
+
+            const sessionId = insertSession(patientId, measurementType, startTime, endTime, inputFileName, contentHash)
+            const channels = data.channels.map(c => new Channel(
+                null,
+                sessionId,
+                c.channelNumber,
+                c.dataType,
+                c.rawSamplesJson,
+                c.samplingFrequencyKhz,
+                c.subsampledKhz,
+                c.durationMs
+            ))
+            Channel.insertBatch(channels)
+            return sessionId
+        }
+
         let patientId = findKeyValue(data, 'Patient ID')
         const firstName = findKeyValue(data, 'First Name')
         const gender = findKeyValue(data, 'Gender')?.toString()?.toUpperCase().startsWith('M')  ? 'M' : 'F'

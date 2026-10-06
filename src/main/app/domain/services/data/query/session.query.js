@@ -1,5 +1,6 @@
 import Channel from "../../../../persistence/dao/channel.dao.js";
 import Session from "../../../../persistence/dao/session.dao.js";
+import { buildSignalPoints, isNativeAvailable } from "../../../../native/index.js";
 
 export function getDefaultSession(sessionId) {
     const session =  Session.findAllRelatedById(sessionId)
@@ -28,38 +29,51 @@ export function getChannelSignal(channelId) {
     if (!rows || rows.length === 0) return null
     const first = rows[0]
     const raw = first.raw_samples_uv
-    let samplesArr = []
-    try {
-        if (typeof raw === 'string') {
-            const cleaned = raw.trim().replace(/^\uFEFF/, "")
-            let parsed = JSON.parse(cleaned)
-            if (typeof parsed === 'string') {
-                parsed = JSON.parse(parsed)
-            }
-            samplesArr = Array.isArray(parsed) ? parsed : []
-        } else if (Array.isArray(raw)) {
-            samplesArr = raw
-        }
-    } catch (e) {
-        throw new Error(`Failed to parse channel samples for channelId=${channelId}: ${e.message}`)
-    }
 
     const freqKHz = first.subsampled_khz ?? first.sampling_frequency_khz
     let freqHz = (freqKHz ?? 0) * 1000
     let durationMs = first.duration_ms
-    if ((!freqHz || freqHz <= 0) && durationMs && samplesArr.length > 1) {
-        const dt = durationMs / samplesArr.length
-        freqHz = 1000 / dt
-    }
-    if (!durationMs && freqHz && samplesArr.length > 0) {
-        durationMs = (samplesArr.length / freqHz) * 1000
+
+    let timeSeries = []
+    if (isNativeAvailable && typeof raw === 'string') {
+        try {
+            timeSeries = buildSignalPoints(raw, freqHz, durationMs || 0)
+        } catch (err) {
+            console.warn('Native buildSignalPoints fallback to JS:', err)
+        }
     }
 
-    const dtMs = freqHz ? 1000 / freqHz : (durationMs && samplesArr.length ? durationMs / samplesArr.length : 1)
-    const timeSeries = samplesArr.map((value, index) => ({
-        time: +(index * dtMs).toFixed(3),
-        value: -value
-    }))
+    if (timeSeries.length === 0 && raw) {
+        let samplesArr = []
+        try {
+            if (typeof raw === 'string') {
+                const cleaned = raw.trim().replace(/^\uFEFF/, "")
+                let parsed = JSON.parse(cleaned)
+                if (typeof parsed === 'string') {
+                    parsed = JSON.parse(parsed)
+                }
+                samplesArr = Array.isArray(parsed) ? parsed : []
+            } else if (Array.isArray(raw)) {
+                samplesArr = raw
+            }
+        } catch (e) {
+            throw new Error(`Failed to parse channel samples for channelId=${channelId}: ${e.message}`)
+        }
+
+        if ((!freqHz || freqHz <= 0) && durationMs && samplesArr.length > 1) {
+            const dt = durationMs / samplesArr.length
+            freqHz = 1000 / dt
+        }
+        if (!durationMs && freqHz && samplesArr.length > 0) {
+            durationMs = (samplesArr.length / freqHz) * 1000
+        }
+
+        const dtMs = freqHz ? 1000 / freqHz : (durationMs && samplesArr.length ? durationMs / samplesArr.length : 1)
+        timeSeries = samplesArr.map((value, index) => ({
+            time: +(index * dtMs).toFixed(3),
+            value: -value
+        }))
+    }
     const seen = new Set()
     let annotations = rows.reduce((acc, r) => {
         if (!r.annotation_id) return acc

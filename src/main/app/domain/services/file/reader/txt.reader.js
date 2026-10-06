@@ -6,6 +6,9 @@ import { checkFileImported } from "../../../utils/check-imported.util.js";
 import { app, dialog } from "electron";
 import { processAndPersistData } from "../../data/command/session.command.js";
 
+import { parseNatusFile, isNativeAvailable } from "../../../../native/index.js";
+import Session from "../../../../persistence/dao/session.dao.js";
+
 function isTxt(filePath) {
     return path.extname(filePath).toLowerCase() === '.txt'
 }
@@ -14,6 +17,40 @@ export async function readFile(inputPath, outputPath) {
     if (!isTxt(inputPath)) {
         throw new Error("This file extension is not supported")
     }
+
+    const inputFileName = path.basename(inputPath)
+
+    if (isNativeAvailable) {
+        try {
+            const parsed = parseNatusFile(inputPath)
+            if (!parsed.isNatus) {
+                throw new Error("Not Natus data")
+            }
+
+            let existingSession = Session.findSessionIdByInputFileName(inputFileName)
+            if (!existingSession) {
+                existingSession = Session.findSessionIdByContentHash(parsed.contentHash)
+            }
+
+            if (existingSession) {
+                return {
+                    inputFileName: inputFileName,
+                    json: null,
+                    sessionCode: existingSession
+                }
+            }
+
+            parsed._isNative = true
+            return {
+                inputFileName: inputFileName,
+                json: parsed,
+                sessionCode: parsed.contentHash
+            }
+        } catch (e) {
+            console.warn('Native parser error, falling back to JS parser:', e)
+        }
+    }
+
     let content = await fs.readFile(inputPath, {
         encoding: 'utf-16le',
         flag: 'r'
@@ -22,7 +59,6 @@ export async function readFile(inputPath, outputPath) {
     if (!isNatusSignature(content)) {
         throw new Error("Not Natus data")
     }
-    const inputFileName = path.basename(inputPath)
     const result = checkFileImported(inputFileName, content)
     const jsonParsed = parseText(content)
     await saveJson(jsonParsed, outputPath)
