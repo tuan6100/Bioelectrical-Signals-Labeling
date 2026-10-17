@@ -1,37 +1,24 @@
 #include <napi.h>
 #include "crc32.hpp"
-#include "natus_parser.hpp"
 #include "signal_processing.hpp"
 #include "fast_number_parser.hpp"
+#include "natus_parser.hpp"
 #include <charconv>
 #include <sstream>
 
-using namespace biosignal;
 
-// CRC32 calculation
-Napi::Value CalculateCRC32(const Napi::CallbackInfo& info) {
+Napi::Value calculateCRC32(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
     if (info.Length() < 1 || !info[0].IsString()) {
         Napi::TypeError::New(env, "String expected").ThrowAsJavaScriptException();
         return env.Null();
     }
     std::string text = info[0].As<Napi::String>().Utf8Value();
-    uint32_t crc = Crc32::calculate(text);
-    return Napi::String::New(env, Crc32::toHexString(crc));
+    uint32_t crc = biosignal::Crc32::calculate(text);
+    return Napi::String::New(env, biosignal::Crc32::toHexString(crc));
 }
 
-// Natus signature validation
-Napi::Value IsNatusSignature(const Napi::CallbackInfo& info) {
-    Napi::Env env = info.Env();
-    if (info.Length() < 1 || !info[0].IsString()) {
-        return Napi::Boolean::New(env, false);
-    }
-    std::string text = info[0].As<Napi::String>().Utf8Value();
-    return Napi::Boolean::New(env, NatusParser::isNatusSignature(text));
-}
-
-// Helper to convert NatusParseResult to Napi::Object
-Napi::Object ConvertParseResultToJs(Napi::Env env, const NatusParseResult& res) {
+Napi::Object convertParseResultToJs(Napi::Env env, const biosignal::NatusParseResult& res) {
     Napi::Object out = Napi::Object::New(env);
     out.Set("isNatus", Napi::Boolean::New(env, res.isNatus));
     out.Set("contentHash", Napi::String::New(env, res.contentHash));
@@ -54,16 +41,12 @@ Napi::Object ConvertParseResultToJs(Napi::Env env, const NatusParseResult& res) 
         chObj.Set("samplingFrequencyKhz", Napi::Number::New(env, ch.samplingFrequencyKhz));
         chObj.Set("subsampledKhz", Napi::Number::New(env, ch.subsampledKhz));
         chObj.Set("durationMs", Napi::Number::New(env, ch.durationMs));
-
-        // Create Float64Array for direct high-speed JS access
         Napi::Float64Array samplesArr = Napi::Float64Array::New(env, ch.samples.size());
         double* pSamples = samplesArr.Data();
         for (size_t s = 0; s < ch.samples.size(); ++s) {
             pSamples[s] = ch.samples[s];
         }
         chObj.Set("samples", samplesArr);
-
-        // Pre-generate JSON string for direct SQLite insertion using ultra-fast std::to_chars
         std::string jsonStr;
         jsonStr.reserve(ch.samples.size() * 12 + 2);
         jsonStr.push_back('[');
@@ -75,15 +58,13 @@ Napi::Object ConvertParseResultToJs(Napi::Env env, const NatusParseResult& res) 
         }
         jsonStr.push_back(']');
         chObj.Set("rawSamplesJson", Napi::String::New(env, jsonStr));
-
         chArr.Set(i, chObj);
     }
     out.Set("channels", chArr);
     return out;
 }
 
-// Parse Natus text
-Napi::Value ParseNatusText(const Napi::CallbackInfo& info) {
+Napi::Value parseNatusText(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
     if (info.Length() < 1 || !info[0].IsString()) {
         Napi::TypeError::New(env, "String expected").ThrowAsJavaScriptException();
@@ -91,13 +72,11 @@ Napi::Value ParseNatusText(const Napi::CallbackInfo& info) {
     }
     std::string text = info[0].As<Napi::String>().Utf8Value();
     std::string fileName = info.Length() > 1 && info[1].IsString() ? info[1].As<Napi::String>().Utf8Value() : "";
-
-    NatusParseResult res = NatusParser::parseText(std::move(text), fileName);
-    return ConvertParseResultToJs(env, res);
+    biosignal::NatusParseResult res = biosignal::NatusParser::parseText(std::move(text), fileName);
+    return convertParseResultToJs(env, res);
 }
 
-// Parse Natus file directly
-Napi::Value ParseNatusFile(const Napi::CallbackInfo& info) {
+Napi::Value parseNatusFile(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
     if (info.Length() < 1 || !info[0].IsString()) {
         Napi::TypeError::New(env, "File path string expected").ThrowAsJavaScriptException();
@@ -105,23 +84,21 @@ Napi::Value ParseNatusFile(const Napi::CallbackInfo& info) {
     }
     std::string filePath = info[0].As<Napi::String>().Utf8Value();
     try {
-        NatusParseResult res = NatusParser::parseFile(filePath);
-        return ConvertParseResultToJs(env, res);
+        biosignal::NatusParseResult res = biosignal::NatusParser::parseFile(filePath);
+        return convertParseResultToJs(env, res);
     } catch (const std::exception& e) {
         Napi::Error::New(env, e.what()).ThrowAsJavaScriptException();
         return env.Null();
     }
 }
 
-// Nearest time point
-Napi::Value FindNearestTimePoint(const Napi::CallbackInfo& info) {
+Napi::Value findNearestTimePoint(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
     if (info.Length() < 2 || !info[0].IsNumber()) {
         Napi::TypeError::New(env, "Expected timeMs and timeSeries").ThrowAsJavaScriptException();
         return env.Null();
     }
     double timeMs = info[0].As<Napi::Number>().DoubleValue();
-
     std::vector<double> timeSeries;
     if (info[1].IsTypedArray()) {
         Napi::TypedArray typedArr = info[1].As<Napi::TypedArray>();
@@ -139,13 +116,11 @@ Napi::Value FindNearestTimePoint(const Napi::CallbackInfo& info) {
     } else {
         return env.Null();
     }
-
-    double res = SignalProcessing::findNearestTimePoint(timeMs, timeSeries);
+    double res = biosignal::SignalProcessing::findNearestTimePoint(timeMs, timeSeries);
     return Napi::Number::New(env, res);
 }
 
-// Generate time series
-Napi::Value GenerateTimeSeries(const Napi::CallbackInfo& info) {
+Napi::Value generateTimeSeries(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
     if (info.Length() < 2 || !info[0].IsNumber() || !info[1].IsNumber()) {
         Napi::TypeError::New(env, "Expected subsampledKhz and durationMs").ThrowAsJavaScriptException();
@@ -153,8 +128,7 @@ Napi::Value GenerateTimeSeries(const Napi::CallbackInfo& info) {
     }
     double subsampledKhz = info[0].As<Napi::Number>().DoubleValue();
     double durationMs = info[1].As<Napi::Number>().DoubleValue();
-
-    std::vector<double> ts = SignalProcessing::generateTimeSeries(subsampledKhz, durationMs);
+    std::vector<double> ts = biosignal::SignalProcessing::generateTimeSeries(subsampledKhz, durationMs);
     Napi::Float64Array out = Napi::Float64Array::New(env, ts.size());
     double* pOut = out.Data();
     for (size_t i = 0; i < ts.size(); ++i) {
@@ -163,18 +137,16 @@ Napi::Value GenerateTimeSeries(const Napi::CallbackInfo& info) {
     return out;
 }
 
-// Build inverted signal points with timestamps: [{ time, value }, ...]
-Napi::Value BuildSignalPoints(const Napi::CallbackInfo& info) {
+Napi::Value buildSignalPoints(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
     if (info.Length() < 3) {
         Napi::TypeError::New(env, "Expected rawSamples, freqHz, durationMs").ThrowAsJavaScriptException();
         return env.Null();
     }
-
     std::vector<double> samples;
     if (info[0].IsString()) {
         std::string rawStr = info[0].As<Napi::String>().Utf8Value();
-        samples = FastNumberParser::parseSamples(rawStr, 1.0);
+        samples = biosignal::FastNumberParser::parseSamples(rawStr, 1.0);
     } else if (info[0].IsTypedArray()) {
         Napi::Float64Array f64 = info[0].As<Napi::Float64Array>();
         samples.resize(f64.ElementLength());
@@ -189,10 +161,7 @@ Napi::Value BuildSignalPoints(const Napi::CallbackInfo& info) {
 
     double freqHz = info[1].IsNumber() ? info[1].As<Napi::Number>().DoubleValue() : 0.0;
     double durationMs = info[2].IsNumber() ? info[2].As<Napi::Number>().DoubleValue() : 0.0;
-
-    auto points = SignalProcessing::buildSignalPoints(samples, freqHz, durationMs);
-
-    // Fast JSON batch creation
+    auto points = biosignal::SignalProcessing::buildSignalPoints(samples, freqHz, durationMs);
     std::string json;
     json.reserve(points.size() * 32 + 2);
     json.push_back('[');
@@ -213,15 +182,14 @@ Napi::Value BuildSignalPoints(const Napi::CallbackInfo& info) {
     return jsonParse.Call({ Napi::String::New(env, json) });
 }
 
-Napi::Object Init(Napi::Env env, Napi::Object exports) {
-    exports.Set("calculateCRC32", Napi::Function::New(env, CalculateCRC32));
-    exports.Set("isNatusSignature", Napi::Function::New(env, IsNatusSignature));
-    exports.Set("parseNatusText", Napi::Function::New(env, ParseNatusText));
-    exports.Set("parseNatusFile", Napi::Function::New(env, ParseNatusFile));
-    exports.Set("findNearestTimePoint", Napi::Function::New(env, FindNearestTimePoint));
-    exports.Set("generateTimeSeries", Napi::Function::New(env, GenerateTimeSeries));
-    exports.Set("buildSignalPoints", Napi::Function::New(env, BuildSignalPoints));
+Napi::Object init(Napi::Env env, Napi::Object exports) {
+    exports.Set("calculateCRC32", Napi::Function::New(env, calculateCRC32));
+    exports.Set("parseNatusText", Napi::Function::New(env, parseNatusText));
+    exports.Set("parseNatusFile", Napi::Function::New(env, parseNatusFile));
+    exports.Set("findNearestTimePoint", Napi::Function::New(env, findNearestTimePoint));
+    exports.Set("generateTimeSeries", Napi::Function::New(env, generateTimeSeries));
+    exports.Set("buildSignalPoints", Napi::Function::New(env, buildSignalPoints));
     return exports;
 }
 
-NODE_API_MODULE(biosignal_native, Init)
+NODE_API_MODULE(biosignal_native, init)

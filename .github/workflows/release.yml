@@ -60,15 +60,12 @@ jobs:
         env:
           CI: true
 
-      - name: Build native module
-        run: npm run build:native
-
       - name: Lint
         if: hashFiles('**/eslint.config.*', '**/.eslintrc*') != ''
         run: npm run lint
 
       - name: Run tests
-        run: npm run test:native
+        run: npm run test
         env:
           CI: true
 

@@ -1,11 +1,12 @@
 {
   "database": {
-    "version": 122,
+    "version": 123,
     "migration": {
       "require": true
     }
   },
   "update": {
     "force": false
-  }
+  },
+  "native": true
 }

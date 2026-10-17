@@ -99,13 +99,16 @@ const migrateTableList = [
 ].filter(mig => mig !== null);
 
 export function migrate113to120(db) {
+    if (db.getVersion() !== 113 ) {
+        return
+    }
     try {
         db.pragma('foreign_keys = OFF')
         db.transaction(() => {
             migrateTableList.forEach(migrationSQL => {
                 db.exec(migrationSQL);
             })
-            db.pragma(`user_version = ${appConfig.get('database.version')}`);
+            db.setVersion(appConfig.get('database.version'))
         })();
     } finally {
         db.pragma('foreign_keys = ON')
