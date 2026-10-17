@@ -64,6 +64,7 @@ This process will take a considerable amount of time because native modules need
 ```shell
 npm run dev:app
 ```
+
 If you want to create an executable file (like .exe), please run "npm run build:${your-os}"  
 
 ### Contributing

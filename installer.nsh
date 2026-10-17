@@ -24,7 +24,6 @@ Function un.RemoveAppDataPageLeave
   DetailPrint "Checkbox state saved: $ShouldRemoveAppData"
 FunctionEnd
 
-; Đã xóa các lệnh !insertmacro dư thừa. Chỉ giữ lại trang Custom để hỏi xóa AppData
 UninstPage custom un.RemoveAppDataPage un.RemoveAppDataPageLeave
 
 Section "Uninstall"
@@ -45,7 +44,6 @@ Section "Uninstall"
 
         DetailPrint "AppData removal done."
     ${EndIf}
-    ; Khối ${Else} in ra thông báo "Keeping AppData..." đã bị xóa bỏ
 
     Delete "$INSTDIR\*.*"
     RMDir /r "$INSTDIR"
