@@ -6,7 +6,7 @@ export function initSchema() {
 
 
 export async function migrateSchema() {
-    const currentVersion = db.pragma('user_version', { simple: true })
+    const currentVersion = db.getVersion()
     const migrationEnabled = appConfig.get('database.migration.require', false)
     const lastestVersion = appConfig.get("database.version", 0)
     const shouldMigrate = migrationEnabled && (currentVersion < lastestVersion);
@@ -18,6 +18,5 @@ export async function migrateSchema() {
 }
 
 export function isDbInitialized() {
-    const v = db.pragma('user_version', { simple: true })
-    return v > 0
+    return db.getVersion() > 0
 }

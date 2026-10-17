@@ -6,7 +6,7 @@ import { checkFileImported } from "../../../utils/check-imported.util.js";
 import { app, dialog } from "electron";
 import { processAndPersistData } from "../../data/command/session.command.js";
 
-import { parseNatusFile, isNativeAvailable } from "../../../../native/index.js";
+import { parseNatusFile, isNativeAvailable } from "../../../../binding/index.js";
 import Session from "../../../../persistence/dao/session.dao.js";
 
 function isTxt(filePath) {
@@ -17,21 +17,21 @@ export async function readFile(inputPath, outputPath) {
     if (!isTxt(inputPath)) {
         throw new Error("This file extension is not supported")
     }
-
     const inputFileName = path.basename(inputPath)
 
     if (isNativeAvailable) {
+        const start = performance.now()
         try {
             const parsed = parseNatusFile(inputPath)
+            const end = performance.now();
+            console.debug(`Time taken to execute native readFile function is ${end - start}ms.`)
             if (!parsed.isNatus) {
                 throw new Error("Not Natus data")
             }
-
             let existingSession = Session.findSessionIdByInputFileName(inputFileName)
             if (!existingSession) {
                 existingSession = Session.findSessionIdByContentHash(parsed.contentHash)
             }
-
             if (existingSession) {
                 return {
                     inputFileName: inputFileName,
@@ -39,7 +39,6 @@ export async function readFile(inputPath, outputPath) {
                     sessionCode: existingSession
                 }
             }
-
             parsed._isNative = true
             return {
                 inputFileName: inputFileName,
@@ -78,6 +77,7 @@ function parseValue(val) {
 }
 
 function parseText(text) {
+    const start = performance.now()
     text = text.replace(/\/\r?\n/g, ",");
     const lines = text.split(/\r?\n/);
     const result = {};
@@ -108,6 +108,8 @@ function parseText(text) {
             else result[key.trim()] = parseValue(value.trim());
         }
     }
+    const end = performance.now();
+    console.debug(`Time taken to execute NodeJS parseText function is ${end - start}ms.`)
     return result;
 }
 

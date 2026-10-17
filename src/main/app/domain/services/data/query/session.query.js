@@ -1,6 +1,6 @@
 import Channel from "../../../../persistence/dao/channel.dao.js";
 import Session from "../../../../persistence/dao/session.dao.js";
-import { buildSignalPoints, isNativeAvailable } from "../../../../native/index.js";
+import { buildSignalPoints, isNativeAvailable } from "../../../../binding/index.js";
 
 export function getDefaultSession(sessionId) {
     const session =  Session.findAllRelatedById(sessionId)
@@ -37,13 +37,17 @@ export function getChannelSignal(channelId) {
     let timeSeries = []
     if (isNativeAvailable && typeof raw === 'string') {
         try {
+            const start = performance.now()
             timeSeries = buildSignalPoints(raw, freqHz, durationMs || 0)
+            const end = performance.now();
+            console.debug(`Time taken to execute native timeSeries calculation is ${end - start}ms.`)
         } catch (err) {
             console.warn('Native buildSignalPoints fallback to JS:', err)
         }
     }
 
     if (timeSeries.length === 0 && raw) {
+        const start = performance.now()
         let samplesArr = []
         try {
             if (typeof raw === 'string') {
@@ -73,6 +77,8 @@ export function getChannelSignal(channelId) {
             time: +(index * dtMs).toFixed(3),
             value: -value
         }))
+        const end = performance.now();
+        console.debug(`Time taken to execute NodeJS timeSeries calculation is ${end - start}ms.`)
     }
     const seen = new Set()
     let annotations = rows.reduce((acc, r) => {

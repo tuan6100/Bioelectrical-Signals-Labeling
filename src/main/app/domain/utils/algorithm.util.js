@@ -1,13 +1,17 @@
-import { findNearestTimePoint as nativeFindNearestTimePoint, isNativeAvailable } from "../../native/index.js";
+import { findNearestTimePoint as nativeFindNearestTimePoint, isNativeAvailable } from "../../binding/index.js";
 
 export function findNearestTimePoint(timeMs, timeSeries) {
-    if (!timeSeries || timeSeries.length === 0) return null;
-    if (timeSeries.length === 1) return parseFloat(timeSeries[0].toFixed(3));
-
     if (isNativeAvailable) {
-        return nativeFindNearestTimePoint(timeMs, timeSeries);
+        const start = performance.now()
+        const result = nativeFindNearestTimePoint(timeMs, timeSeries)
+        const end = performance.now();
+        console.debug(`Time taken to execute native findNearestTimePoint function is ${end - start}ms.`)
+        return result;
     }
-
+    const start = performance.now()
+    if (!timeSeries || timeSeries.length === 0) {
+        return null;
+    }
     let left = 0;
     let right = timeSeries.length - 1;
     while (left < right) {
@@ -18,14 +22,11 @@ export function findNearestTimePoint(timeMs, timeSeries) {
             right = mid;
         }
     }
-    let result;
-    if (left > 0) {
-        const distLeft = Math.abs(timeSeries[left - 1] - timeMs);
-        const distRight = Math.abs(timeSeries[left] - timeMs);
-        result = distLeft <= distRight ? timeSeries[left - 1] : timeSeries[left];
-    } else {
-        result = timeSeries[left];
-    }
-
-    return parseFloat(result.toFixed(3));
-}
+    let res = left > 0 ? (Math.abs(timeSeries[left - 1] - timeMs) <= Math.abs(timeSeries[left] - timeMs) ?
+        timeSeries[left - 1] : timeSeries[left]) :
+        timeSeries[left];
+    const result =  parseFloat(res.toFixed(3));
+    const end = performance.now();
+    console.debug(`Time taken to execute nodejs findNearestTimePoint function is ${end - start}ms.`)
+    return result;
+}
