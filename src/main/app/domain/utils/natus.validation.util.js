@@ -1,3 +1,5 @@
+import { isNatusSignature as nativeIsNatusSignature, isNativeAvailable } from "../../native/index.js";
+
 export function isNatusSignature(fileContent) {
     if (!fileContent || typeof fileContent !== 'string') {
         return false;
