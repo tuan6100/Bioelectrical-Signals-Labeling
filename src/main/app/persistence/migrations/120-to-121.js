@@ -4,10 +4,13 @@ const newLabels = [
     "Bình thường",
     "Nghi ngờ",
 ]
-export function migrate120to121(db) {
+export function migrate122to123(db) {
+    if (db.getVersion !== 122) {
+        return
+    }
     const stmt = db.prepare('INSERT OR IGNORE INTO labels (name) VALUES (?)')
     for (const label of newLabels) {
         stmt.run(label)
     }
-    db.pragma(`user_version = ${appConfig.get('database.version')}`);
+    db.setVersion(appConfig.get('database.version'))
 }

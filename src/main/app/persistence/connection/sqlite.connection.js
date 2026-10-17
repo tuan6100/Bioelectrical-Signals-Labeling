@@ -25,6 +25,14 @@ export const db = new Database(dbFileName, {
 db.pragma('journal_mode = WAL')
 db.pragma('foreign_keys = ON')
 
+db.getVersion = function() {
+    return parseInt(db.pragma('user_version', { simple: true }))
+}
+
+db.setVersion = function(version) {
+    db.pragma(`user_version = ${version}`);
+}
+
 const ddl = `
     CREATE TABLE IF NOT EXISTS patients (
         patient_id TEXT PRIMARY KEY NOT NULL,
@@ -119,18 +127,18 @@ db.init = function() {
 }
 
 db.migrate = async function migrate() {
-    const current = db.pragma('user_version', { simple: true })
+    const currentVersion = db.getVersion()
     const targetVersion = parseInt(appConfig.get('database.version', 0))
-    console.log(`Current DB version: ${current}, Lastest DB version: ${targetVersion}, ${current === targetVersion ? 'Skipping migrations.' : 'Running migrations...'}`)
-    if (current === targetVersion) return
-    if (current > targetVersion) {
-        throw new Error(`DB version ${current} > app version ${targetVersion}`)
+    console.log(`Current DB version: ${currentVersion}, Lastest DB version: ${targetVersion}, ${currentVersion === targetVersion ? 'Skipping migrations.' : 'Running migrations...'}`)
+    if (currentVersion === targetVersion) return
+    if (currentVersion > targetVersion) {
+        throw new Error(`DB version ${currentVersion} > app version ${targetVersion}`)
     }
     const __filename = fileURLToPath(import.meta.url);
     const __dirname = path.dirname(__filename);
     const migrationsDir = path.join(__dirname, '..', 'migrations')
     console.log(`Migrations directory: ${migrationsDir}`)
-    let v = current
+    let v = currentVersion
     while (v < targetVersion) {
         const next = findNextVersion(migrationsDir, v)
         if (!next) {
@@ -148,7 +156,7 @@ db.migrate = async function migrate() {
         migrateFn(db)
         v = next
     }
-    console.log(`Migration completed. DB is now at version ${db.pragma('user_version', { simple: true })}`)
+    console.log(`Migration completed. DB is now at version ${db.getVersion()}`)
 }
 
 function findNextVersion(dir, current) {
@@ -166,4 +174,3 @@ function findNextVersion(dir, current) {
     console.log(`Candidates for migration from ${current}:`, candidates)
     return candidates.length ? candidates[0].to : null
 }
-

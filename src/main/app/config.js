@@ -1,12 +1,12 @@
 import { readFileSync } from 'fs';
 import path from 'node:path';
-import {app} from "electron";
+import {app} from 'electron';
 
 let configData = {}
 
 try {
     const configPath = app.isPackaged
-        ? path.join(process.resourcesPath, 'config', 'production.json')
+        ? path.join(process.resourcesPath, 'config', 'prod.json')
         : path.join(process.cwd(), 'config', 'dev.json');
     console.log('Loading config from:', configPath);
     const data = readFileSync(configPath, 'utf8');
@@ -33,6 +33,7 @@ export const appConfig = {
         }
         return value;
     },
+
     has: (key) => {
         const keys = key. split('.');
         let value = configData;
