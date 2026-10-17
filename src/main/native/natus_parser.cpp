@@ -1,11 +1,13 @@
 #include "natus_parser.hpp"
 #include "fast_number_parser.hpp"
 #include "crc32.hpp"
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <regex>
 #include <algorithm>
 #include <map>
+#include <stdexcept>
 
 namespace biosignal {
 
@@ -28,7 +30,6 @@ std::string NatusParser::trim(std::string_view s) {
 
 bool NatusParser::isNatusSignature(const std::string& text) {
     if (text.empty()) return false;
-    // Check first ~5 lines
     size_t count = 0;
     size_t pos = 0;
     while (pos < text.size() && count < 5) {
@@ -48,31 +49,38 @@ bool NatusParser::isNatusSignature(const std::string& text) {
 }
 
 std::string NatusParser::readUtf16leFile(const std::string& filePath) {
-    std::ifstream file(filePath, std::ios::binary | std::ios::ate);
-    if (!file.is_open()) {
-        throw std::runtime_error("Cannot open file: " + filePath);
+    std::u8string utf8Path;
+    utf8Path.reserve(filePath.size());
+    for (unsigned char c : filePath) {
+        utf8Path.push_back(static_cast<char8_t>(c));
     }
-
+    std::filesystem::path p(utf8Path);
+    if (!std::filesystem::exists(p)) {
+        throw std::runtime_error("Cannot open file: " + filePath + " (Reason: File does not exist)");
+    }
+    if (std::filesystem::is_directory(p)) {
+        throw std::runtime_error("Cannot open file: " + filePath + " (Reason: Path is a directory, not a file)");
+    }
+    std::ifstream file(p, std::ios::binary | std::ios::ate);
+    if (!file.is_open()) {
+        std::string reason = std::strerror(errno);
+        throw std::runtime_error("Cannot open file: " + filePath + " (Reason: " + reason + " / Check file permissions or lock status)");
+    }
     std::streamsize fileSize = file.tellg();
     if (fileSize < 2) {
         return "";
     }
-
     std::vector<uint8_t> buffer(fileSize);
     file.seekg(0, std::ios::beg);
     file.read(reinterpret_cast<char*>(buffer.data()), fileSize);
-
     size_t startOffset = 0;
     if (buffer[0] == 0xFF && buffer[1] == 0xFE) {
         startOffset = 2;
     }
-
     std::string utf8;
     utf8.reserve(fileSize / 2 + 64);
-
     for (size_t i = startOffset; i + 1 < buffer.size(); i += 2) {
         uint16_t codeUnit = static_cast<uint16_t>(buffer[i]) |  (static_cast<uint16_t>(buffer[i + 1]) << 8);
-
         if (codeUnit < 0x80) {
             utf8.push_back(static_cast<char>(codeUnit));
         } else if (codeUnit < 0x800) {
@@ -96,7 +104,6 @@ std::string NatusParser::readUtf16leFile(const std::string& filePath) {
             utf8.push_back(static_cast<char>(0x80 | (codeUnit & 0x3F)));
         }
     }
-
     return utf8;
 }
 

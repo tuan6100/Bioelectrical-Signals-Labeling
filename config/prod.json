@@ -1,8 +1,9 @@
 {
   "database": {
-    "version": 122,
+    "version": 123,
     "migration": {
       "require": true
     }
-  }
+  },
+  "native": true
 }
